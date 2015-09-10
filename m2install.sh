@@ -25,6 +25,7 @@ DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=root
 DB_NAME=$(echo "$CURRENT_DIR_NAME" | sed "s/[^a-zA-Z0-9_]//g" | tr '[A-Z]' '[a-z]');
+USE_SAMPLE_DATA=
 
 # Run Command
 function runCommand()
@@ -58,4 +59,17 @@ CMD="php ./magento setup:install --base-url=${HOST} \
 --admin-user=admin --admin-password=123123q --language=en_US \
 --currency=USD --timezone=America/Chicago --use-rewrites=1"
 runCommand
+CMD="cd ../"
+runCommand
 
+if [ "${USE_SAMPLE_DATA}" ]
+then
+    CMD="composer config repositories.magento composer http://packages.magento.com"
+    runCommand
+    CMD="composer require magento/sample-data:~1.0.0-beta"
+    runCommand
+    CMD="php bin/magento setup:upgrade"
+    runCommand
+    CMD="php -dmemory_limit=2G bin/magento sampledata:install admin"
+    runCommand
+fi
