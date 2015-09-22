@@ -26,6 +26,7 @@ DB_USER=root
 DB_PASSWORD=root
 DB_NAME=$(echo "$CURRENT_DIR_NAME" | sed "s/[^a-zA-Z0-9_]//g" | tr '[A-Z]' '[a-z]');
 USE_SAMPLE_DATA=
+MAGENTO_EE_PATH=
 
 # Run Command
 function runCommand()
@@ -38,8 +39,15 @@ function runCommand()
     eval $CMD;
 }
 
-CMD="mysqladmin -h${DB_HOST} -u${DB_USER} -p${DB_PASSWORD} create ${DB_NAME}"
-runCommand
+if [ "${MAGENTO_EE_PATH}" ]
+then
+    CMD="php ${MAGENTO_EE_PATH}/dev/tools/build-ee.php --ce-source $(pwd) --ee-source=${MAGENTO_EE_PATH}"
+    runCommand
+    CMD="cp ${MAGENTO_EE_PATH}/composer.json $(pwd)/"
+    runCommand
+    CMD="rm -rf $(pwd)/composer.lock"
+    runCommand
+fi
 
 CMD="chmod -R 0777 ./var ./pub/media ./pub/static ./app/etc"
 runCommand
@@ -52,6 +60,14 @@ runCommand
 
 CMD="php ./magento setup:uninstall"
 runCommand
+
+CMD="mysqladmin -h${DB_HOST} -u${DB_USER} -p${DB_PASSWORD} drop ${DB_NAME}"
+runCommand
+
+CMD="mysqladmin -h${DB_HOST} -u${DB_USER} -p${DB_PASSWORD} create ${DB_NAME}"
+runCommand
+
+
 
 CMD="php ./magento setup:install --base-url=${HOST} \
 --db-host=${DB_HOST} --db-name=${DB_NAME} --db-user=${DB_USER} --db-password=${DB_PASSWORD} \
@@ -73,3 +89,4 @@ then
     CMD="php -dmemory_limit=2G bin/magento sampledata:install admin"
     runCommand
 fi
+
