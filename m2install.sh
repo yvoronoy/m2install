@@ -20,11 +20,13 @@
 
 VERBOSE=1
 CURRENT_DIR_NAME=$(basename $(pwd))
-HOST=http://mage2.dev/${CURRENT_DIR_NAME}/
+SERVER_NAME_DOCUMENT_ROOT=http://mage2.dev/
+BASE_PATH=${CURRENT_DIR_NAME}
+BASE_URL=${SERVER_NAME_DOCUMENT_ROOT}${BASE_PATH}/
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=root
-DB_NAME=$(echo "$CURRENT_DIR_NAME" | sed "s/[^a-zA-Z0-9_]//g" | tr '[A-Z]' '[a-z]');
+DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed "s/[^a-zA-Z0-9_]//g" | tr '[A-Z]' '[a-z]');
 USE_SAMPLE_DATA=
 MAGENTO_EE_PATH=
 
@@ -69,12 +71,17 @@ runCommand
 
 
 
-CMD="php ./magento setup:install --base-url=${HOST} \
---db-host=${DB_HOST} --db-name=${DB_NAME} --db-user=${DB_USER} --db-password=${DB_PASSWORD} \
+CMD="php ./magento setup:install --base-url=${BASE_URL} \
+--db-host=${DB_HOST} --db-name=${DB_NAME} --db-user=${DB_USER}  \
 --admin-firstname=Magento --admin-lastname=User --admin-email=mail@magento.com \
 --admin-user=admin --admin-password=123123q --language=en_US \
 --currency=USD --timezone=America/Chicago --use-rewrites=1"
+if [ "${DB_PASSWORD}" ]
+then
+    CMD="${CMD} --db-password=${DB_PASSWORD}"
+fi
 runCommand
+
 CMD="cd ../"
 runCommand
 
