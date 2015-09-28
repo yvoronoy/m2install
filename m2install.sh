@@ -25,10 +25,86 @@ BASE_PATH=${CURRENT_DIR_NAME}
 BASE_URL=${SERVER_NAME_DOCUMENT_ROOT}${BASE_PATH}/
 DB_HOST=localhost
 DB_USER=root
-DB_PASSWORD=root
-DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed "s/[^a-zA-Z0-9_]//g" | tr '[A-Z]' '[a-z]');
+DB_PASSWORD=
+DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[A-Z]' '[a-z]');
 USE_SAMPLE_DATA=
 MAGENTO_EE_PATH=
+
+pwd
+
+function askValue()
+{
+    MESSAGE=$1
+    READ_DEFAULT_VALUE=$2
+    READVALUE=
+    read -r -p "${MESSAGE} (default: ${READ_DEFAULT_VALUE}): " READVALUE
+    if [ -z "${READVALUE}" ] && [ "${READ_DEFAULT_VALUE}" ]
+    then
+        READVALUE=${READ_DEFAULT_VALUE}
+    fi
+}
+
+function printLine()
+{
+    printf '%30s\n' | tr ' ' -
+}
+
+asksure() {
+    echo -n "Are you sure (Y/N)? "
+    while read -r -n 1 -s answer; do
+        if [[ $answer = [YyNn] ]]; then
+            [[ $answer = [Yy] ]] && retval=0
+            [[ $answer = [Nn] ]] && retval=1
+            break
+        fi
+    done
+    echo ""
+    return $retval
+}
+
+function wizard()
+{
+    askValue "Enter Server Name of Document Root" ${SERVER_NAME_DOCUMENT_ROOT}
+    SERVER_NAME_DOCUMENT_ROOT=${READVALUE}
+    askValue "Enter Base Path" ${BASE_PATH}
+    BASE_PATH=${READVALUE}
+    BASE_PATH=$(echo ${BASE_PATH} | sed "s/^\///g" | sed "s/\/$//g" );
+    askValue "Enter DB Host" ${DB_HOST}
+    DB_HOST=${READVALUE}
+    askValue "Enter DB User" ${DB_USER}
+    DB_USER=${READVALUE}
+    askValue "Enter DB Password" ${DB_PASSWORD}
+    DB_PASSWORD=${READVALUE}
+    askValue "Enter DB Name" ${DB_NAME}
+    DB_NAME=${READVALUE}
+    askValue "Install Sample Data"
+    USE_SAMPLE_DATA=${READVALUE}
+    askValue "Enter Absoulute Path to Enterprise Edition" ${DB_PASSWORD}
+    MAGENTO_EE_PATH=${READVALUE}
+
+    printLine
+
+    BASE_URL=${SERVER_NAME_DOCUMENT_ROOT}${BASE_PATH}/
+    echo "BASE URL: ${BASE_URL}"
+    echo "DB PARAM: ${DB_USER}@${DB_HOST}"
+    echo "DB NAME: ${DB_NAME}"
+    if [ "${USE_SAMPLE_DATA}" ]
+    then
+        echo "Sample Data will be installed"
+    fi
+    if [ "${MAGENTO_EE_PATH}" ]
+    then
+        echo "Magento EE will be installed"
+        echo "Magento EE Path: ${MAGENTO_EE_PATH}"
+    fi
+    if asksure;
+    then
+        printLine
+    else
+        exit 1;
+    fi
+}
+wizard
 
 # Run Command
 function runCommand()
