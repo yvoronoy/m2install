@@ -26,27 +26,36 @@ BASE_URL=${SERVER_NAME_DOCUMENT_ROOT}${BASE_PATH}/
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=
-DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[A-Z]' '[a-z]');
+DB_NAME=
 USE_SAMPLE_DATA=
 MAGENTO_EE_PATH=
-
-pwd
+CONFIG_PATH=~/.m2install.conf
 
 function askValue()
 {
     MESSAGE=$1
     READ_DEFAULT_VALUE=$2
     READVALUE=
-    read -r -p "${MESSAGE} (default: ${READ_DEFAULT_VALUE}): " READVALUE
+    if [ "${READ_DEFAULT_VALUE}" ]
+    then
+        MESSAGE="${MESSAGE} (default: ${READ_DEFAULT_VALUE})"
+    fi
+    MESSAGE="${MESSAGE}: "
+    read -r -p "$MESSAGE" READVALUE
     if [ -z "${READVALUE}" ] && [ "${READ_DEFAULT_VALUE}" ]
     then
         READVALUE=${READ_DEFAULT_VALUE}
     fi
 }
 
+function generateDBName()
+{
+    DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[A-Z]' '[a-z]');
+}
+
 function printLine()
 {
-    printf '%30s\n' | tr ' ' -
+    printf '%50s\n' | tr ' ' -
 }
 
 asksure() {
@@ -79,7 +88,7 @@ function wizard()
     DB_NAME=${READVALUE}
     askValue "Install Sample Data"
     USE_SAMPLE_DATA=${READVALUE}
-    askValue "Enter Absoulute Path to Enterprise Edition" ${DB_PASSWORD}
+    askValue "Enter Absoulute Path to Enterprise Edition"
     MAGENTO_EE_PATH=${READVALUE}
 
     printLine
@@ -104,7 +113,6 @@ function wizard()
         exit 1;
     fi
 }
-wizard
 
 # Run Command
 function runCommand()
@@ -116,6 +124,16 @@ function runCommand()
 
     eval $CMD;
 }
+
+################################################################################
+
+pwd
+if [ -f "$CONFIG_PATH" ]
+then
+    source ${CONFIG_PATH}
+fi
+generateDBName
+wizard
 
 if [ "${MAGENTO_EE_PATH}" ]
 then
@@ -139,15 +157,23 @@ runCommand
 CMD="php ./magento setup:uninstall"
 runCommand
 
-CMD="mysqladmin -h${DB_HOST} -u${DB_USER} -p${DB_PASSWORD} drop ${DB_NAME}"
+CMD="mysqladmin -h${DB_HOST} -u${DB_USER}"
+if [ "${DB_PASSWORD}" ]
+then
+    CMD="${CMD} -p${DB_PASSWORD}"
+fi
+CMD="${CMD} drop ${DB_NAME}"
 runCommand
 
-CMD="mysqladmin -h${DB_HOST} -u${DB_USER} -p${DB_PASSWORD} create ${DB_NAME}"
+CMD="mysqladmin -h${DB_HOST} -u${DB_USER}"
+if [ "${DB_PASSWORD}" ]
+then
+    CMD="${CMD} -p${DB_PASSWORD}"
+fi
+CMD="${CMD} create ${DB_NAME}"
 runCommand
 
-
-
-CMD="php ./magento setup:install --base-url=${BASE_URL} \
+CMD="php -d memory_limit=2G ./magento setup:install --base-url=${BASE_URL} \
 --db-host=${DB_HOST} --db-name=${DB_NAME} --db-user=${DB_USER}  \
 --admin-firstname=Magento --admin-lastname=User --admin-email=mail@magento.com \
 --admin-user=admin --admin-password=123123q --language=en_US \
@@ -172,4 +198,3 @@ then
     CMD="php -dmemory_limit=2G bin/magento sampledata:install admin"
     runCommand
 fi
-
