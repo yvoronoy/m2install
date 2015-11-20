@@ -20,9 +20,9 @@
 
 VERBOSE=1
 CURRENT_DIR_NAME=$(basename $(pwd))
-SERVER_NAME_DOCUMENT_ROOT=http://mage2.dev/
+HTTP_HOST=http://mage2.dev/
 BASE_PATH=${CURRENT_DIR_NAME}
-BASE_URL=${SERVER_NAME_DOCUMENT_ROOT}${BASE_PATH}/
+BASE_URL=${HTTP_HOST}${BASE_PATH}/
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=
@@ -73,8 +73,8 @@ asksure() {
 
 function wizard()
 {
-    askValue "Enter Server Name of Document Root" ${SERVER_NAME_DOCUMENT_ROOT}
-    SERVER_NAME_DOCUMENT_ROOT=${READVALUE}
+    askValue "Enter Server Name of Document Root" ${HTTP_HOST}
+    HTTP_HOST=${READVALUE}
     askValue "Enter Base Path" ${BASE_PATH}
     BASE_PATH=${READVALUE}
     BASE_PATH=$(echo ${BASE_PATH} | sed "s/^\///g" | sed "s/\/$//g" );
@@ -93,7 +93,7 @@ function wizard()
 
     printLine
 
-    BASE_URL=${SERVER_NAME_DOCUMENT_ROOT}${BASE_PATH}/
+    BASE_URL=${HTTP_HOST}${BASE_PATH}/
     echo "BASE URL: ${BASE_URL}"
     echo "DB PARAM: ${DB_USER}@${DB_HOST}"
     echo "DB NAME: ${DB_NAME}"
