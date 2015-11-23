@@ -29,7 +29,7 @@ DB_PASSWORD=
 DB_NAME=
 USE_SAMPLE_DATA=
 MAGENTO_EE_PATH=
-CONFIG_PATH=~/.m2install.conf
+CONFIG_NAME=.m2install.conf
 
 function askValue()
 {
@@ -128,10 +128,16 @@ function runCommand()
 ################################################################################
 
 pwd
-if [ -f "$CONFIG_PATH" ]
+if [ -f "./$CONFIG_NAME" ]
 then
-    source ${CONFIG_PATH}
+    CMD="source ./$CONFIG_NAME"
+    runCommand
+elif [ -f "~/$CONFIG_NAME" ]
+then
+    CMD="source ~/$CONFIG_NAME"
+    runCommand
 fi
+
 generateDBName
 wizard
 
@@ -145,9 +151,8 @@ then
     runCommand
 fi
 
-CMD="chmod -R 0777 ./var ./pub/media ./pub/static ./app/etc"
+CMD="composer update"
 runCommand
-
 CMD="composer install"
 runCommand
 
@@ -177,11 +182,14 @@ CMD="php -d memory_limit=2G ./magento setup:install --base-url=${BASE_URL} \
 --db-host=${DB_HOST} --db-name=${DB_NAME} --db-user=${DB_USER}  \
 --admin-firstname=Magento --admin-lastname=User --admin-email=mail@magento.com \
 --admin-user=admin --admin-password=123123q --language=en_US \
---currency=USD --timezone=America/Chicago --use-rewrites=1"
+--currency=USD --timezone=America/Chicago --use-rewrites=1 --backend-frontname=admin"
 if [ "${DB_PASSWORD}" ]
 then
     CMD="${CMD} --db-password=${DB_PASSWORD}"
 fi
+runCommand
+
+CMD="php -d memory_limit=2G ./magento setup:static-content:deploy"
 runCommand
 
 CMD="cd ../"
@@ -189,12 +197,13 @@ runCommand
 
 if [ "${USE_SAMPLE_DATA}" ]
 then
-    CMD="composer config repositories.magento composer http://packages.magento.com"
+    CMD="composer update"
     runCommand
-    CMD="composer require magento/sample-data:~1.0.0-beta"
+    CMD="php -dmemory_limit=2G bin/magento sampledata:deploy"
     runCommand
-    CMD="php bin/magento setup:upgrade"
-    runCommand
-    CMD="php -dmemory_limit=2G bin/magento sampledata:install admin"
+    CMD="php -dmemory_limit=2G bin/magento setup:upgrade"
     runCommand
 fi
+
+CMD="chmod -R 0777 ./var ./pub/media ./pub/static ./app/etc"
+runCommand
