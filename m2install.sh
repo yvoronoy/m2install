@@ -132,9 +132,9 @@ if [ -f "./$CONFIG_NAME" ]
 then
     CMD="source ./$CONFIG_NAME"
     runCommand
-elif [ -f "~/$CONFIG_NAME" ]
+elif [ -f "${HOME}/$CONFIG_NAME" ]
 then
-    CMD="source ~/$CONFIG_NAME"
+    CMD="source ${HOME}/$CONFIG_NAME"
     runCommand
 fi
 
