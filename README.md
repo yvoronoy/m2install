@@ -2,7 +2,10 @@
 This script simplifies installation of Magento 2 by performing routine operations.
 
 This script is designed to be run from directory with magento.
-You can add config file to ~/.m2install.conf or current directory ./.m2install.conf
+
+You can place config file to 
+ - current directory ./.m2install.conf
+ - home directory ~/.m2install.conf 
 
 Example of config file
 ```
