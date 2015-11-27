@@ -30,6 +30,7 @@ DB_NAME=
 USE_SAMPLE_DATA=
 MAGENTO_EE_PATH=
 CONFIG_NAME=.m2install.conf
+USE_WIZARD=1
 
 function askValue()
 {
@@ -84,15 +85,17 @@ function wizard()
     DB_USER=${READVALUE}
     askValue "Enter DB Password" ${DB_PASSWORD}
     DB_PASSWORD=${READVALUE}
+    generateDBName
     askValue "Enter DB Name" ${DB_NAME}
     DB_NAME=${READVALUE}
     askValue "Install Sample Data"
     USE_SAMPLE_DATA=${READVALUE}
     askValue "Enter Absoulute Path to Enterprise Edition"
     MAGENTO_EE_PATH=${READVALUE}
+}
 
-    printLine
-
+function printConfirmation()
+{
     BASE_URL=${HTTP_HOST}${BASE_PATH}/
     echo "BASE URL: ${BASE_URL}"
     echo "DB PARAM: ${DB_USER}@${DB_HOST}"
@@ -106,11 +109,39 @@ function wizard()
         echo "Magento EE will be installed"
         echo "Magento EE Path: ${MAGENTO_EE_PATH}"
     fi
-    if asksure;
+}
+
+function showWizard()
+{
+    I=1;
+    while [ "$I" -eq 1 ]
+    do
+        if [ "$USE_WIZARD" -eq 1 ]
+        then
+            wizard
+        fi
+        printConfirmation
+        if asksure
+        then
+            I=0
+        else
+            USE_WIZARD=1
+        fi
+    done
+}
+
+function loadConfigFile()
+{
+    if [ -f "./$CONFIG_NAME" ]
     then
-        printLine
-    else
-        exit 1;
+        CMD="source ./$CONFIG_NAME"
+        runCommand
+        USE_WIZARD=0
+    elif [ -f "${HOME}/$CONFIG_NAME" ]
+    then
+        CMD="source ${HOME}/$CONFIG_NAME"
+        runCommand
+        USE_WIZARD=0
     fi
 }
 
@@ -128,18 +159,9 @@ function runCommand()
 ################################################################################
 
 pwd
-if [ -f "./$CONFIG_NAME" ]
-then
-    CMD="source ./$CONFIG_NAME"
-    runCommand
-elif [ -f "${HOME}/$CONFIG_NAME" ]
-then
-    CMD="source ${HOME}/$CONFIG_NAME"
-    runCommand
-fi
-
+loadConfigFile
 generateDBName
-wizard
+showWizard
 
 if [ "${MAGENTO_EE_PATH}" ]
 then
@@ -189,9 +211,6 @@ then
 fi
 runCommand
 
-CMD="php -d memory_limit=2G ./magento setup:static-content:deploy"
-runCommand
-
 CMD="cd ../"
 runCommand
 
@@ -205,5 +224,15 @@ then
     runCommand
 fi
 
+CMD="php -d memory_limit=2G bin/magento setup:static-content:deploy"
+runCommand
+
 CMD="chmod -R 0777 ./var ./pub/media ./pub/static ./app/etc"
 runCommand
+
+printLine
+
+echo ${BASE_URL}
+echo ${BASE_URL}admin
+echo "User: admin"
+echo "Pass: 123123q"
