@@ -132,14 +132,15 @@ function showWizard()
 
 function loadConfigFile()
 {
-    if [ -f "./$CONFIG_NAME" ]
+    NEAREST_CONFIG_FILE=`(find \`pwd\` -maxdepth 1 -name $CONFIG_NAME ;\
+        x=\`pwd\`;\
+        while [ "$x" != "/" ] ;\
+        do x=\`dirname "$x"\`;\
+            find "$x" -maxdepth 1 -name $CONFIG_NAME;\
+        done) | head -n1`
+    if [ "$NEAREST_CONFIG_FILE" ] && [ -f "$NEAREST_CONFIG_FILE" ]
     then
-        CMD="source ./$CONFIG_NAME"
-        runCommand
-        USE_WIZARD=0
-    elif [ -f "${HOME}/$CONFIG_NAME" ]
-    then
-        CMD="source ${HOME}/$CONFIG_NAME"
+        CMD="source $NEAREST_CONFIG_FILE"
         runCommand
         USE_WIZARD=0
     fi
