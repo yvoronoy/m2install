@@ -49,16 +49,6 @@ function askValue()
     fi
 }
 
-function generateDBName()
-{
-    DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[A-Z]' '[a-z]');
-}
-
-function printLine()
-{
-    printf '%50s\n' | tr ' ' -
-}
-
 asksure() {
     echo -n "Are you sure (Y/N)? "
     while read -r -n 1 -s answer; do
@@ -70,6 +60,41 @@ asksure() {
     done
     echo ""
     return $retval
+}
+
+function printLine()
+{
+    printf '%50s\n' | tr ' ' -
+}
+
+function runCommand()
+{
+    if [[ "$VERBOSE" -eq 1 ]]
+    then
+        echo $CMD;
+    fi
+
+    eval $CMD;
+}
+
+function extract()
+{
+     if [ -f $EXTRACT_FILENAME ] ; then
+         case $EXTRACT_FILENAME in
+             *.tar.bz2)   tar xjf $EXTRACT_FILENAME;;
+             *.tar.gz)    gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x ;;
+             *.gz)        gunzip $EXTRACT_FILENAME;;
+             *.tbz2)      tar xjf $EXTRACT_FILENAME;;
+             *)           echo "'$EXTRACT_FILENAME' cannot be extracted";;
+         esac
+     else
+         echo "'$EXTRACT_FILENAME' is not a valid file"
+     fi
+}
+
+function generateDBName()
+{
+    DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[A-Z]' '[a-z]');
 }
 
 function wizard()
@@ -149,16 +174,90 @@ function loadConfigFile()
     fi
 }
 
-# Run Command
-function runCommand()
+function createNewDb()
 {
-    if [[ "$VERBOSE" -eq 1 ]]
+    CMD="mysqladmin -h${DB_HOST} -u${DB_USER}"
+    if [ "${DB_PASSWORD}" ]
     then
-        echo $CMD;
+        CMD="${CMD} -p${DB_PASSWORD}"
+    fi
+    CMD="${CMD} create ${DB_NAME}"
+
+    runCommand
+}
+
+function getCodeDumpFilename()
+{
+    FILENAME_CODE_DUMP=$(ls -1 *.tbz2 *.tar.bz2 2> /dev/null | head -n1)
+    if [ "${FILENAME_CODE_DUMP}" == "" ]
+    then
+        FILENAME_CODE_DUMP=$(ls -1 *.tar.gz | grep -v 'logs.tar.gz' | head -n1)
+    fi
+}
+
+function getDbDumpFilename()
+{
+    FILENAME_DB_DUMP=$(ls -1 *.sql.gz | head -n1)
+}
+
+function checkBackupFiles()
+{
+    getCodeDumpFilename
+    if [ ! -f "$FILENAME_CODE_DUMP" ]
+    then
+        echo "Code dump absent"
+        exit 1
     fi
 
-    eval $CMD;
+    getDbDumpFilename
+    if [ ! -f "$FILENAME_DB_DUMP" ]
+    then
+        echo "Db dump absent"
+        exit 1
+    fi
 }
+
+function restoreDb()
+{
+    echo "Please wait DB dump starts restore"
+
+
+    if which pv > /dev/null
+    then
+        CMD="pv ${FILENAME_DB_DUMP} | gunzip -c | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/' | mysql -h$DB_HOST -u$DB_USER --password=$DB_PASSWORD --force $DB_NAME";
+        runCommand;
+    else
+        CMD="gunzip -c $FILENAME_DB_DUMP | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/' | mysql -h$DB_HOST -u$DB_USER --password=$DB_PASSWORD --force $DB_NAME"
+        runCommand;
+    fi
+}
+
+function extractCode()
+{
+    echo -n "Please wait Code dump start extract - "
+
+    EXTRACT_FILENAME=$FILENAME_CODE_DUMP
+    extract
+
+    mkdir -p $MAGENTO_FOLDER_VAR
+    mkdir -p $MAGENTO_FOLDER_MEDIA
+    chmod -R 0777 $MAGENTO_FOLDER_VAR $MAGENTO_FOLDER_MEDIA $MAGENTO_FOLDER_ETC
+
+    PARAMNAME=table_prefix
+    getLocalValue
+    TABLE_PREFIX=${PARAMVALUE}
+
+    PARAMNAME=date
+    getLocalValue
+    INSTALL_DATE=${PARAMVALUE}
+
+    PARAMNAME=key
+    getLocalValue
+    CRYPT_KEY=${PARAMVALUE}
+
+    echo "OK"
+}
+
 
 ################################################################################
 
@@ -196,13 +295,7 @@ fi
 CMD="${CMD} drop ${DB_NAME}"
 runCommand
 
-CMD="mysqladmin -h${DB_HOST} -u${DB_USER}"
-if [ "${DB_PASSWORD}" ]
-then
-    CMD="${CMD} -p${DB_PASSWORD}"
-fi
-CMD="${CMD} create ${DB_NAME}"
-runCommand
+createNewDb
 
 CMD="php -d memory_limit=2G ./magento setup:install --base-url=${BASE_URL} \
 --db-host=${DB_HOST} --db-name=${DB_NAME} --db-user=${DB_USER}  \
