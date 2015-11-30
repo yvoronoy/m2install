@@ -92,6 +92,11 @@ function extract()
      fi
 }
 
+function mysqlQuery()
+{
+    SQLQUERY_RESULT=$(mysql -h$DB_HOST -u${DB_USER} --password=${DB_PASSWORD} --execute="${SQLQUERY}" 2>/dev/null);
+}
+
 function generateDBName()
 {
     DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[A-Z]' '[a-z]');
@@ -174,7 +179,18 @@ function loadConfigFile()
     fi
 }
 
-function createNewDb()
+function dropDB()
+{
+    CMD="mysqladmin -h${DB_HOST} -u${DB_USER}"
+    if [ "${DB_PASSWORD}" ]
+    then
+        CMD="${CMD} -p${DB_PASSWORD}"
+    fi
+    CMD="${CMD} drop ${DB_NAME}"
+    runCommand
+}
+
+function createNewDB()
 {
     CMD="mysqladmin -h${DB_HOST} -u${DB_USER}"
     if [ "${DB_PASSWORD}" ]
@@ -206,21 +222,22 @@ function checkBackupFiles()
     if [ ! -f "$FILENAME_CODE_DUMP" ]
     then
         echo "Code dump absent"
-        exit 1
+        return 1;
     fi
 
     getDbDumpFilename
     if [ ! -f "$FILENAME_DB_DUMP" ]
     then
         echo "Db dump absent"
-        exit 1
+        return 1;
     fi
 }
 
-function restoreDb()
+function restoreDB()
 {
     echo "Please wait DB dump starts restore"
 
+    getDbDumpFilename
 
     if which pv > /dev/null
     then
@@ -235,29 +252,113 @@ function restoreDb()
 function extractCode()
 {
     echo -n "Please wait Code dump start extract - "
+    getCodeDumpFilename
 
     EXTRACT_FILENAME=$FILENAME_CODE_DUMP
     extract
 
-    mkdir -p $MAGENTO_FOLDER_VAR
-    mkdir -p $MAGENTO_FOLDER_MEDIA
-    chmod -R 0777 $MAGENTO_FOLDER_VAR $MAGENTO_FOLDER_MEDIA $MAGENTO_FOLDER_ETC
-
-    PARAMNAME=table_prefix
-    getLocalValue
-    TABLE_PREFIX=${PARAMVALUE}
-
-    PARAMNAME=date
-    getLocalValue
-    INSTALL_DATE=${PARAMVALUE}
-
-    PARAMNAME=key
-    getLocalValue
-    CRYPT_KEY=${PARAMVALUE}
-
+    mkdir -p var pub/media
     echo "OK"
 }
 
+function updateBaseUrl()
+{
+    SQLQUERY="UPDATE ${DB_NAME}.core_config_data AS e SET e.value = '${BASE_URL}' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
+    mysqlQuery
+}
+
+function updateMagentoEnvFile()
+{
+    cp app/etc/env.php app/etc/env.php.merchant
+    cat << EOF > app/etc/env.php
+<?php
+return array (
+  'backend' =>
+  array (
+    'frontName' => 'admin',
+  ),
+  'queue' =>
+  array (
+    'amqp' =>
+    array (
+      'host' => '',
+      'port' => '',
+      'user' => '',
+      'password' => '',
+      'virtualhost' => '/',
+      'ssl' => '',
+    ),
+  ),
+  'db' =>
+  array (
+    'connection' =>
+    array (
+      'indexer' =>
+      array (
+        'host' => '${DB_HOST}',
+        'dbname' => '${DB_NAME}',
+        'username' => '${DB_USER}',
+        'password' => '${DB_PASSWORD}',
+        'model' => 'mysql4',
+        'engine' => 'innodb',
+        'initStatements' => 'SET NAMES utf8;',
+        'active' => '1',
+        'persistent' => NULL,
+      ),
+      'default' =>
+      array (
+        'host' => '${DB_HOST}',
+        'dbname' => '${DB_NAME}',
+        'username' => '${DB_USER}',
+        'password' => '${DB_PASSWORD}',
+        'model' => 'mysql4',
+        'engine' => 'innodb',
+        'initStatements' => 'SET NAMES utf8;',
+        'active' => '1',
+      ),
+    ),
+    'table_prefix' => '',
+  ),
+  'install' =>
+  array (
+    'date' => 'Fri, 27 Nov 2015 12:24:54 +0000',
+  ),
+  'crypt' =>
+  array (
+    'key' => 'ec3b1c29111007ac5d9245fb696fb729',
+  ),
+  'session' =>
+  array (
+    'save' => 'files',
+  ),
+  'resource' =>
+  array (
+    'default_setup' =>
+    array (
+      'connection' => 'default',
+    ),
+  ),
+  'x-frame-options' => 'SAMEORIGIN',
+  'MAGE_MODE' => 'default',
+  'cache_types' =>
+  array (
+    'config' => 1,
+    'layout' => 1,
+    'block_html' => 1,
+    'collections' => 1,
+    'reflection' => 1,
+    'db_ddl' => 1,
+    'eav' => 1,
+    'full_page' => 1,
+    'config_integration' => 1,
+    'config_integration_api' => 1,
+    'target_rule' => 1,
+    'translate' => 1,
+    'config_webservice' => 1,
+  ),
+);
+EOF
+}
 
 ################################################################################
 
@@ -265,6 +366,13 @@ pwd
 loadConfigFile
 generateDBName
 showWizard
+
+#dropDB
+#createNewDB
+#restoreDB
+#extractCode
+#updateBaseUrl
+#updateMagentoEnvFile
 
 if [ "${MAGENTO_EE_PATH}" ]
 then
@@ -287,15 +395,8 @@ runCommand
 CMD="php ./magento setup:uninstall"
 runCommand
 
-CMD="mysqladmin -h${DB_HOST} -u${DB_USER}"
-if [ "${DB_PASSWORD}" ]
-then
-    CMD="${CMD} -p${DB_PASSWORD}"
-fi
-CMD="${CMD} drop ${DB_NAME}"
-runCommand
-
-createNewDb
+dropDB
+createNewDB
 
 CMD="php -d memory_limit=2G ./magento setup:install --base-url=${BASE_URL} \
 --db-host=${DB_HOST} --db-name=${DB_NAME} --db-user=${DB_USER}  \
