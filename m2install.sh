@@ -137,11 +137,14 @@ function loadConfigFile()
         while [ "$x" != "/" ] ;\
         do x=\`dirname "$x"\`;\
             find "$x" -maxdepth 1 -name $CONFIG_NAME;\
-        done) | head -n1`
-    if [ "$NEAREST_CONFIG_FILE" ] && [ -f "$NEAREST_CONFIG_FILE" ]
+        done) | tail -r`
+    if [ "$NEAREST_CONFIG_FILE" ]
     then
-        CMD="source $NEAREST_CONFIG_FILE"
-        runCommand
+        for FILE in $NEAREST_CONFIG_FILE
+        do
+            CMD="source $FILE"
+            runCommand
+        done
         USE_WIZARD=0
     fi
 }
