@@ -216,7 +216,7 @@ function getDbDumpFilename()
     FILENAME_DB_DUMP=$(ls -1 *.sql.gz 2> /dev/null | head -n1)
 }
 
-function checkBackupFiles()
+function foundSupportBackupFiles()
 {
     getCodeDumpFilename
     if [ ! -f "$FILENAME_CODE_DUMP" ]
@@ -370,12 +370,12 @@ function installSampleData()
 {
     if [ "${USE_SAMPLE_DATA}" ]
     then
-	CMD="composer update"
-	runCommand
-	CMD="php -dmemory_limit=2G bin/magento sampledata:deploy"
-	runCommand
-	CMD="php -dmemory_limit=2G bin/magento setup:upgrade"
-	runCommand
+        CMD="composer update"
+        runCommand
+        CMD="php -dmemory_limit=2G bin/magento sampledata:deploy"
+        runCommand
+        CMD="php -dmemory_limit=2G bin/magento setup:upgrade"
+        runCommand
     fi
 }
 
@@ -383,12 +383,12 @@ function linkEnterpriseEdition()
 {
     if [ "${MAGENTO_EE_PATH}" ]
     then
-	CMD="php ${MAGENTO_EE_PATH}/dev/tools/build-ee.php --ce-source $(pwd) --ee-source=${MAGENTO_EE_PATH}"
-	runCommand
-	CMD="cp ${MAGENTO_EE_PATH}/composer.json $(pwd)/"
-	runCommand
-	CMD="rm -rf $(pwd)/composer.lock"
-	runCommand
+        CMD="php ${MAGENTO_EE_PATH}/dev/tools/build-ee.php --ce-source $(pwd) --ee-source=${MAGENTO_EE_PATH}"
+        runCommand
+        CMD="cp ${MAGENTO_EE_PATH}/composer.json $(pwd)/"
+        runCommand
+        CMD="rm -rf $(pwd)/composer.lock"
+        runCommand
     fi
 }
 
@@ -410,7 +410,7 @@ function installMagento()
     --currency=USD --timezone=America/Chicago --use-rewrites=1 --backend-frontname=admin"
     if [ "${DB_PASSWORD}" ]
     then
-	CMD="${CMD} --db-password=${DB_PASSWORD}"
+        CMD="${CMD} --db-password=${DB_PASSWORD}"
     fi
     runCommand
 
@@ -425,7 +425,7 @@ loadConfigFile
 generateDBName
 showWizard
 
-if checkBackupFiles
+if foundSupportBackupFiles
 then
     dropDB
     createNewDB
@@ -446,6 +446,7 @@ else
 fi
 
 deployStaticContent
+
 CMD="chmod -R 0777 ./var ./pub/media ./pub/static ./app/etc"
 runCommand
 
