@@ -34,7 +34,7 @@ USE_WIZARD=1
 
 function printVersion()
 {
-    echo "0.1.2-beta"
+    echo "0.1.3-beta"
 }
 
 function askValue()
@@ -54,7 +54,7 @@ function askValue()
     fi
 }
 
-askConfirmation() {
+function askConfirmation() {
     if [ "$1" ]
     then
         echo -n $1
