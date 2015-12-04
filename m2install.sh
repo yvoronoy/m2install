@@ -370,9 +370,9 @@ function installSampleData()
 {
     if [ "${USE_SAMPLE_DATA}" ]
     then
-        CMD="composer update"
-        runCommand
         CMD="php -dmemory_limit=2G bin/magento sampledata:deploy"
+        runCommand
+        CMD="composer update"
         runCommand
         CMD="php -dmemory_limit=2G bin/magento setup:upgrade"
         runCommand
