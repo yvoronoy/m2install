@@ -34,7 +34,7 @@ USE_WIZARD=1
 
 function printVersion()
 {
-    echo "0.1.1-beta"
+    echo "0.1.2-beta"
 }
 
 function askValue()
@@ -54,8 +54,13 @@ function askValue()
     fi
 }
 
-asksure() {
-    echo -n "Are you sure (Y/N)? "
+askConfirmation() {
+    if [ "$1" ]
+    then
+        echo -n $1
+    else
+        echo -n "Are you sure (Y/N)? "
+    fi
     while read -r -n 1 -s answer; do
         if [[ $answer = [YyNn] ]]; then
             [[ $answer = [Yy] ]] && retval=0
@@ -156,7 +161,7 @@ function showWizard()
             wizard
         fi
         printConfirmation
-        if asksure
+        if askConfirmation
         then
             I=0
         else
@@ -181,6 +186,25 @@ function loadConfigFile()
             runCommand
         done
         USE_WIZARD=0
+    fi
+}
+
+function promptSaveConfig()
+{
+    if [ "$NEAREST_CONFIG_FILE" ]
+    then
+        return;
+    fi
+    if askConfirmation "Do you want save config to ~/$CONFIG_NAME (Y/N)"
+    then
+        cat << EOF > ~/$CONFIG_NAME
+HTTP_HOST=$HTTP_HOST
+BASE_PATH=$BASE_PATH
+DB_HOST=$DB_HOST
+DB_USER=$DB_USER
+DB_PASSWORD=$DB_PASSWORD
+EOF
+        echo "Config file has been created in ~/$CONFIG_NAME";
     fi
 }
 
@@ -429,6 +453,7 @@ pwd
 loadConfigFile
 generateDBName
 showWizard
+promptSaveConfig
 
 if foundSupportBackupFiles
 then
