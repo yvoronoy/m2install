@@ -22,7 +22,6 @@ VERBOSE=1
 CURRENT_DIR_NAME=$(basename $(pwd))
 HTTP_HOST=http://mage2.dev/
 BASE_PATH=${CURRENT_DIR_NAME}
-BASE_URL=${HTTP_HOST}${BASE_PATH}/
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=
@@ -34,7 +33,7 @@ USE_WIZARD=1
 
 function printVersion()
 {
-    echo "0.1.3-beta"
+    echo "0.1.4-beta"
 }
 
 function askValue()
