@@ -180,6 +180,7 @@ function loadConfigFile()
         done) | tail -r`
     if [ "$NEAREST_CONFIG_FILE" ]
     then
+        echo "Configuration loaded from:"
         for FILE in $NEAREST_CONFIG_FILE
         do
             CMD="source $FILE"
@@ -449,9 +450,10 @@ function installMagento()
 
 ################################################################################
 
-pwd
+echo Current Directory: `pwd`
 loadConfigFile
 generateDBName
+printLine
 showWizard
 promptSaveConfig
 
