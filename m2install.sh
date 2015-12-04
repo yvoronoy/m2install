@@ -32,6 +32,11 @@ MAGENTO_EE_PATH=
 CONFIG_NAME=.m2install.conf
 USE_WIZARD=1
 
+function printVersion()
+{
+    echo "0.1.1-beta"
+}
+
 function askValue()
 {
     MESSAGE=$1
