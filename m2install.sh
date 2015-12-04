@@ -207,13 +207,13 @@ function getCodeDumpFilename()
     FILENAME_CODE_DUMP=$(ls -1 *.tbz2 *.tar.bz2 2> /dev/null | head -n1)
     if [ "${FILENAME_CODE_DUMP}" == "" ]
     then
-        FILENAME_CODE_DUMP=$(ls -1 *.tar.gz | grep -v 'logs.tar.gz' | head -n1)
+        FILENAME_CODE_DUMP=$(ls -1 *.tar.gz 2> /dev/null | grep -v 'logs.tar.gz' | head -n1)
     fi
 }
 
 function getDbDumpFilename()
 {
-    FILENAME_DB_DUMP=$(ls -1 *.sql.gz | head -n1)
+    FILENAME_DB_DUMP=$(ls -1 *.sql.gz 2> /dev/null | head -n1)
 }
 
 function checkBackupFiles()
@@ -221,16 +221,16 @@ function checkBackupFiles()
     getCodeDumpFilename
     if [ ! -f "$FILENAME_CODE_DUMP" ]
     then
-        echo "Code dump absent"
         return 1;
     fi
 
     getDbDumpFilename
     if [ ! -f "$FILENAME_DB_DUMP" ]
     then
-        echo "Db dump absent"
         return 1;
     fi
+
+    return 0;
 }
 
 function restoreDB()
@@ -360,6 +360,64 @@ return array (
 EOF
 }
 
+function deployStaticContent()
+{
+    CMD="php -d memory_limit=2G bin/magento setup:static-content:deploy"
+    runCommand
+}
+
+function installSampleData()
+{
+    if [ "${USE_SAMPLE_DATA}" ]
+    then
+	CMD="composer update"
+	runCommand
+	CMD="php -dmemory_limit=2G bin/magento sampledata:deploy"
+	runCommand
+	CMD="php -dmemory_limit=2G bin/magento setup:upgrade"
+	runCommand
+    fi
+}
+
+function linkEnterpriseEdition()
+{
+    if [ "${MAGENTO_EE_PATH}" ]
+    then
+	CMD="php ${MAGENTO_EE_PATH}/dev/tools/build-ee.php --ce-source $(pwd) --ee-source=${MAGENTO_EE_PATH}"
+	runCommand
+	CMD="cp ${MAGENTO_EE_PATH}/composer.json $(pwd)/"
+	runCommand
+	CMD="rm -rf $(pwd)/composer.lock"
+	runCommand
+    fi
+}
+
+function installMagento()
+{
+    CMD="cd ./bin"
+    runCommand
+
+    CMD="php ./magento setup:uninstall"
+    runCommand
+
+    dropDB
+    createNewDB
+
+    CMD="php -d memory_limit=2G ./magento setup:install --base-url=${BASE_URL} \
+    --db-host=${DB_HOST} --db-name=${DB_NAME} --db-user=${DB_USER}  \
+    --admin-firstname=Magento --admin-lastname=User --admin-email=mail@magento.com \
+    --admin-user=admin --admin-password=123123q --language=en_US \
+    --currency=USD --timezone=America/Chicago --use-rewrites=1 --backend-frontname=admin"
+    if [ "${DB_PASSWORD}" ]
+    then
+	CMD="${CMD} --db-password=${DB_PASSWORD}"
+    fi
+    runCommand
+
+    CMD="cd ../"
+    runCommand
+}
+
 ################################################################################
 
 pwd
@@ -367,64 +425,27 @@ loadConfigFile
 generateDBName
 showWizard
 
-#dropDB
-#createNewDB
-#restoreDB
-#extractCode
-#updateBaseUrl
-#updateMagentoEnvFile
-
-if [ "${MAGENTO_EE_PATH}" ]
+if checkBackupFiles
 then
-    CMD="php ${MAGENTO_EE_PATH}/dev/tools/build-ee.php --ce-source $(pwd) --ee-source=${MAGENTO_EE_PATH}"
-    runCommand
-    CMD="cp ${MAGENTO_EE_PATH}/composer.json $(pwd)/"
-    runCommand
-    CMD="rm -rf $(pwd)/composer.lock"
-    runCommand
-fi
+    dropDB
+    createNewDB
+    restoreDB
+    extractCode
+    updateBaseUrl
+    updateMagentoEnvFile
+else
+    linkEnterpriseEdition
 
-CMD="composer update"
-runCommand
-CMD="composer install"
-runCommand
-
-CMD="cd ./bin"
-runCommand
-
-CMD="php ./magento setup:uninstall"
-runCommand
-
-dropDB
-createNewDB
-
-CMD="php -d memory_limit=2G ./magento setup:install --base-url=${BASE_URL} \
---db-host=${DB_HOST} --db-name=${DB_NAME} --db-user=${DB_USER}  \
---admin-firstname=Magento --admin-lastname=User --admin-email=mail@magento.com \
---admin-user=admin --admin-password=123123q --language=en_US \
---currency=USD --timezone=America/Chicago --use-rewrites=1 --backend-frontname=admin"
-if [ "${DB_PASSWORD}" ]
-then
-    CMD="${CMD} --db-password=${DB_PASSWORD}"
-fi
-runCommand
-
-CMD="cd ../"
-runCommand
-
-if [ "${USE_SAMPLE_DATA}" ]
-then
     CMD="composer update"
     runCommand
-    CMD="php -dmemory_limit=2G bin/magento sampledata:deploy"
+    CMD="composer install"
     runCommand
-    CMD="php -dmemory_limit=2G bin/magento setup:upgrade"
-    runCommand
+
+    installMagento
+    installSampleData
 fi
 
-CMD="php -d memory_limit=2G bin/magento setup:static-content:deploy"
-runCommand
-
+deployStaticContent
 CMD="chmod -R 0777 ./var ./pub/media ./pub/static ./app/etc"
 runCommand
 
@@ -434,3 +455,4 @@ echo ${BASE_URL}
 echo ${BASE_URL}admin
 echo "User: admin"
 echo "Pass: 123123q"
+
