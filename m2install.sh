@@ -186,7 +186,7 @@ function dropDB()
     then
         CMD="${CMD} -p${DB_PASSWORD}"
     fi
-    CMD="${CMD} drop ${DB_NAME}"
+    CMD="${CMD} -f drop ${DB_NAME}"
     runCommand
 }
 
@@ -197,7 +197,7 @@ function createNewDB()
     then
         CMD="${CMD} -p${DB_PASSWORD}"
     fi
-    CMD="${CMD} create ${DB_NAME}"
+    CMD="${CMD} -f create ${DB_NAME}"
 
     runCommand
 }
@@ -397,7 +397,7 @@ function installMagento()
     CMD="cd ./bin"
     runCommand
 
-    CMD="php ./magento setup:uninstall"
+    CMD="php ./magento --no-interaction setup:uninstall"
     runCommand
 
     dropDB
