@@ -33,7 +33,7 @@ USE_WIZARD=1
 
 function printVersion()
 {
-    echo "0.1.4-beta"
+    echo "0.1.5-beta"
 }
 
 function askValue()
@@ -296,6 +296,17 @@ function updateBaseUrl()
     mysqlQuery
 }
 
+function resetAdminPassword()
+{
+    CMD="php bin/magento admin:user:create \
+        --admin-user='admin' \
+        --admin-password='123123q' \
+        --admin-email='mail@magento.com' \
+        --admin-firstname='Magento' \
+        --admin-lastname='User'"
+    runCommand
+}
+
 function updateMagentoEnvFile()
 {
     cp app/etc/env.php app/etc/env.php.merchant
@@ -460,9 +471,10 @@ if foundSupportBackupFiles
 then
     dropDB
     createNewDB
-    restoreDB
     extractCode
+    restoreDB
     updateBaseUrl
+    resetAdminPassword
     updateMagentoEnvFile
 else
     linkEnterpriseEdition
