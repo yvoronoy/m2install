@@ -113,6 +113,37 @@ function generateDBName()
     DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[A-Z]' '[a-z]');
 }
 
+function getCodeDumpFilename()
+{
+    FILENAME_CODE_DUMP=$(ls -1 *.tbz2 *.tar.bz2 2> /dev/null | head -n1)
+    if [ "${FILENAME_CODE_DUMP}" == "" ]
+    then
+        FILENAME_CODE_DUMP=$(ls -1 *.tar.gz 2> /dev/null | grep -v 'logs.tar.gz' | head -n1)
+    fi
+}
+
+function getDbDumpFilename()
+{
+    FILENAME_DB_DUMP=$(ls -1 *.sql.gz 2> /dev/null | head -n1)
+}
+
+function foundSupportBackupFiles()
+{
+    getCodeDumpFilename
+    if [ ! -f "$FILENAME_CODE_DUMP" ]
+    then
+        return 1;
+    fi
+
+    getDbDumpFilename
+    if [ ! -f "$FILENAME_DB_DUMP" ]
+    then
+        return 1;
+    fi
+
+    return 0;
+}
+
 function wizard()
 {
     askValue "Enter Server Name of Document Root" ${HTTP_HOST}
@@ -191,6 +222,24 @@ function loadConfigFile()
     fi
 }
 
+function tryFindEnterpriseEditionDir()
+{
+    if [ -d "./magento2ee" ]
+    then
+        MAGENTO_EE_PATH="./magento2ee"
+    fi
+
+    if [ -d "./ee" ]
+    then
+        MAGENTO_EE_PATH="./ee"
+    fi
+
+    if [ -d "./m2ee" ]
+    then
+        MAGENTO_EE_PATH="./m2ee"
+    fi
+}
+
 function promptSaveConfig()
 {
     if [ "$NEAREST_CONFIG_FILE" ]
@@ -231,37 +280,6 @@ function createNewDB()
     CMD="${CMD} -f create ${DB_NAME}"
 
     runCommand
-}
-
-function getCodeDumpFilename()
-{
-    FILENAME_CODE_DUMP=$(ls -1 *.tbz2 *.tar.bz2 2> /dev/null | head -n1)
-    if [ "${FILENAME_CODE_DUMP}" == "" ]
-    then
-        FILENAME_CODE_DUMP=$(ls -1 *.tar.gz 2> /dev/null | grep -v 'logs.tar.gz' | head -n1)
-    fi
-}
-
-function getDbDumpFilename()
-{
-    FILENAME_DB_DUMP=$(ls -1 *.sql.gz 2> /dev/null | head -n1)
-}
-
-function foundSupportBackupFiles()
-{
-    getCodeDumpFilename
-    if [ ! -f "$FILENAME_CODE_DUMP" ]
-    then
-        return 1;
-    fi
-
-    getDbDumpFilename
-    if [ ! -f "$FILENAME_DB_DUMP" ]
-    then
-        return 1;
-    fi
-
-    return 0;
 }
 
 function restoreDB()
@@ -410,6 +428,14 @@ function deployStaticContent()
 
 function installSampleData()
 {
+    if [ -f "${HOME}/.composer/auth.json" ]
+    then
+        if [ -d "var/composer_home" ]
+        then
+            CMD="cp ${HOME}/.composer/auth.json var/composer_home/"
+            runCommand
+        fi
+    fi
     if [ "${USE_SAMPLE_DATA}" ]
     then
         CMD="php -dmemory_limit=2G bin/magento sampledata:deploy"
@@ -417,6 +443,12 @@ function installSampleData()
         CMD="composer update"
         runCommand
         CMD="php -dmemory_limit=2G bin/magento setup:upgrade"
+        runCommand
+    fi
+
+    if [ -f "var/composer_home/auth.json" ]
+    then
+        CMD="rm var/composer_home/auth.json"
         runCommand
     fi
 }
@@ -436,6 +468,8 @@ function linkEnterpriseEdition()
 
 function installMagento()
 {
+    CMD="rm -rf var/generation/*"
+    runCommand
     CMD="cd ./bin"
     runCommand
 
@@ -464,6 +498,7 @@ function installMagento()
 
 echo Current Directory: `pwd`
 loadConfigFile
+tryFindEnterpriseEditionDir
 generateDBName
 printLine
 showWizard
