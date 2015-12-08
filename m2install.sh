@@ -35,7 +35,7 @@ USE_WIZARD=1
 
 function printVersion()
 {
-    echo "0.1.5-beta"
+    echo "0.1.6-beta"
 }
 
 function askValue()
