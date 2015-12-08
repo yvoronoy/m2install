@@ -20,11 +20,13 @@
 
 VERBOSE=1
 CURRENT_DIR_NAME=$(basename $(pwd))
+
 HTTP_HOST=http://mage2.dev/
 BASE_PATH=${CURRENT_DIR_NAME}
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=
+
 DB_NAME=
 USE_SAMPLE_DATA=
 MAGENTO_EE_PATH=
@@ -129,7 +131,7 @@ function wizard()
     DB_NAME=${READVALUE}
     askValue "Install Sample Data"
     USE_SAMPLE_DATA=${READVALUE}
-    askValue "Enter Absoulute Path to Enterprise Edition"
+    askValue "Enter Path to Enterprise Edition"
     MAGENTO_EE_PATH=${READVALUE}
 }
 
@@ -176,7 +178,7 @@ function loadConfigFile()
         while [ "$x" != "/" ] ;\
         do x=\`dirname "$x"\`;\
             find "$x" -maxdepth 1 -name $CONFIG_NAME;\
-        done) | tail -r`
+        done) | sed '1!G;h;$!d'`
     if [ "$NEAREST_CONFIG_FILE" ]
     then
         echo "Configuration loaded from:"
