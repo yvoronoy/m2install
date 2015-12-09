@@ -110,7 +110,22 @@ function mysqlQuery()
 
 function generateDBName()
 {
+    prepareBasePath
     DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[A-Z]' '[a-z]');
+}
+
+function prepareBasePath()
+{
+    BASE_PATH=$(echo ${BASE_PATH} | sed "s/^\///g" | sed "s/\/$//g" );
+}
+
+function prepareBaseURL()
+{
+    prepareBasePath
+    HTTP_HOST=$(echo ${HTTP_HOST}/ | sed "s/\/\/$/\//g" );
+    BASE_URL=${HTTP_HOST}${BASE_PATH}/
+    echo $BASE_URL
+    BASE_URL=$(echo $BASE_URL | sed "s/\/\/$/\//g" );
 }
 
 function getCodeDumpFilename()
@@ -150,7 +165,6 @@ function wizard()
     HTTP_HOST=${READVALUE}
     askValue "Enter Base Path" ${BASE_PATH}
     BASE_PATH=${READVALUE}
-    BASE_PATH=$(echo ${BASE_PATH} | sed "s/^\///g" | sed "s/\/$//g" );
     askValue "Enter DB Host" ${DB_HOST}
     DB_HOST=${READVALUE}
     askValue "Enter DB User" ${DB_USER}
@@ -168,7 +182,7 @@ function wizard()
 
 function printConfirmation()
 {
-    BASE_URL=${HTTP_HOST}${BASE_PATH}/
+    prepareBaseURL
     echo "BASE URL: ${BASE_URL}"
     echo "DB PARAM: ${DB_USER}@${DB_HOST}"
     echo "DB NAME: ${DB_NAME}"
@@ -247,16 +261,24 @@ function promptSaveConfig()
         return;
     fi
     if askConfirmation "Do you want save config to ~/$CONFIG_NAME (Y/N)"
+    _local=$(dirname $BASE_PATH)
+    if [ "$_local" == "." ]
+    then
+        _local=
+    else
+        _local=$_local/
+    fi
     then
         cat << EOF > ~/$CONFIG_NAME
 HTTP_HOST=$HTTP_HOST
-BASE_PATH=$BASE_PATH
+BASE_PATH=$_local\$CURRENT_DIR_NAME
 DB_HOST=$DB_HOST
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
 EOF
         echo "Config file has been created in ~/$CONFIG_NAME";
     fi
+    _local=
 }
 
 function dropDB()
@@ -428,6 +450,11 @@ function deployStaticContent()
 
 function installSampleData()
 {
+    if ! bin/magento | grep -q support:backup
+    then
+        echo "Your version does not support sample data"
+        return;
+    fi
     if [ -f "${HOME}/.composer/auth.json" ]
     then
         if [ -d "var/composer_home" ]
@@ -436,6 +463,7 @@ function installSampleData()
             runCommand
         fi
     fi
+
     if [ "${USE_SAMPLE_DATA}" ]
     then
         CMD="php -dmemory_limit=2G bin/magento sampledata:deploy"
