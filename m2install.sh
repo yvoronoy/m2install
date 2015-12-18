@@ -36,7 +36,7 @@ USE_WIZARD=1
 GIT_CE_REPO=
 GIT_EE_REPO=
 GIT_USERNAME=
-GIT_BRANCH=merchant_beta
+GIT_BRANCH=
 
 function printVersion()
 {
@@ -535,40 +535,41 @@ function gitClone()
 {
 	printLine
 
-	if [ ! -d ".git" ] && [ "$1" == 'clone' ]
+	if [ -d ".git" ] || [ "$1" != 'clone' ]
 	then
-		if [ "$GIT_CE_REPO" == '' ]
-		then
-			askValue "Git CE repository" ${GIT_CE_REPO}
-			GIT_CE_REPO=${READVALUE}
-			askValue "Git EE repository" ${GIT_EE_REPO}
-			GIT_EE_REPO=${READVALUE}
-			askValue "Git username:" ${GIT_USERNAME}
-			GIT_USERNAME=${READVALUE}
-		fi
-		askValue "Git branch:" ${GIT_BRANCH}
-		GIT_BRANCH=${READVALUE}
-		
-		CMD='git clone https://'$GIT_USERNAME'@'$GIT_CE_REPO''
-		runCommand
-		CMD="cd magento2ce/"
-		runCommand
-		CMD="git checkout $GIT_BRANCH"
-		runCommand
+		return
+	fi
+	if [ "$GIT_CE_REPO" == '' ]
+	then
+		askValue "Git CE repository" ${GIT_CE_REPO}
+		GIT_CE_REPO=${READVALUE}
+		askValue "Git EE repository" ${GIT_EE_REPO}
+		GIT_EE_REPO=${READVALUE}
+		askValue "Git username:" ${GIT_USERNAME}
+		GIT_USERNAME=${READVALUE}
+	fi
+	askValue "Git branch:" ${GIT_BRANCH}
+	GIT_BRANCH=${READVALUE}
+	
+	CMD='git clone https://'$GIT_USERNAME'@'$GIT_CE_REPO''
+	runCommand
+	CMD="cd magento2ce/"
+	runCommand
+	CMD="git checkout $GIT_BRANCH"
+	runCommand
 			
-		if [ "$GIT_EE_REPO" != '' ]
+	if [ "$GIT_EE_REPO" != '' ]
+	then
+		if askConfirmation "Clone EE(Y/N)?"
 		then
-			if askConfirmation "Clone EE(Y/N)?"
-			then
-				CMD='git clone https://'$GIT_USERNAME'@'$GIT_EE_REPO''
-				runCommand
-				CMD="cd magento2ee/"
-				runCommand
-				CMD="git checkout $GIT_BRANCH"
-				runCommand
-				CMD="cd .."
-				runCommand
-			fi
+			CMD='git clone https://'$GIT_USERNAME'@'$GIT_EE_REPO''
+			runCommand
+			CMD="cd magento2ee/"
+			runCommand
+			CMD="git checkout $GIT_BRANCH"
+			runCommand
+			CMD="cd .."
+			runCommand
 		fi
 	fi
 }
