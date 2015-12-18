@@ -33,6 +33,11 @@ MAGENTO_EE_PATH=
 CONFIG_NAME=.m2install.conf
 USE_WIZARD=1
 
+GIT_CE_REPO=
+GIT_EE_REPO=
+GIT_USERNAME=
+GIT_BRANCH=merchant_beta
+
 function printVersion()
 {
     echo "0.1.6-beta"
@@ -176,7 +181,7 @@ function wizard()
     DB_NAME=${READVALUE}
     askValue "Install Sample Data"
     USE_SAMPLE_DATA=${READVALUE}
-    askValue "Enter Path to Enterprise Edition"
+    askValue "Enter Path to Enterprise Edition" ${MAGENTO_EE_PATH}
     MAGENTO_EE_PATH=${READVALUE}
 }
 
@@ -275,6 +280,10 @@ BASE_PATH=$_local\$CURRENT_DIR_NAME
 DB_HOST=$DB_HOST
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
+GIT_CE_REPO=$GIT_CE_REPO
+GIT_EE_REPO=$GIT_EE_REPO
+GIT_USERNAME=$GIT_USERNAME
+GIT_BRANCH=$GIT_BRANCH
 EOF
         echo "Config file has been created in ~/$CONFIG_NAME";
     fi
@@ -522,10 +531,53 @@ function installMagento()
     runCommand
 }
 
+function gitClone()
+{
+	printLine
+
+	if [ ! -d ".git" ] && [ "$1" == 'clone' ]
+	then
+		if [ "$GIT_CE_REPO" == '' ]
+		then
+			askValue "Git CE repository" ${GIT_CE_REPO}
+			GIT_CE_REPO=${READVALUE}
+			askValue "Git EE repository" ${GIT_EE_REPO}
+			GIT_EE_REPO=${READVALUE}
+			askValue "Git username:" ${GIT_USERNAME}
+			GIT_USERNAME=${READVALUE}
+		fi
+		askValue "Git branch:" ${GIT_BRANCH}
+		GIT_BRANCH=${READVALUE}
+		
+		CMD='git clone https://'$GIT_USERNAME'@'$GIT_CE_REPO''
+		runCommand
+		CMD="cd magento2ce/"
+		runCommand
+		CMD="git checkout $GIT_BRANCH"
+		runCommand
+			
+		if [ "$GIT_EE_REPO" != '' ]
+		then
+			if askConfirmation "Clone EE(Y/N)?"
+			then
+				CMD='git clone https://'$GIT_USERNAME'@'$GIT_EE_REPO''
+				runCommand
+				CMD="cd magento2ee/"
+				runCommand
+				CMD="git checkout $GIT_BRANCH"
+				runCommand
+				CMD="cd .."
+				runCommand
+			fi
+		fi
+	fi
+}
+
 ################################################################################
 
 echo Current Directory: `pwd`
 loadConfigFile
+gitClone $1
 tryFindEnterpriseEditionDir
 generateDBName
 printLine
