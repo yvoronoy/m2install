@@ -66,20 +66,15 @@ function askValue()
 }
 
 function askConfirmation() {
-    if [ "$1" ]
-    then
-        echo -n $1
-    else
-        echo -n "Are you sure (Y/N)? "
-    fi
-    while read -r -n 1 -s answer; do
-        if [[ $answer = [YyNn] ]]; then
-            [[ $answer = [Yy] ]] && retval=0
-            [[ $answer = [Nn] ]] && retval=1
-            break
-        fi
-    done
-    echo ""
+    read -r -p "${1:-Are you sure? [y/N]} " response
+    case $response in
+        [yY][eE][sS]|[yY])
+            retval=0
+            ;;
+        *)
+            retval=1
+            ;;
+    esac
     return $retval
 }
 
@@ -184,8 +179,10 @@ function wizard()
     generateDBName
     askValue "Enter DB Name" ${DB_NAME}
     DB_NAME=${READVALUE}
-    askValue "Install Sample Data"
-    USE_SAMPLE_DATA=${READVALUE}
+    if askConfirmation "Do you want to install Sample Data (y/N)"
+    then
+        USE_SAMPLE_DATA=1
+    fi
     askValue "Enter Path to Enterprise Edition" ${MAGENTO_EE_PATH}
     MAGENTO_EE_PATH=${READVALUE}
 }
