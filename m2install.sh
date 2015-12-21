@@ -555,9 +555,11 @@ function gitClone()
     askValue "Git branch:" ${GIT_BRANCH}
     GIT_BRANCH=${READVALUE}
 
-    CMD='git clone https://'$GIT_USERNAME'@'$GIT_CE_REPO''
+    CMD='git init'
     runCommand
-    CMD="cd magento2ce/"
+    CMD='git remote add origin https://'$GIT_USERNAME'@'$GIT_CE_REPO''
+    runCommand
+    CMD='git pull origin'
     runCommand
     CMD="git checkout $GIT_BRANCH"
     runCommand
