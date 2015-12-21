@@ -54,6 +54,11 @@ function askValue()
     fi
     MESSAGE="${MESSAGE}: "
     read -r -p "$MESSAGE" READVALUE
+	if [[ $READVALUE = [Nn] ]]
+    then
+		READVALUE=''
+		return
+	fi	
     if [ -z "${READVALUE}" ] && [ "${READ_DEFAULT_VALUE}" ]
     then
         READVALUE=${READ_DEFAULT_VALUE}
@@ -193,12 +198,13 @@ function printConfirmation()
     echo "DB NAME: ${DB_NAME}"
     if [ "${USE_SAMPLE_DATA}" ]
     then
-        echo "Sample Data will be installed"
+        echo "Sample Data will be installed."
+	else
+		echo "Sample Data will NOT be installed."
     fi
     if [ "${MAGENTO_EE_PATH}" ]
     then
-        echo "Magento EE will be installed"
-        echo "Magento EE Path: ${MAGENTO_EE_PATH}"
+        echo "Magento EE will be installed to ${MAGENTO_EE_PATH}"
     fi
 }
 
@@ -533,8 +539,6 @@ function installMagento()
 
 function gitClone()
 {
-	printLine
-
 	if [ -d ".git" ] || [ "$1" != 'clone' ]
 	then
 		return
