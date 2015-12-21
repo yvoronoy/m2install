@@ -54,6 +54,11 @@ function askValue()
     fi
     MESSAGE="${MESSAGE}: "
     read -r -p "$MESSAGE" READVALUE
+    if [[ $READVALUE = [Nn] ]]
+    then
+        READVALUE=''
+        return
+    fi
     if [ -z "${READVALUE}" ] && [ "${READ_DEFAULT_VALUE}" ]
     then
         READVALUE=${READ_DEFAULT_VALUE}
@@ -193,12 +198,13 @@ function printConfirmation()
     echo "DB NAME: ${DB_NAME}"
     if [ "${USE_SAMPLE_DATA}" ]
     then
-        echo "Sample Data will be installed"
+        echo "Sample Data will be installed."
+    else
+        echo "Sample Data will NOT be installed."
     fi
     if [ "${MAGENTO_EE_PATH}" ]
     then
-        echo "Magento EE will be installed"
-        echo "Magento EE Path: ${MAGENTO_EE_PATH}"
+        echo "Magento EE will be installed to ${MAGENTO_EE_PATH}"
     fi
 }
 
@@ -533,45 +539,43 @@ function installMagento()
 
 function gitClone()
 {
-	printLine
+    if [ -d ".git" ] || [ "$1" != 'clone' ]
+    then
+        return
+    fi
+    if [ "$GIT_CE_REPO" == '' ]
+    then
+        askValue "Git CE repository" ${GIT_CE_REPO}
+        GIT_CE_REPO=${READVALUE}
+        askValue "Git EE repository" ${GIT_EE_REPO}
+        GIT_EE_REPO=${READVALUE}
+        askValue "Git username:" ${GIT_USERNAME}
+        GIT_USERNAME=${READVALUE}
+    fi
+    askValue "Git branch:" ${GIT_BRANCH}
+    GIT_BRANCH=${READVALUE}
 
-	if [ -d ".git" ] || [ "$1" != 'clone' ]
-	then
-		return
-	fi
-	if [ "$GIT_CE_REPO" == '' ]
-	then
-		askValue "Git CE repository" ${GIT_CE_REPO}
-		GIT_CE_REPO=${READVALUE}
-		askValue "Git EE repository" ${GIT_EE_REPO}
-		GIT_EE_REPO=${READVALUE}
-		askValue "Git username:" ${GIT_USERNAME}
-		GIT_USERNAME=${READVALUE}
-	fi
-	askValue "Git branch:" ${GIT_BRANCH}
-	GIT_BRANCH=${READVALUE}
-	
-	CMD='git clone https://'$GIT_USERNAME'@'$GIT_CE_REPO''
-	runCommand
-	CMD="cd magento2ce/"
-	runCommand
-	CMD="git checkout $GIT_BRANCH"
-	runCommand
-			
-	if [ "$GIT_EE_REPO" != '' ]
-	then
-		if askConfirmation "Clone EE(Y/N)?"
-		then
-			CMD='git clone https://'$GIT_USERNAME'@'$GIT_EE_REPO''
-			runCommand
-			CMD="cd magento2ee/"
-			runCommand
-			CMD="git checkout $GIT_BRANCH"
-			runCommand
-			CMD="cd .."
-			runCommand
-		fi
-	fi
+    CMD='git clone https://'$GIT_USERNAME'@'$GIT_CE_REPO''
+    runCommand
+    CMD="cd magento2ce/"
+    runCommand
+    CMD="git checkout $GIT_BRANCH"
+    runCommand
+
+    if [ "$GIT_EE_REPO" != '' ]
+    then
+        if askConfirmation "Clone EE(Y/N)?"
+        then
+            CMD='git clone https://'$GIT_USERNAME'@'$GIT_EE_REPO''
+            runCommand
+            CMD="cd magento2ee/"
+            runCommand
+            CMD="git checkout $GIT_BRANCH"
+            runCommand
+            CMD="cd .."
+            runCommand
+        fi
+    fi
 }
 
 ################################################################################
