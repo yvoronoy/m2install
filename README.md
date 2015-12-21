@@ -1,6 +1,27 @@
 #Magento 2 Bash Installer Script
 This script is designed to simplify the installation process of Magento 2 and rapid deployment of client dumps created by Magento 2 Support Extension.
 
+##How to deploy dumps
+In order to deploy the customer dumps you need:
+ 
+ * Put DB dump and code dump to directory
+ * Run m2install
+
+##How to install Magento 2
+ * Use git to get the source code of magento 2
+ * git clone https://github.com/magento/magento2.git
+ * cd magento2
+ * Run m2install
+
+####How to Install Magento Enterprise
+ * Use git to get the source code Magento EE
+ * Directory with the magento2ee should be INSIDE the directory with the magento2ce.
+ * Run m2install
+
+####How to Install Magento 2 with Sample Data
+ * Run m2install
+ * Use wizzard to install the sample data. (TODO add a parameter)
+
 ##How to use configuration files
 The config file allows you to store params for DB and URL.
 Example of config file
@@ -26,25 +47,5 @@ you can override config file which placed in your home directory.
 ~/www/m2/ga/.m2install.conf
 ~/www/m2/ga/magento2ee/.m2install.conf
 ```
-##How to deploy dumps
-In order to deploy the customer dumps you need:
- 
- * Put DB dump and code dump to directory
- * Run m2install
-
-##How to install Magento 2
- * Use git to get the source code of magento 2
- * git clone https://github.com/magento/magento2.git
- * cd magento2
- * Run m2install
-
-####How to Install Magento Enterprise
- * Use git to get the source code Magento EE
- * Directory with the magento2ee should be INSIDE the directory with the magento2ce.
- * Run m2install
-
-####How to Install Magento 2 with Sample Data
- * Run m2install
- * Use wizzard to install the sample data. (TODO add a parameter)
 
 
