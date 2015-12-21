@@ -27,6 +27,8 @@ DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=
 
+COMPOSER_VERSION='2.0.0'
+
 DB_NAME=
 USE_SAMPLE_DATA=
 MAGENTO_EE_PATH=
@@ -272,6 +274,7 @@ BASE_PATH=$_local\$CURRENT_DIR_NAME
 DB_HOST=$DB_HOST
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
+COMPOSER_VERSION=$COMPOSER_VERSION
 EOF
         echo "Config file has been created in ~/$CONFIG_NAME";
     fi
@@ -519,10 +522,28 @@ function installMagento()
     runCommand
 }
 
+function composerInstall()
+{
+    if [ "$1" != 'composer' ]
+    then
+        return
+    fi
+
+    askValue "Composer Magento version" ${COMPOSER_VERSION}
+    COMPOSER_VERSION=${READVALUE}
+
+    CMD="composer create-project --repository-url=https://repo.magento.com/ magento/project-community-edition . $COMPOSER_VERSION"
+    runCommand
+
+    CMD="composer create-project --repository-url=https://repo.magento.com/ magento/project-enterprise-edition magento2ee $COMPOSER_VERSION"
+    runCommand
+}
+
 ################################################################################
 
 echo Current Directory: `pwd`
 loadConfigFile
+composerInstall $1
 tryFindEnterpriseEditionDir
 generateDBName
 printLine
