@@ -539,7 +539,7 @@ function installMagento()
 
 function gitClone()
 {
-    if [ -d ".git" ] || [ "$1" != 'git' ]
+    if [ -d ".git" ] || [ "$SOURCE" != 'git' ]
     then
         return
     fi
@@ -615,7 +615,7 @@ done
 
 echo Current Directory: `pwd`
 loadConfigFile
-gitClone $SOURCE
+gitClone
 tryFindEnterpriseEditionDir
 generateDBName
 printLine
