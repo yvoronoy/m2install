@@ -536,7 +536,7 @@ function installMagento()
 
 function gitClone()
 {
-    if [ -d ".git" ] || [ "$1" != 'clone' ]
+    if [ -d ".git" ] || [ "$SOURCE" != 'git' ]
     then
         return
     fi
@@ -577,11 +577,42 @@ function gitClone()
     fi
 }
 
+function getHelp()
+{
+    echo "-s,--source [git]  - get Magento 2 source code"
+    echo "-h,--help          - get this help"
+}
+
 ################################################################################
+
+while [[ $# > 0 ]]
+do
+key="$1"
+
+case $key in
+    -s|--source)
+    if [ "$2" == '' ]
+    then
+        echo 'Source argument is empty.'
+        printLine
+        getHelp
+        exit
+    fi
+    SOURCE="$2"
+    echo "SOURCE=$SOURCE"
+    shift
+    ;;
+    -h|--help)
+    getHelp
+    exit
+    ;;
+esac
+shift
+done
 
 echo Current Directory: `pwd`
 loadConfigFile
-gitClone $1
+gitClone
 tryFindEnterpriseEditionDir
 generateDBName
 printLine
