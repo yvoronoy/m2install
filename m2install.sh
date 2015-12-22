@@ -577,37 +577,41 @@ function gitClone()
     fi
 }
 
-function getHelp()
+function printUsage()
 {
-    echo "-s,--source [git]  - get Magento 2 source code"
-    echo "-h,--help          - get this help"
+    cat <<EOF
+`basename $0` is designed to simplify the installation process of Magento 2
+and deployment of client dumps created by Magento 2 Support Extension.
+
+Usage: `basename $0` [options]
+Options:
+    -h| --help           Get This Help.
+    -s|--source          Where get source code (GIT, Composer)
+EOF
 }
 
 ################################################################################
 
 while [[ $# > 0 ]]
 do
-key="$1"
-
-case $key in
-    -s|--source)
-    if [ "$2" == '' ]
-    then
-        echo 'Source argument is empty.'
-        printLine
-        getHelp
-        exit
-    fi
-    SOURCE="$2"
-    echo "SOURCE=$SOURCE"
+    case "$1" in
+        -s|--source)
+        if [ ! "$2" ]
+        then
+            echo 'Source argument is empty.'
+            printLine
+            printUsage
+            exit 1;
+        fi
+        SOURCE="$2"
+        shift
+        ;;
+        -h|--help)
+        printUsage
+        exit;
+        ;;
+    esac
     shift
-    ;;
-    -h|--help)
-    getHelp
-    exit
-    ;;
-esac
-shift
 done
 
 echo Current Directory: `pwd`
