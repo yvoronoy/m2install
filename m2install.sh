@@ -550,7 +550,7 @@ function gitClone()
     CMD="git checkout $GIT_BRANCH"
     runCommand
 
-    if [[ ! "$GIT_EE_REPO" ]] && [[ "$MAGENTO_EE_PATH" ]]
+    if [[ "$GIT_EE_REPO" ]] && [[ "$MAGENTO_EE_PATH" ]]
     then
         CMD="git clone $GIT_EE_REPO"
         runCommand
