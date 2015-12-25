@@ -216,6 +216,7 @@ function showWizard()
             showWizzardGit
             wizard
         fi
+        printGitConfirmation
         printConfirmation
         if askConfirmation
         then
@@ -560,6 +561,17 @@ function gitClone()
         CMD="cd .."
         runCommand
     fi
+}
+
+function printGitConfirmation()
+{
+    if [ "$SOURCE" != 'git' ]
+    then
+        return
+    fi
+    echo "Git CE repository: ${GIT_CE_REPO}"
+    echo "Git EE repository: ${GIT_EE_REPO}"
+    echo "Git branch: ${GIT_BRANCH}"
 }
 
 function printUsage()
