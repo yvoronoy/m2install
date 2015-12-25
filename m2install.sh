@@ -36,7 +36,7 @@ USE_WIZARD=1
 GIT_CE_REPO=
 GIT_EE_REPO=
 GIT_USERNAME=
-GIT_BRANCH=
+GIT_BRANCH=develop
 
 function printVersion()
 {
@@ -129,7 +129,6 @@ function prepareBaseURL()
     prepareBasePath
     HTTP_HOST=$(echo ${HTTP_HOST}/ | sed "s/\/\/$/\//g" );
     BASE_URL=${HTTP_HOST}${BASE_PATH}/
-    echo $BASE_URL
     BASE_URL=$(echo $BASE_URL | sed "s/\/\/$/\//g" );
 }
 
@@ -183,7 +182,7 @@ function wizard()
     then
         USE_SAMPLE_DATA=1
     fi
-    askValue "Enter Path to Enterprise Edition" ${MAGENTO_EE_PATH}
+    askValue "Enter Path to EE or [nN] to skip EE installation" ${MAGENTO_EE_PATH}
     MAGENTO_EE_PATH=${READVALUE}
 }
 
@@ -202,6 +201,8 @@ function printConfirmation()
     if [ "${MAGENTO_EE_PATH}" ]
     then
         echo "Magento EE will be installed to ${MAGENTO_EE_PATH}"
+    else
+        echo "Magento EE will NOT be installed."
     fi
 }
 
@@ -212,6 +213,7 @@ function showWizard()
     do
         if [ "$USE_WIZARD" -eq 1 ]
         then
+            showWizzardGit
             wizard
         fi
         printConfirmation
@@ -242,24 +244,7 @@ function loadConfigFile()
         done
         USE_WIZARD=0
     fi
-}
-
-function tryFindEnterpriseEditionDir()
-{
-    if [ -d "./magento2ee" ]
-    then
-        MAGENTO_EE_PATH="./magento2ee"
-    fi
-
-    if [ -d "./ee" ]
-    then
-        MAGENTO_EE_PATH="./ee"
-    fi
-
-    if [ -d "./m2ee" ]
-    then
-        MAGENTO_EE_PATH="./m2ee"
-    fi
+    generateDBName
 }
 
 function promptSaveConfig()
@@ -283,9 +268,9 @@ BASE_PATH=$_local\$CURRENT_DIR_NAME
 DB_HOST=$DB_HOST
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
+MAGENTO_EE_PATH=$MAGENTO_EE_PATH
 GIT_CE_REPO=$GIT_CE_REPO
 GIT_EE_REPO=$GIT_EE_REPO
-GIT_USERNAME=$GIT_USERNAME
 GIT_BRANCH=$GIT_BRANCH
 EOF
         echo "Config file has been created in ~/$CONFIG_NAME";
@@ -534,46 +519,46 @@ function installMagento()
     runCommand
 }
 
+function showWizzardGit()
+{
+    if [ "$SOURCE" != 'git' ]
+    then
+        return
+    fi
+    askValue "Git CE repository" ${GIT_CE_REPO}
+    GIT_CE_REPO=${READVALUE}
+    askValue "Git EE repository" ${GIT_EE_REPO}
+    GIT_EE_REPO=${READVALUE}
+    askValue "Git branch" ${GIT_BRANCH}
+    GIT_BRANCH=${READVALUE}
+}
+
 function gitClone()
 {
     if [ -d ".git" ] || [ "$SOURCE" != 'git' ]
     then
         return
     fi
-    if [ "$GIT_CE_REPO" == '' ]
-    then
-        askValue "Git CE repository" ${GIT_CE_REPO}
-        GIT_CE_REPO=${READVALUE}
-        askValue "Git EE repository" ${GIT_EE_REPO}
-        GIT_EE_REPO=${READVALUE}
-        askValue "Git username:" ${GIT_USERNAME}
-        GIT_USERNAME=${READVALUE}
-    fi
-    askValue "Git branch:" ${GIT_BRANCH}
-    GIT_BRANCH=${READVALUE}
 
     CMD='git init'
     runCommand
-    CMD='git remote add origin https://'$GIT_USERNAME'@'$GIT_CE_REPO''
+    CMD="git remote add origin $GIT_CE_REPO"
     runCommand
     CMD='git pull origin'
     runCommand
     CMD="git checkout $GIT_BRANCH"
     runCommand
 
-    if [ "$GIT_EE_REPO" != '' ]
+    if [[ ! "$GIT_EE_REPO" ]] && [[ "$MAGENTO_EE_PATH" ]]
     then
-        if askConfirmation "Clone EE(Y/N)?"
-        then
-            CMD='git clone https://'$GIT_USERNAME'@'$GIT_EE_REPO''
-            runCommand
-            CMD="cd magento2ee/"
-            runCommand
-            CMD="git checkout $GIT_BRANCH"
-            runCommand
-            CMD="cd .."
-            runCommand
-        fi
+        CMD="git clone $GIT_EE_REPO"
+        runCommand
+        CMD="cd magento2ee/"
+        runCommand
+        CMD="git checkout $GIT_BRANCH"
+        runCommand
+        CMD="cd .."
+        runCommand
     fi
 }
 
@@ -616,9 +601,6 @@ done
 
 echo Current Directory: `pwd`
 loadConfigFile
-gitClone
-tryFindEnterpriseEditionDir
-generateDBName
 printLine
 showWizard
 promptSaveConfig
@@ -633,6 +615,7 @@ then
     resetAdminPassword
     updateMagentoEnvFile
 else
+    gitClone
     linkEnterpriseEdition
 
     CMD="composer update"
