@@ -570,8 +570,8 @@ and deployment of client dumps created by Magento 2 Support Extension.
 
 Usage: `basename $0` [options]
 Options:
-    -h| --help           Get This Help.
-    -s|--source          Where get source code (GIT, Composer)
+    -h, --help                          Get this help.
+    -s, --source (git, composer)        Get source code.
 EOF
 }
 
