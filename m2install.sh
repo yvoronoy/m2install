@@ -446,6 +446,12 @@ function deployStaticContent()
     runCommand
 }
 
+function compileDi()
+{
+    CMD="php -d memory_limit=2G bin/magento setup:di:compile"
+    runCommand
+}
+
 function installSampleData()
 {
     if ! bin/magento | grep -q support:backup
@@ -541,11 +547,7 @@ function gitClone()
         return
     fi
 
-    CMD='git init'
-    runCommand
-    CMD="git remote add origin $GIT_CE_REPO"
-    runCommand
-    CMD='git pull origin'
+    CMD="git clone $GIT_CE_REPO ."
     runCommand
     CMD="git checkout $GIT_BRANCH"
     runCommand
@@ -593,13 +595,6 @@ while [[ $# > 0 ]]
 do
     case "$1" in
         -s|--source)
-        if [ ! "$2" ]
-        then
-            echo 'Source argument is empty.'
-            printLine
-            printUsage
-            exit 1;
-        fi
         SOURCE="$2"
         shift
         ;;
@@ -617,6 +612,7 @@ printLine
 showWizard
 promptSaveConfig
 
+START_TIME=$(date +%s)
 if foundSupportBackupFiles
 then
     dropDB
@@ -629,20 +625,22 @@ then
 else
     gitClone
     linkEnterpriseEdition
-
     CMD="composer update"
     runCommand
     CMD="composer install"
     runCommand
-
     installMagento
     installSampleData
 fi
 
 deployStaticContent
-
+compileDi
 CMD="chmod -R 0777 ./var ./pub/media ./pub/static ./app/etc"
 runCommand
+
+END_TIME=$(date +%s)
+SUMMARY_TIME=$(expr $END_TIME - $START_TIME);
+echo "$(basename $0) takes $SUMMARY_TIME seconds to complete install/deploy process"
 
 printLine
 
