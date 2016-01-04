@@ -6,6 +6,11 @@ To install Magento 2 from git repository run m2install with --source git param
  * ```m2install --source git``` or
  * ```m2install -s git```
 
+##How to install Magento 2 using Composer
+To install Magento 2 from git repository run m2install with --source git param
+ * ```m2install --source composer``` or
+ * ```m2install -s composer```
+
 ##How to deploy dumps
 In order to deploy the customer dumps you need:
  
