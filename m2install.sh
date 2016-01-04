@@ -35,9 +35,14 @@ MAGENTO_EE_PATH=
 CONFIG_NAME=.m2install.conf
 USE_WIZARD=1
 
+GIT_CE_REPO=
+GIT_EE_REPO=
+GIT_USERNAME=
+GIT_BRANCH=develop
+
 function printVersion()
 {
-    echo "0.1.6-beta"
+    echo "0.1.8-beta"
 }
 
 function askValue()
@@ -51,6 +56,11 @@ function askValue()
     fi
     MESSAGE="${MESSAGE}: "
     read -r -p "$MESSAGE" READVALUE
+    if [[ $READVALUE = [Nn] ]]
+    then
+        READVALUE=''
+        return
+    fi
     if [ -z "${READVALUE}" ] && [ "${READ_DEFAULT_VALUE}" ]
     then
         READVALUE=${READ_DEFAULT_VALUE}
@@ -121,7 +131,6 @@ function prepareBaseURL()
     prepareBasePath
     HTTP_HOST=$(echo ${HTTP_HOST}/ | sed "s/\/\/$/\//g" );
     BASE_URL=${HTTP_HOST}${BASE_PATH}/
-    echo $BASE_URL
     BASE_URL=$(echo $BASE_URL | sed "s/\/\/$/\//g" );
 }
 
@@ -175,7 +184,7 @@ function wizard()
     then
         USE_SAMPLE_DATA=1
     fi
-    askValue "Enter Path to Enterprise Edition"
+    askValue "Enter Path to EE or [nN] to skip EE installation" ${MAGENTO_EE_PATH}
     MAGENTO_EE_PATH=${READVALUE}
 }
 
@@ -187,12 +196,15 @@ function printConfirmation()
     echo "DB NAME: ${DB_NAME}"
     if [ "${USE_SAMPLE_DATA}" ]
     then
-        echo "Sample Data will be installed"
+        echo "Sample Data will be installed."
+    else
+        echo "Sample Data will NOT be installed."
     fi
     if [ "${MAGENTO_EE_PATH}" ]
     then
-        echo "Magento EE will be installed"
-        echo "Magento EE Path: ${MAGENTO_EE_PATH}"
+        echo "Magento EE will be installed to ${MAGENTO_EE_PATH}"
+    else
+        echo "Magento EE will NOT be installed."
     fi
 }
 
@@ -203,8 +215,12 @@ function showWizard()
     do
         if [ "$USE_WIZARD" -eq 1 ]
         then
+            showComposerWizzard
+            showWizzardGit
             wizard
         fi
+        printComposerConfirmation
+        printGitConfirmation
         printConfirmation
         if askConfirmation
         then
@@ -233,24 +249,7 @@ function loadConfigFile()
         done
         USE_WIZARD=0
     fi
-}
-
-function tryFindEnterpriseEditionDir()
-{
-    if [ -d "./magento2ee" ]
-    then
-        MAGENTO_EE_PATH="./magento2ee"
-    fi
-
-    if [ -d "./ee" ]
-    then
-        MAGENTO_EE_PATH="./ee"
-    fi
-
-    if [ -d "./m2ee" ]
-    then
-        MAGENTO_EE_PATH="./m2ee"
-    fi
+    generateDBName
 }
 
 function promptSaveConfig()
@@ -275,6 +274,10 @@ DB_HOST=$DB_HOST
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
 COMPOSER_VERSION=$COMPOSER_VERSION
+MAGENTO_EE_PATH=$MAGENTO_EE_PATH
+GIT_CE_REPO=$GIT_CE_REPO
+GIT_EE_REPO=$GIT_EE_REPO
+GIT_BRANCH=$GIT_BRANCH
 EOF
         echo "Config file has been created in ~/$CONFIG_NAME";
     fi
@@ -448,6 +451,12 @@ function deployStaticContent()
     runCommand
 }
 
+function compileDi()
+{
+    CMD="php -d memory_limit=2G bin/magento setup:di:compile"
+    runCommand
+}
+
 function installSampleData()
 {
     if ! bin/magento | grep -q support:backup
@@ -524,13 +533,10 @@ function installMagento()
 
 function composerInstall()
 {
-    if [ "$1" != 'composer' ]
+    if [ "$SOURCE" != 'composer' ]
     then
-        return
+        return;
     fi
-
-    askValue "Composer Magento version" ${COMPOSER_VERSION}
-    COMPOSER_VERSION=${READVALUE}
 
     CMD="composer create-project --repository-url=https://repo.magento.com/ magento/project-community-edition . $COMPOSER_VERSION"
     runCommand
@@ -539,17 +545,115 @@ function composerInstall()
     runCommand
 }
 
+showComposerWizzard()
+{
+    if [ "$SOURCE" != 'composer' ]
+    then
+        return;
+    fi
+    askValue "Composer Magento version" ${COMPOSER_VERSION}
+    COMPOSER_VERSION=${READVALUE}
+
+}
+
+printComposerConfirmation()
+{
+    if [ "$SOURCE" != 'composer' ]
+    then
+        return;
+    fi
+    echo "Magento code will be downloaded from composer";
+    echo "Composer version: $COMPOSER_VERSION";
+}
+
+function showWizzardGit()
+{
+    if [ "$SOURCE" != 'git' ]
+    then
+        return
+    fi
+    askValue "Git CE repository" ${GIT_CE_REPO}
+    GIT_CE_REPO=${READVALUE}
+    askValue "Git EE repository" ${GIT_EE_REPO}
+    GIT_EE_REPO=${READVALUE}
+    askValue "Git branch" ${GIT_BRANCH}
+    GIT_BRANCH=${READVALUE}
+}
+
+function gitClone()
+{
+    if [ -d ".git" ] || [ "$SOURCE" != 'git' ]
+    then
+        return
+    fi
+
+    CMD="git clone $GIT_CE_REPO ."
+    runCommand
+    CMD="git checkout $GIT_BRANCH"
+    runCommand
+
+    if [[ "$GIT_EE_REPO" ]] && [[ "$MAGENTO_EE_PATH" ]]
+    then
+        CMD="git clone $GIT_EE_REPO"
+        runCommand
+        CMD="cd magento2ee/"
+        runCommand
+        CMD="git checkout $GIT_BRANCH"
+        runCommand
+        CMD="cd .."
+        runCommand
+    fi
+}
+
+function printGitConfirmation()
+{
+    if [ "$SOURCE" != 'git' ]
+    then
+        return
+    fi
+    echo "Magento code will be downloaded from GIT";
+    echo "Git CE repository: ${GIT_CE_REPO}"
+    echo "Git EE repository: ${GIT_EE_REPO}"
+    echo "Git branch: ${GIT_BRANCH}"
+}
+
+function printUsage()
+{
+    cat <<EOF
+`basename $0` is designed to simplify the installation process of Magento 2
+and deployment of client dumps created by Magento 2 Support Extension.
+
+Usage: `basename $0` [options]
+Options:
+    -h, --help                          Get this help.
+    -s, --source (git, composer)        Get source code.
+EOF
+}
+
 ################################################################################
+
+while [[ $# > 0 ]]
+do
+    case "$1" in
+        -s|--source)
+        SOURCE="$2"
+        shift
+        ;;
+        -h|--help)
+        printUsage
+        exit;
+        ;;
+    esac
+    shift
+done
 
 echo Current Directory: `pwd`
 loadConfigFile
-composerInstall $1
-tryFindEnterpriseEditionDir
-generateDBName
 printLine
 showWizard
 promptSaveConfig
 
+START_TIME=$(date +%s)
 if foundSupportBackupFiles
 then
     dropDB
@@ -560,21 +664,25 @@ then
     resetAdminPassword
     updateMagentoEnvFile
 else
+    gitClone
+    composerInstall
     linkEnterpriseEdition
-
     CMD="composer update"
     runCommand
     CMD="composer install"
     runCommand
-
     installMagento
     installSampleData
 fi
 
 deployStaticContent
-
+compileDi
 CMD="chmod -R 0777 ./var ./pub/media ./pub/static ./app/etc"
 runCommand
+
+END_TIME=$(date +%s)
+SUMMARY_TIME=$(expr $END_TIME - $START_TIME);
+echo "$(basename $0) takes $SUMMARY_TIME seconds to complete install/deploy process"
 
 printLine
 
