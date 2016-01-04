@@ -40,7 +40,7 @@ GIT_BRANCH=develop
 
 function printVersion()
 {
-    echo "0.1.6-beta"
+    echo "0.1.7-beta"
 }
 
 function askValue()
