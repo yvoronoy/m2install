@@ -459,7 +459,7 @@ function compileDi()
 
 function installSampleData()
 {
-    if ! bin/magento | grep -q support:backup
+    if ! php bin/magento | grep -q support:backup
     then
         echo "Your version does not support sample data"
         return;
