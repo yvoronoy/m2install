@@ -45,7 +45,7 @@ FORCE=
 
 function printVersion()
 {
-    echo "0.1.8-beta"
+    echo "0.1.9-beta"
 }
 
 function askValue()
