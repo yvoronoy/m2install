@@ -40,6 +40,9 @@ GIT_EE_REPO=
 GIT_USERNAME=
 GIT_BRANCH=develop
 
+SOURCE=
+FORCE=
+
 function printVersion()
 {
     echo "0.1.8-beta"
@@ -68,6 +71,10 @@ function askValue()
 }
 
 function askConfirmation() {
+    if [ "$FORCE" ]
+    then
+        return 0;
+    fi
     read -r -p "${1:-Are you sure? [y/N]} " response
     case $response in
         [yY][eE][sS]|[yY])
@@ -824,6 +831,7 @@ Usage: `basename $0` [options]
 Options:
     -h, --help                          Get this help.
     -s, --source (git, composer)        Get source code.
+    -f, --force                         Install/Restore without any confirmations
 EOF
 }
 
@@ -835,6 +843,9 @@ do
         -s|--source)
         SOURCE="$2"
         shift
+        ;;
+        -f|--force)
+        FORCE=1
         ;;
         -h|--help)
         printUsage
