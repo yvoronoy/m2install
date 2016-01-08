@@ -538,10 +538,18 @@ EOF
 
 function updateMagentoEnvFile()
 {
+    _key="'key' => 'ec3b1c29111007ac5d9245fb696fb729',"
+    _date="'date' => 'Fri, 27 Nov 2015 12:24:54 +0000',"
+    _table_prefix="'table_prefix' => '',"
+
     if [ -f app/etc/env.php ]
     then
         CMD="cp app/etc/env.php app/etc/env.php.merchant"
         runCommand
+
+        _key=$(cat app/etc/env.php.merchant | grep key)
+        _date=$(cat app/etc/env.php.merchant | grep date)
+        _table_prefix=$(cat app/etc/env.php.merchant | grep table_prefix)
     fi
     cat << EOF > app/etc/env.php
 <?php
@@ -590,15 +598,15 @@ return array (
         'active' => '1',
       ),
     ),
-    'table_prefix' => '',
+    ${_table_prefix}
   ),
   'install' =>
   array (
-    'date' => 'Fri, 27 Nov 2015 12:24:54 +0000',
+    ${_date}
   ),
   'crypt' =>
   array (
-    'key' => 'ec3b1c29111007ac5d9245fb696fb729',
+    ${_key}
   ),
   'session' =>
   array (
@@ -631,6 +639,10 @@ return array (
   ),
 );
 EOF
+
+_key=
+_date=
+_table_prefix=
 }
 
 function deployStaticContent()
