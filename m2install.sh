@@ -352,9 +352,150 @@ function resetAdminPassword()
     runCommand
 }
 
+function updateMagentoHtaccessFile()
+{
+    if [ -f .htaccess ]
+    then
+        CMD="cp .htaccess .htaccess.merchant"
+        runCommand
+    fi
+    cat << EOF > .htaccess
+#   SetEnv MAGE_MODE developer
+    DirectoryIndex index.php
+
+<IfModule mod_php5.c>
+    php_value memory_limit 768M
+    php_value max_execution_time 18000
+    php_flag session.auto_start off
+    php_flag suhosin.session.cryptua off
+</IfModule>
+
+<IfModule mod_php7.c>
+    php_value memory_limit 768M
+    php_value max_execution_time 18000
+    php_flag session.auto_start off
+    php_flag suhosin.session.cryptua off
+</IfModule>
+
+<IfModule mod_security.c>
+    SecFilterEngine Off
+    SecFilterScanPOST Off
+</IfModule>
+
+<IfModule mod_ssl.c>
+    SSLOptions StdEnvVars
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    Options +FollowSymLinks
+    RewriteEngine on
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteCond %{REQUEST_METHOD} ^TRAC[EK]
+    RewriteRule .* - [L,R=405]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-l
+    RewriteRule .* index.php [L]
+</IfModule>
+
+    AddDefaultCharset Off
+
+<IfModule mod_expires.c>
+    ExpiresDefault "access plus 1 year"
+    ExpiresByType text/html A0
+    ExpiresByType text/plain A0
+</IfModule>
+
+    RedirectMatch 404 /\.git
+
+    <Files composer.json>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files composer.lock>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files .gitignore>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files .htaccess>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files .htaccess.sample>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files .php_cs>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files .travis.yml>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files CHANGELOG.md>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files CONTRIBUTING.md>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files CONTRIBUTOR_LICENSE_AGREEMENT.html>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files COPYING.txt>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files Gruntfile.js>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files LICENSE.txt>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files LICENSE_AFL.txt>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files nginx.conf.sample>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files package.json>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files php.ini.sample>
+        order allow,deny
+        deny from all
+    </Files>
+    <Files README.md>
+        order allow,deny
+        deny from all
+    </Files>
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+EOF
+}
+
 function updateMagentoEnvFile()
 {
-    cp app/etc/env.php app/etc/env.php.merchant
+    if [ -f app/etc/env.php ]
+    then
+        CMD="cp app/etc/env.php app/etc/env.php.merchant"
+        runCommand
+    fi
     cat << EOF > app/etc/env.php
 <?php
 return array (
@@ -663,6 +804,7 @@ then
     updateBaseUrl
     resetAdminPassword
     updateMagentoEnvFile
+    updateMagentoHtaccessFile
 else
     gitClone
     composerInstall
