@@ -700,8 +700,11 @@ function composerInstall()
     CMD="composer create-project --repository-url=https://repo.magento.com/ magento/project-community-edition . $COMPOSER_VERSION"
     runCommand
 
-    CMD="composer create-project --repository-url=https://repo.magento.com/ magento/project-enterprise-edition magento2ee $COMPOSER_VERSION"
-    runCommand
+    if [ "$MAGENTO_EE_PATH" ]
+    then
+        CMD="composer create-project --repository-url=https://repo.magento.com/ magento/project-enterprise-edition ${MAGENTO_EE_PATH} ${COMPOSER_VERSION}"
+        runCommand
+    fi
 }
 
 showComposerWizzard()
@@ -750,7 +753,7 @@ function gitClone()
     then
         CMD="git clone $GIT_EE_REPO"
         runCommand
-        CMD="cd magento2ee/"
+        CMD="cd ${MAGENTO_EE_PATH}"
         runCommand
         CMD="git checkout $GIT_BRANCH"
         runCommand
@@ -835,8 +838,8 @@ CMD="chmod -R 0777 ./var ./pub/media ./pub/static ./app/etc"
 runCommand
 
 END_TIME=$(date +%s)
-SUMMARY_TIME=$(expr $END_TIME - $START_TIME);
-echo "$(basename $0) takes $SUMMARY_TIME seconds to complete install/deploy process"
+SUMMARY_TIME=$(expr $(expr $END_TIME - $START_TIME) / 60);
+echo "$(basename $0) takes $SUMMARY_TIME minutes to complete install/deploy process"
 
 printLine
 
