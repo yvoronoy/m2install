@@ -180,6 +180,11 @@ function wizard()
     generateDBName
     askValue "Enter DB Name" ${DB_NAME}
     DB_NAME=${READVALUE}
+
+    if foundSupportBackupFiles
+    then
+        return;
+    fi
     if askConfirmation "Do you want to install Sample Data (y/N)"
     then
         USE_SAMPLE_DATA=1
@@ -194,6 +199,10 @@ function printConfirmation()
     echo "BASE URL: ${BASE_URL}"
     echo "DB PARAM: ${DB_USER}@${DB_HOST}"
     echo "DB NAME: ${DB_NAME}"
+    if foundSupportBackupFiles
+    then
+        return;
+    fi
     if [ "${USE_SAMPLE_DATA}" ]
     then
         echo "Sample Data will be installed."
