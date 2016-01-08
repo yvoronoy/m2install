@@ -269,24 +269,21 @@ function loadConfigFile()
 
 function promptSaveConfig()
 {
-    if [ "$NEAREST_CONFIG_FILE" ]
-    then
-        return;
-    fi
-    if askConfirmation "Do you want save config to ~/$CONFIG_NAME (Y/N)"
-    _local=$(dirname $BASE_PATH)
-    if [ "$_local" == "." ]
-    then
-        _local=
-    else
-        _local=$_local/
-    fi
-    if [ "$_local" != '/' ]
-    then
-        _local=${_local}\$CURRENT_DIR_NAME
-    fi
-    then
-        cat << EOF > ~/$CONFIG_NAME
+        _local=$(dirname $BASE_PATH)
+        if [ "$_local" == "." ]
+        then
+            _local=
+        else
+            _local=$_local/
+        fi
+        if [ "$_local" != '/' ]
+        then
+            _local=${_local}\$CURRENT_DIR_NAME
+        fi
+
+        if [ "$NEAREST_CONFIG_FILE" ]
+        then
+            _configContent=$(cat << EOF
 HTTP_HOST=$HTTP_HOST
 BASE_PATH=$_local
 DB_HOST=$DB_HOST
@@ -298,8 +295,32 @@ GIT_CE_REPO=$GIT_CE_REPO
 GIT_EE_REPO=$GIT_EE_REPO
 GIT_BRANCH=$GIT_BRANCH
 EOF
-        echo "Config file has been created in ~/$CONFIG_NAME";
-    fi
+)
+            _currentConfigContent=$(cat $NEAREST_CONFIG_FILE)
+
+            if [ "$_configContent" == "$_currentConfigContent" ]
+            then
+                return;
+            fi
+
+        fi
+
+        if askConfirmation "Do you want save/override config to ~/$CONFIG_NAME (y/N)"
+        then
+            cat << EOF > ~/$CONFIG_NAME
+HTTP_HOST=$HTTP_HOST
+BASE_PATH=$_local
+DB_HOST=$DB_HOST
+DB_USER=$DB_USER
+DB_PASSWORD=$DB_PASSWORD
+COMPOSER_VERSION=$COMPOSER_VERSION
+MAGENTO_EE_PATH=$MAGENTO_EE_PATH
+GIT_CE_REPO=$GIT_CE_REPO
+GIT_EE_REPO=$GIT_EE_REPO
+GIT_BRANCH=$GIT_BRANCH
+EOF
+            echo "Config file has been created in ~/$CONFIG_NAME";
+        fi
     _local=
 }
 
