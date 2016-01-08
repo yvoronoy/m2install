@@ -672,13 +672,31 @@ function installMagento()
     runCommand
 }
 
-function composerInstall()
+function downloadSourceCode()
 {
-    if [ "$SOURCE" != 'composer' ]
+    if [ "${SOURCE}" != 'composer' ] && [ "${SOURCE}" != 'git' ]
     then
         return;
     fi
+    if [ "$(ls -A ./)" ]; then
+        >&2 echo "Can't download source code from ${SOURCE} since current directory doesn't empty."
+        >&2 echo "You can remove all files from current directory using next command:"
+        >&2 echo "ls -A | xargs rm -rf"
+        exit 1;
+    fi
+    if [ "$SOURCE" == 'composer' ]
+    then
+        composerInstall
+    fi
 
+    if [ "$SOURCE" == 'git' ]
+    then
+        gitClone
+    fi
+}
+
+function composerInstall()
+{
     CMD="composer create-project --repository-url=https://repo.magento.com/ magento/project-community-edition . $COMPOSER_VERSION"
     runCommand
 
@@ -723,11 +741,6 @@ function showWizzardGit()
 
 function gitClone()
 {
-    if [ -d ".git" ] || [ "$SOURCE" != 'git' ]
-    then
-        return
-    fi
-
     CMD="git clone $GIT_CE_REPO ."
     runCommand
     CMD="git checkout $GIT_BRANCH"
@@ -806,8 +819,7 @@ then
     updateMagentoEnvFile
     updateMagentoHtaccessFile
 else
-    gitClone
-    composerInstall
+    downloadSourceCode
     linkEnterpriseEdition
     CMD="composer update"
     runCommand
