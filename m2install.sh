@@ -228,6 +228,7 @@ function showWizard()
             showWizzardGit
             wizard
         fi
+        printLine
         printComposerConfirmation
         printGitConfirmation
         printConfirmation
@@ -275,10 +276,14 @@ function promptSaveConfig()
     else
         _local=$_local/
     fi
+    if [ "$_local" != '/' ]
+    then
+        _local=${_local}\$CURRENT_DIR_NAME
+    fi
     then
         cat << EOF > ~/$CONFIG_NAME
 HTTP_HOST=$HTTP_HOST
-BASE_PATH=$_local\$CURRENT_DIR_NAME
+BASE_PATH=$_local
 DB_HOST=$DB_HOST
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
@@ -815,7 +820,6 @@ done
 
 echo Current Directory: `pwd`
 loadConfigFile
-printLine
 showWizard
 promptSaveConfig
 
