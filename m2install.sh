@@ -866,6 +866,7 @@ Options:
     -s, --source (git, composer)         Get source code.
     -f, --force                          Install/Restore without any confirmations
     -d, --sample-data (yes, no)          Install sample data
+    -e, --ee-path (/path/to/ee)          Path to Enterprise Edition
 EOF
 }
 
@@ -890,6 +891,11 @@ do
             else
                 USE_SAMPLE_DATA="$2"
             fi
+            shift
+        ;;
+        -e|--ee-path)
+            checkArgumentHasValue $1 $2
+            MAGENTO_EE_PATH="$2"
             shift
         ;;
         -f|--force)
