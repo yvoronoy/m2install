@@ -833,6 +833,27 @@ function printGitConfirmation()
     echo "Git branch: ${GIT_BRANCH}"
 }
 
+function checkArgumentHasValue()
+{
+    if [ ! $2 ]
+    then
+        >&2 echo "ERROR: $1 Argument is empty."
+        printLine
+        printUsage
+        exit
+    fi
+}
+
+function isInputNegative()
+{
+    if [[ $1 = [Nn][oO] ]] || [[ $1 = [Nn] ]] || [[ $1 = [0] ]]
+    then
+        return 0;
+    else
+        return 1;
+    fi
+}
+
 function printUsage()
 {
     cat <<EOF
@@ -841,20 +862,35 @@ and deployment of client dumps created by Magento 2 Support Extension.
 
 Usage: `basename $0` [options]
 Options:
-    -h, --help                          Get this help.
-    -s, --source (git, composer)        Get source code.
-    -f, --force                         Install/Restore without any confirmations
+    -h, --help                           Get this help.
+    -s, --source (git, composer)         Get source code.
+    -f, --force                          Install/Restore without any confirmations
+    -d, --sample-data (yes, no)          Install sample data
 EOF
 }
 
 ################################################################################
 
+echo Current Directory: `pwd`
+loadConfigFile
+
 while [[ $# > 0 ]]
 do
     case "$1" in
         -s|--source)
-        SOURCE="$2"
-        shift
+            checkArgumentHasValue $1 $2
+            SOURCE="$2"
+            shift
+        ;;
+        -d|--sample-data)
+            checkArgumentHasValue $1 $2
+            if isInputNegative $2
+            then
+                USE_SAMPLE_DATA=
+            else
+                USE_SAMPLE_DATA="$2"
+            fi
+            shift
         ;;
         -f|--force)
         FORCE=1
@@ -867,8 +903,6 @@ do
     shift
 done
 
-echo Current Directory: `pwd`
-loadConfigFile
 showWizard
 promptSaveConfig
 
