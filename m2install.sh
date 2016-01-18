@@ -867,6 +867,7 @@ Options:
     -f, --force                          Install/Restore without any confirmations
     -d, --sample-data (yes, no)          Install sample data
     -e, --ee-path (/path/to/ee)          Path to Enterprise Edition
+    -b, --git-branch (branch name)       Specify Git Branch
 EOF
 }
 
@@ -896,6 +897,11 @@ do
         -e|--ee-path)
             checkArgumentHasValue $1 $2
             MAGENTO_EE_PATH="$2"
+            shift
+        ;;
+        -b|--git-branch)
+            checkArgumentHasValue $1 $2
+            GIT_BRANCH="$2"
             shift
         ;;
         -f|--force)
