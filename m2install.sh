@@ -896,7 +896,7 @@ fi
 
 deployStaticContent
 compileDi
-CMD="chmod -R 0777 ./var ./pub/media ./pub/static ./app/etc"
+CMD="chmod -R 2777 ./var ./pub/media ./pub/static ./app/etc"
 runCommand
 
 END_TIME=$(date +%s)
