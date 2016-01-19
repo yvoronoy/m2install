@@ -276,21 +276,25 @@ function loadConfigFile()
 
 function promptSaveConfig()
 {
-        _local=$(dirname $BASE_PATH)
-        if [ "$_local" == "." ]
-        then
-            _local=
-        else
-            _local=$_local/
-        fi
-        if [ "$_local" != '/' ]
-        then
-            _local=${_local}\$CURRENT_DIR_NAME
-        fi
+    if [ "$FORCE" ]
+    then
+        return;
+    fi
+    _local=$(dirname $BASE_PATH)
+    if [ "$_local" == "." ]
+    then
+        _local=
+    else
+        _local=$_local/
+    fi
+    if [ "$_local" != '/' ]
+    then
+        _local=${_local}\$CURRENT_DIR_NAME
+    fi
 
-        if [ "$NEAREST_CONFIG_FILE" ]
-        then
-            _configContent=$(cat << EOF
+    if [ "$NEAREST_CONFIG_FILE" ]
+    then
+        _configContent=$(cat << EOF
 HTTP_HOST=$HTTP_HOST
 BASE_PATH=$_local
 DB_HOST=$DB_HOST
@@ -303,18 +307,18 @@ GIT_EE_REPO=$GIT_EE_REPO
 GIT_BRANCH=$GIT_BRANCH
 EOF
 )
-            _currentConfigContent=$(cat $NEAREST_CONFIG_FILE)
+        _currentConfigContent=$(cat $NEAREST_CONFIG_FILE)
 
-            if [ "$_configContent" == "$_currentConfigContent" ]
-            then
-                return;
-            fi
-
+        if [ "$_configContent" == "$_currentConfigContent" ]
+        then
+            return;
         fi
 
-        if askConfirmation "Do you want save/override config to ~/$CONFIG_NAME (y/N)"
-        then
-            cat << EOF > ~/$CONFIG_NAME
+    fi
+
+    if askConfirmation "Do you want save/override config to ~/$CONFIG_NAME (y/N)"
+    then
+        cat << EOF > ~/$CONFIG_NAME
 HTTP_HOST=$HTTP_HOST
 BASE_PATH=$_local
 DB_HOST=$DB_HOST
@@ -905,11 +909,11 @@ do
             shift
         ;;
         -f|--force)
-        FORCE=1
+            FORCE=1
         ;;
         -h|--help)
-        printUsage
-        exit;
+            printUsage
+            exit;
         ;;
     esac
     shift
