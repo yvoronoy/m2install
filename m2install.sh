@@ -394,6 +394,8 @@ function updateBaseUrl()
 
 function resetAdminPassword()
 {
+    SQLQUERY="UPDATE ${DB_NAME}.admin_user SET admin_user.email = 'mail@magento.com' WHERE admin_user.username = 'admin'"
+    mysqlQuery
     CMD="php bin/magento admin:user:create \
         --admin-user='admin' \
         --admin-password='123123q' \
@@ -929,10 +931,10 @@ then
     createNewDB
     extractCode
     restoreDB
-    updateBaseUrl
-    resetAdminPassword
     updateMagentoEnvFile
     updateMagentoHtaccessFile
+    updateBaseUrl
+    resetAdminPassword
 else
     downloadSourceCode
     linkEnterpriseEdition
