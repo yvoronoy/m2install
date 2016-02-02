@@ -42,6 +42,7 @@ GIT_BRANCH=develop
 
 SOURCE=
 FORCE=
+MAGE_MODE=dev
 
 function printVersion()
 {
@@ -226,6 +227,11 @@ function printConfirmation()
         echo "Magento EE will be installed to ${MAGENTO_EE_PATH}"
     else
         echo "Magento EE will NOT be installed."
+    fi
+
+    if [[ "$MAGE_MODE" == "dev" ]]
+    then
+        echo "In order to generate static/di content, add mode param: `basename $0` --mode prod"
     fi
 }
 
@@ -653,12 +659,21 @@ _table_prefix=
 
 function deployStaticContent()
 {
+    if [[ "$MAGE_MODE" == "dev" ]]
+    then
+        return;
+    fi
+
     CMD="php -d memory_limit=2G bin/magento setup:static-content:deploy"
     runCommand
 }
 
 function compileDi()
 {
+    if [[ "$MAGE_MODE" == "dev" ]]
+    then
+        return;
+    fi
     CMD="php -d memory_limit=2G bin/magento setup:di:compile"
     runCommand
 }
@@ -870,10 +885,11 @@ Usage: `basename $0` [options]
 Options:
     -h, --help                           Get this help.
     -s, --source (git, composer)         Get source code.
-    -f, --force                          Install/Restore without any confirmations
-    -d, --sample-data (yes, no)          Install sample data
-    -e, --ee-path (/path/to/ee)          Path to Enterprise Edition
-    -b, --git-branch (branch name)       Specify Git Branch
+    -f, --force                          Install/Restore without any confirmations.
+    --sample-data (yes, no)              Install sample data.
+    --ee-path (/path/to/ee)              Path to Enterprise Edition.
+    --git-branch (branch name)           Specify Git Branch.
+    --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
 EOF
 }
 
@@ -908,6 +924,11 @@ do
         -b|--git-branch)
             checkArgumentHasValue $1 $2
             GIT_BRANCH="$2"
+            shift
+        ;;
+        --mode)
+            checkArgumentHasValue $1 $2
+            MAGE_MODE=$2
             shift
         ;;
         -f|--force)
