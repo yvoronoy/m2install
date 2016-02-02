@@ -680,11 +680,26 @@ function compileDi()
 
 function installSampleData()
 {
+    if [ ! "${USE_SAMPLE_DATA}" ]
+    then
+        return;
+    fi
+    if php bin/magento --version | grep -q beta
+    then
+        _installSampleDataForBeta;
+    else
+        _installSampleData;
+    fi
+}
+
+function _installSampleData()
+{
     if ! php bin/magento | grep -q sampledata:deploy
     then
         echo "Your version does not support sample data"
         return;
     fi
+
     if [ -f "${HOME}/.composer/auth.json" ]
     then
         if [ -d "var/composer_home" ]
@@ -694,21 +709,31 @@ function installSampleData()
         fi
     fi
 
-    if [ "${USE_SAMPLE_DATA}" ]
-    then
-        CMD="php -dmemory_limit=2G bin/magento sampledata:deploy"
-        runCommand
-        CMD="composer update"
-        runCommand
-        CMD="php -dmemory_limit=2G bin/magento setup:upgrade"
-        runCommand
-    fi
+
+    CMD="php -dmemory_limit=2G bin/magento sampledata:deploy"
+    runCommand
+    CMD="composer update"
+    runCommand
+    CMD="php -dmemory_limit=2G bin/magento setup:upgrade"
+    runCommand
 
     if [ -f "var/composer_home/auth.json" ]
     then
         CMD="rm var/composer_home/auth.json"
         runCommand
     fi
+}
+
+function _installSampleDataForBeta()
+{
+    CMD="composer config repositories.magento composer http://packages.magento.com"
+    runCommand
+    CMD="composer require magento/sample-data:~1.0.0-beta"
+    runCommand
+    CMD="php bin/magento setup:upgrade"
+    runCommand
+    CMD="php -dmemory_limit=2G bin/magento sampledata:install admin"
+    runCommand
 }
 
 function linkEnterpriseEdition()
