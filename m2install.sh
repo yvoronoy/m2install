@@ -109,6 +109,7 @@ function extract()
          case $EXTRACT_FILENAME in
              *.tar.bz2)   tar xjf $EXTRACT_FILENAME;;
              *.tar.gz)    gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x ;;
+             *.tgz)       gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x ;;
              *.gz)        gunzip $EXTRACT_FILENAME;;
              *.tbz2)      tar xjf $EXTRACT_FILENAME;;
              *)           echo "'$EXTRACT_FILENAME' cannot be extracted";;
@@ -154,11 +155,19 @@ function getCodeDumpFilename()
     then
         FILENAME_CODE_DUMP=$(ls -1 *.tar.gz 2> /dev/null | grep -v 'logs.tar.gz' | head -n1)
     fi
+    if [ ! "$FILENAME_CODE_DUMP" ]
+    then
+        FILENAME_CODE_DUMP=$(ls -1 *_code.tgz 2> /dev/null | head -n1)
+    fi
 }
 
 function getDbDumpFilename()
 {
     FILENAME_DB_DUMP=$(ls -1 *.sql.gz 2> /dev/null | head -n1)
+    if [ ! "$FILENAME_DB_DUMP" ]
+    then
+        FILENAME_DB_DUMP=$(ls -1 *_db.gz 2> /dev/null | head -n1)
+    fi
 }
 
 function foundSupportBackupFiles()
@@ -388,7 +397,7 @@ function extractCode()
     EXTRACT_FILENAME=$FILENAME_CODE_DUMP
     extract
 
-    mkdir -p var pub/media
+    mkdir -p var pub/media pub/static
     echo "OK"
 }
 
