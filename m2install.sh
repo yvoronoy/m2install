@@ -378,15 +378,19 @@ function restoreDB()
     echo "Please wait DB dump starts restore"
 
     getDbDumpFilename
+    CMD=
 
     if which pv > /dev/null
     then
-        CMD="pv ${FILENAME_DB_DUMP} | gunzip -c | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/' | grep -v 'mysqldump: Couldn.t find table' | mysql -h$DB_HOST -u$DB_USER --password=$DB_PASSWORD --force $DB_NAME";
-        runCommand;
+        CMD="pv ${FILENAME_DB_DUMP} | gunzip -c";
     else
-        CMD="gunzip -c $FILENAME_DB_DUMP | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/' | grep -v 'mysqldump: Couldn.t find table' | mysql -h$DB_HOST -u$DB_USER --password=$DB_PASSWORD --force $DB_NAME"
-        runCommand;
+        CMD="gunzip -c $FILENAME_DB_DUMP"
     fi
+
+    CMD="${CMD} | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/' \
+        | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password' \
+        | mysql -h$DB_HOST -u$DB_USER --password=$DB_PASSWORD --force $DB_NAME";
+    runCommand
 }
 
 function extractCode()
