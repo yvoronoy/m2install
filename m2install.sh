@@ -44,9 +44,16 @@ SOURCE=
 FORCE=
 MAGE_MODE=dev
 
+BIN_MAGE="php -d memory_limit=2G bin/magento"
+BIN_COMPOSER="composer"
+BIN_MYSQL="mysql"
+BIN_MYSQLADMIN="mysqladmin"
+BIN_GIT="git"
+
+
 function printVersion()
 {
-    echo "0.1.9-beta"
+    printString "0.1.9-beta"
 }
 
 function askValue()
@@ -88,9 +95,25 @@ function askConfirmation() {
     return $retval
 }
 
+function printString()
+{
+    if [[ "$VERBOSE" -eq 1 ]]
+    then
+        echo $@;
+    fi
+}
+
+function printError()
+{
+    >&2 echo $@;
+}
+
 function printLine()
 {
-    printf '%50s\n' | tr ' ' -
+    if [[ "$VERBOSE" -eq 1 ]]
+    then
+        printf '%50s\n' | tr ' ' -
+    fi
 }
 
 function runCommand()
@@ -112,16 +135,16 @@ function extract()
              *.tgz)       gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x ;;
              *.gz)        gunzip $EXTRACT_FILENAME;;
              *.tbz2)      tar xjf $EXTRACT_FILENAME;;
-             *)           echo "'$EXTRACT_FILENAME' cannot be extracted";;
+             *)           printError "'$EXTRACT_FILENAME' cannot be extracted";;
          esac
      else
-         echo "'$EXTRACT_FILENAME' is not a valid file"
+         printError "'$EXTRACT_FILENAME' is not a valid file"
      fi
 }
 
 function mysqlQuery()
 {
-    SQLQUERY_RESULT=$(mysql -h$DB_HOST -u${DB_USER} --password=${DB_PASSWORD} --execute="${SQLQUERY}" 2>/dev/null);
+    SQLQUERY_RESULT=$(${BIN_MYSQL} -h$DB_HOST -u${DB_USER} --password=${DB_PASSWORD} --execute="${SQLQUERY}" 2>/dev/null);
 }
 
 function generateDBName()
@@ -146,6 +169,20 @@ function prepareBaseURL()
     HTTP_HOST=$(echo ${HTTP_HOST}/ | sed "s/\/\/$/\//g" );
     BASE_URL=${HTTP_HOST}${BASE_PATH}/
     BASE_URL=$(echo $BASE_URL | sed "s/\/\/$/\//g" );
+}
+
+function initQuietMode()
+{
+    if [[ "$VERBOSE" -eq 1 ]]
+    then
+        return;
+    fi
+
+    BIN_MAGE="${BIN_MAGE} --quiet"
+    BIN_COMPOSER="${BIN_COMPOSER} --quiet"
+    BIN_GIT="${BIN_GIT} --quiet"
+
+    FORCE=1
 }
 
 function getCodeDumpFilename()
@@ -217,30 +254,32 @@ function wizard()
 
 function printConfirmation()
 {
+    printComposerConfirmation
+    printGitConfirmation
     prepareBaseURL
-    echo "BASE URL: ${BASE_URL}"
-    echo "DB PARAM: ${DB_USER}@${DB_HOST}"
-    echo "DB NAME: ${DB_NAME}"
+    printString "BASE URL: ${BASE_URL}"
+    printString "DB PARAM: ${DB_USER}@${DB_HOST}"
+    printString "DB NAME: ${DB_NAME}"
     if foundSupportBackupFiles
     then
         return;
     fi
     if [ "${USE_SAMPLE_DATA}" ]
     then
-        echo "Sample Data will be installed."
+        printString "Sample Data will be installed."
     else
-        echo "Sample Data will NOT be installed."
+        printString "Sample Data will NOT be installed."
     fi
     if [ "${MAGENTO_EE_PATH}" ]
     then
-        echo "Magento EE will be installed to ${MAGENTO_EE_PATH}"
+        printString "Magento EE will be installed to ${MAGENTO_EE_PATH}"
     else
-        echo "Magento EE will NOT be installed."
+        printString "Magento EE will NOT be installed."
     fi
 
     if [[ "$MAGE_MODE" == "dev" ]]
     then
-        echo "In order to generate static/di content, add mode param: `basename $0` --mode prod"
+        printString "In order to generate static/di content, add mode param: `basename $0` --mode prod"
     fi
 }
 
@@ -256,8 +295,6 @@ function showWizard()
             wizard
         fi
         printLine
-        printComposerConfirmation
-        printGitConfirmation
         printConfirmation
         if askConfirmation
         then
@@ -278,11 +315,9 @@ function loadConfigFile()
         done) | sed '1!G;h;$!d'`
     if [ "$NEAREST_CONFIG_FILE" ]
     then
-        echo "Configuration loaded from:"
         for FILE in $NEAREST_CONFIG_FILE
         do
-            CMD="source $FILE"
-            runCommand
+            source $FILE
         done
         USE_WIZARD=0
     fi
@@ -345,25 +380,29 @@ GIT_CE_REPO=$GIT_CE_REPO
 GIT_EE_REPO=$GIT_EE_REPO
 GIT_BRANCH=$GIT_BRANCH
 EOF
-            echo "Config file has been created in ~/$CONFIG_NAME";
+            printString "Config file has been created in ~/$CONFIG_NAME";
         fi
     _local=
 }
 
 function dropDB()
 {
-    CMD="mysqladmin -h${DB_HOST} -u${DB_USER}"
+    CMD="${BIN_MYSQLADMIN} -h${DB_HOST} -u${DB_USER}"
     if [ "${DB_PASSWORD}" ]
     then
         CMD="${CMD} -p${DB_PASSWORD}"
     fi
     CMD="${CMD} -f drop ${DB_NAME}"
+    if [[ "$VERBOSE" -ne 1 ]]
+    then
+        CMD="${CMD} &> /dev/null"
+    fi
     runCommand
 }
 
 function createNewDB()
 {
-    CMD="mysqladmin -h${DB_HOST} -u${DB_USER}"
+    CMD="${BIN_MYSQLADMIN} -h${DB_HOST} -u${DB_USER}"
     if [ "${DB_PASSWORD}" ]
     then
         CMD="${CMD} -p${DB_PASSWORD}"
@@ -375,7 +414,7 @@ function createNewDB()
 
 function restoreDB()
 {
-    echo "Please wait DB dump starts restore"
+    printString "Please wait DB dump starts restore"
 
     getDbDumpFilename
     CMD=
@@ -389,20 +428,20 @@ function restoreDB()
 
     CMD="${CMD} | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/' \
         | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password' \
-        | mysql -h$DB_HOST -u$DB_USER --password=$DB_PASSWORD --force $DB_NAME";
+        | ${BIN_MYSQL} -h$DB_HOST -u$DB_USER --password=$DB_PASSWORD --force $DB_NAME";
     runCommand
 }
 
 function extractCode()
 {
-    echo -n "Please wait Code dump start extract - "
+    printString -n "Please wait Code dump start extract - "
     getCodeDumpFilename
 
     EXTRACT_FILENAME=$FILENAME_CODE_DUMP
     extract
 
     mkdir -p var pub/media pub/static
-    echo "OK"
+    printString "OK"
 }
 
 function updateBaseUrl()
@@ -415,7 +454,7 @@ function resetAdminPassword()
 {
     SQLQUERY="UPDATE ${DB_NAME}.admin_user SET admin_user.email = 'mail@magento.com' WHERE admin_user.username = 'admin'"
     mysqlQuery
-    CMD="php bin/magento admin:user:create \
+    CMD="${BIN_MAGE} admin:user:create \
         --admin-user='admin' \
         --admin-password='123123q' \
         --admin-email='mail@magento.com' \
@@ -677,7 +716,7 @@ function deployStaticContent()
         return;
     fi
 
-    CMD="php -d memory_limit=2G bin/magento setup:static-content:deploy"
+    CMD="${BIN_MAGE} setup:static-content:deploy"
     runCommand
 }
 
@@ -687,7 +726,7 @@ function compileDi()
     then
         return;
     fi
-    CMD="php -d memory_limit=2G bin/magento setup:di:compile"
+    CMD="${BIN_MAGE} setup:di:compile"
     runCommand
 }
 
@@ -709,7 +748,7 @@ function _installSampleData()
 {
     if ! php bin/magento | grep -q sampledata:deploy
     then
-        echo "Your version does not support sample data"
+        printString "Your version does not support sample data"
         return;
     fi
 
@@ -725,7 +764,7 @@ function _installSampleData()
 
     CMD="php -dmemory_limit=2G bin/magento sampledata:deploy"
     runCommand
-    CMD="composer update"
+    CMD="${BIN_COMPOSER} update"
     runCommand
     CMD="php -dmemory_limit=2G bin/magento setup:upgrade"
     runCommand
@@ -739,13 +778,13 @@ function _installSampleData()
 
 function _installSampleDataForBeta()
 {
-    CMD="composer config repositories.magento composer http://packages.magento.com"
+    CMD="${BIN_COMPOSER} config repositories.magento composer http://packages.magento.com"
     runCommand
-    CMD="composer require magento/sample-data:~1.0.0-beta"
+    CMD="${BIN_COMPOSER} require magento/sample-data:~1.0.0-beta"
     runCommand
-    CMD="php bin/magento setup:upgrade"
+    CMD="${BIN_MAGE} setup:upgrade"
     runCommand
-    CMD="php -dmemory_limit=2G bin/magento sampledata:install admin"
+    CMD="${BIN_MAGE} sampledata:install admin"
     runCommand
 }
 
@@ -766,16 +805,14 @@ function installMagento()
 {
     CMD="rm -rf var/generation/*"
     runCommand
-    CMD="cd ./bin"
-    runCommand
 
-    CMD="php ./magento --no-interaction setup:uninstall"
+    CMD="${BIN_MAGE} --no-interaction setup:uninstall"
     runCommand
 
     dropDB
     createNewDB
 
-    CMD="php -d memory_limit=2G ./magento setup:install --base-url=${BASE_URL} \
+    CMD="${BIN_MAGE} setup:install --base-url=${BASE_URL} \
     --db-host=${DB_HOST} --db-name=${DB_NAME} --db-user=${DB_USER}  \
     --admin-firstname=Magento --admin-lastname=User --admin-email=mail@magento.com \
     --admin-user=admin --admin-password=123123q --language=en_US \
@@ -784,9 +821,6 @@ function installMagento()
     then
         CMD="${CMD} --db-password=${DB_PASSWORD}"
     fi
-    runCommand
-
-    CMD="cd ../"
     runCommand
 }
 
@@ -797,9 +831,9 @@ function downloadSourceCode()
         return;
     fi
     if [ "$(ls -A ./)" ]; then
-        >&2 echo "Can't download source code from ${SOURCE} since current directory doesn't empty."
-        >&2 echo "You can remove all files from current directory using next command:"
-        >&2 echo "ls -A | xargs rm -rf"
+        printError "Can't download source code from ${SOURCE} since current directory doesn't empty."
+        printError "You can remove all files from current directory using next command:"
+        printError "ls -A | xargs rm -rf"
         exit 1;
     fi
     if [ "$SOURCE" == 'composer' ]
@@ -815,12 +849,12 @@ function downloadSourceCode()
 
 function composerInstall()
 {
-    CMD="composer create-project --repository-url=https://repo.magento.com/ magento/project-community-edition . $COMPOSER_VERSION"
+    CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-community-edition . $COMPOSER_VERSION"
     runCommand
 
     if [ "$MAGENTO_EE_PATH" ]
     then
-        CMD="composer create-project --repository-url=https://repo.magento.com/ magento/project-enterprise-edition ${MAGENTO_EE_PATH} ${COMPOSER_VERSION}"
+        CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-enterprise-edition ${MAGENTO_EE_PATH} ${COMPOSER_VERSION}"
         runCommand
     fi
 }
@@ -842,8 +876,8 @@ printComposerConfirmation()
     then
         return;
     fi
-    echo "Magento code will be downloaded from composer";
-    echo "Composer version: $COMPOSER_VERSION";
+    printString "Magento code will be downloaded from composer";
+    printString "Composer version: $COMPOSER_VERSION";
 }
 
 function showWizzardGit()
@@ -862,18 +896,18 @@ function showWizzardGit()
 
 function gitClone()
 {
-    CMD="git clone $GIT_CE_REPO ."
+    CMD="${BIN_GIT} clone $GIT_CE_REPO ."
     runCommand
-    CMD="git checkout $GIT_BRANCH"
+    CMD="${BIN_GIT} checkout $GIT_BRANCH"
     runCommand
 
     if [[ "$GIT_EE_REPO" ]] && [[ "$MAGENTO_EE_PATH" ]]
     then
-        CMD="git clone $GIT_EE_REPO"
+        CMD="${BIN_GIT} clone $GIT_EE_REPO"
         runCommand
         CMD="cd ${MAGENTO_EE_PATH}"
         runCommand
-        CMD="git checkout $GIT_BRANCH"
+        CMD="${BIN_GIT} checkout $GIT_BRANCH"
         runCommand
         CMD="cd .."
         runCommand
@@ -886,17 +920,17 @@ function printGitConfirmation()
     then
         return
     fi
-    echo "Magento code will be downloaded from GIT";
-    echo "Git CE repository: ${GIT_CE_REPO}"
-    echo "Git EE repository: ${GIT_EE_REPO}"
-    echo "Git branch: ${GIT_BRANCH}"
+    printString "Magento code will be downloaded from GIT";
+    printString "Git CE repository: ${GIT_CE_REPO}"
+    printString "Git EE repository: ${GIT_EE_REPO}"
+    printString "Git branch: ${GIT_BRANCH}"
 }
 
 function checkArgumentHasValue()
 {
     if [ ! $2 ]
     then
-        >&2 echo "ERROR: $1 Argument is empty."
+        printError "ERROR: $1 Argument is empty."
         printLine
         printUsage
         exit
@@ -928,12 +962,12 @@ Options:
     --ee-path (/path/to/ee)              Path to Enterprise Edition.
     --git-branch (branch name)           Specify Git Branch.
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
+    --quiet                              Quiet mode. Suppress output all commands
 EOF
 }
 
 ################################################################################
 
-echo Current Directory: `pwd`
 loadConfigFile
 
 while [[ $# > 0 ]]
@@ -972,6 +1006,9 @@ do
         -f|--force)
             FORCE=1
         ;;
+        --quiet)
+            VERBOSE=0
+        ;;
         -h|--help)
             printUsage
             exit;
@@ -980,6 +1017,9 @@ do
     shift
 done
 
+initQuietMode
+printString Current Directory: `pwd`
+printString "Configuration loaded from: $NEAREST_CONFIG_FILE"
 showWizard
 promptSaveConfig
 
@@ -997,9 +1037,9 @@ then
 else
     downloadSourceCode
     linkEnterpriseEdition
-    CMD="composer update"
+    CMD="${BIN_COMPOSER} update"
     runCommand
-    CMD="composer install"
+    CMD="${BIN_COMPOSER} install"
     runCommand
     installMagento
     installSampleData
@@ -1012,12 +1052,12 @@ runCommand
 
 END_TIME=$(date +%s)
 SUMMARY_TIME=$(expr $(expr $END_TIME - $START_TIME) / 60);
-echo "$(basename $0) takes $SUMMARY_TIME minutes to complete install/deploy process"
+printString "$(basename $0) takes $SUMMARY_TIME minutes to complete install/deploy process"
 
 printLine
 
-echo ${BASE_URL}
-echo ${BASE_URL}admin
-echo "User: admin"
-echo "Pass: 123123q"
+printString ${BASE_URL}
+printString ${BASE_URL}admin
+printString "User: admin"
+printString "Pass: 123123q"
 
