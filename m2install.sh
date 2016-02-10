@@ -446,13 +446,13 @@ function extractCode()
 
 function updateBaseUrl()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.core_config_data AS e SET e.value = '${BASE_URL}' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
+    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data AS e SET e.value = '${BASE_URL}' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
     mysqlQuery
 }
 
 function resetAdminPassword()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.admin_user SET admin_user.email = 'mail@magento.com' WHERE admin_user.username = 'admin'"
+    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}admin_user SET admin_user.email = 'mail@magento.com' WHERE admin_user.username = 'admin'"
     mysqlQuery
     CMD="${BIN_MAGE} admin:user:create \
         --admin-user='admin' \
@@ -602,9 +602,12 @@ EOF
 
 function updateMagentoEnvFile()
 {
+    TBL_PREFIX=$(grep 'table_prefix' app/etc/env.php | head -n1 | sed "s/[a-z'_ ]*[=][>][ ]*[']//" | sed "s/['][,]//")
+
     _key="'key' => 'ec3b1c29111007ac5d9245fb696fb729',"
     _date="'date' => 'Fri, 27 Nov 2015 12:24:54 +0000',"
-    _table_prefix="'table_prefix' => '',"
+    _table_prefix="'table_prefix' => '${TBL_PREFIX}',"
+
 
     if [ -f app/etc/env.php ]
     then
