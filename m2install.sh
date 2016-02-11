@@ -53,7 +53,7 @@ BIN_GIT="git"
 
 function printVersion()
 {
-    printString "0.1.9-beta"
+    printString "1.0.0"
 }
 
 function askValue()
