@@ -144,7 +144,8 @@ function extract()
 
 function mysqlQuery()
 {
-    SQLQUERY_RESULT=$(${BIN_MYSQL} -h$DB_HOST -u${DB_USER} --password=${DB_PASSWORD} --execute="${SQLQUERY}" 2>/dev/null);
+    printString "MySQL Query: ${SQLQUERY}"
+    SQLQUERY_RESULT=$(${BIN_MYSQL} -h$DB_HOST -u${DB_USER} --password=${DB_PASSWORD} --execute="${SQLQUERY}");
 }
 
 function generateDBName()
@@ -446,13 +447,15 @@ function extractCode()
 
 function updateBaseUrl()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data AS e SET e.value = '${BASE_URL}' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
+    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data AS e SET e.value = '${BASE_URL}' \
+        WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
     mysqlQuery
 }
 
 function resetAdminPassword()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}admin_user SET admin_user.email = 'mail@magento.com' WHERE admin_user.username = 'admin'"
+    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}admin_user SET ${DB_NAME}.${TBL_PREFIX}admin_user.email = 'mail@magento.com' \
+        WHERE ${DB_NAME}.${TBL_PREFIX}admin_user.username = 'admin'"
     mysqlQuery
     CMD="${BIN_MAGE} admin:user:create \
         --admin-user='admin' \
