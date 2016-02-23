@@ -925,6 +925,12 @@ function linkEnterpriseEdition()
 {
     if [ "${MAGENTO_EE_PATH}" ]
     then
+        if [ ! -d "$MAGENTO_EE_PATH" ]
+        then
+            printError "There is no Enterprise Edition directory ${MAGENTO_EE_PATH}"
+            printError "Use absolute or relative path to EE code base or [N] to skip it"
+            exit
+        fi
         CMD="php ${MAGENTO_EE_PATH}/dev/tools/build-ee.php --ce-source $(pwd) --ee-source=${MAGENTO_EE_PATH}"
         runCommand
         CMD="cp ${MAGENTO_EE_PATH}/composer.json $(pwd)/"
