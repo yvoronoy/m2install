@@ -1,6 +1,8 @@
 #Magento 2 Bash Installer Script
 This script is designed to simplify the installation process of Magento 2 and rapid deployment of client dumps created by Magento 2 Support Extension.
 
+If you have any issues please report it to https://github.com/yvoronoy/m2install/issues
+
 ##How to install Magento 2 using GIT
 To install Magento 2 from git repository run m2install with --source git param
  * ```m2install --source git``` or
