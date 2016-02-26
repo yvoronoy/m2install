@@ -895,11 +895,11 @@ function _installSampleData()
     fi
 
 
-    CMD="php -dmemory_limit=2G bin/magento sampledata:deploy"
+    CMD="${BIN_MAGE} sampledata:deploy"
     runCommand
     CMD="${BIN_COMPOSER} update"
     runCommand
-    CMD="php -dmemory_limit=2G bin/magento setup:upgrade"
+    CMD="${BIN_MAGE} setup:upgrade"
     runCommand
 
     if [ -f "var/composer_home/auth.json" ]
