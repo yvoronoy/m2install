@@ -1168,6 +1168,8 @@ then
     dropDB
     createNewDB
     extractCode
+    CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \; && chmod u+x bin/magento"
+    runCommand
     restoreDB
     updateMagentoEnvFile
     updateMagentoHtaccessFile
