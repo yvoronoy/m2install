@@ -33,6 +33,27 @@ Options:
     --quiet                              Quiet mode. Suppress output all commands
 ```
 
+##How to deploy backup/support dumps
+In order to deploy the customer dumps you need:
+ 
+ * Put DB and code dumps to new directory
+ * Goto to directory and run m2install
+
+##How to install Magento 2 using GIT
+To install Magento 2 from git repository run m2install with --source git param
+ * ```m2install --source git``` or
+ * ```m2install -s git```
+
+##How to install Magento 2 using Composer
+To install Magento 2 from git repository run m2install with --source git param
+ * ```m2install --source composer``` or
+ * ```m2install -s composer```
+
+
+####How to Install Magento 2 with Sample Data
+ * Run m2install
+ * Use wizzard to install the sample data.
+
 ##Wizzard
 m2install will show you wizzard on first run and prompt to save entered values to config file.
 ```
@@ -56,27 +77,6 @@ Magento EE will NOT be installed.
 In order to generate static/di content, add mode param: m2install.sh --mode prod
 Are you sure? [y/N] 
 ```
-
-##How to deploy backup/support dumps
-In order to deploy the customer dumps you need:
- 
- * Put DB and code dumps to new directory
- * Goto to directory and run m2install
-
-##How to install Magento 2 using GIT
-To install Magento 2 from git repository run m2install with --source git param
- * ```m2install --source git``` or
- * ```m2install -s git```
-
-##How to install Magento 2 using Composer
-To install Magento 2 from git repository run m2install with --source git param
- * ```m2install --source composer``` or
- * ```m2install -s composer```
-
-
-####How to Install Magento 2 with Sample Data
- * Run m2install
- * Use wizzard to install the sample data.
 
 ##How to use configuration files
 The config file allows you to store params for DB and URL.
