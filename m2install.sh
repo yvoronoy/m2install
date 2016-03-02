@@ -466,268 +466,29 @@ function resetAdminPassword()
     runCommand
 }
 
-function updateMagentoHtaccessFile()
+function overwriteOriginalFiles()
 {
-    if [ -f .htaccess ]
+    if [ ! -f pub/static.php ]
     then
-        CMD="cp .htaccess .htaccess.merchant"
+        CMD="wget --quiet -O pub/static.php https://raw.githubusercontent.com/magento/magento2/2.0/pub/static.php"
         runCommand
     fi
-    cat << 'EOF' > .htaccess
-#   SetEnv MAGE_MODE developer
-    DirectoryIndex index.php
 
-<IfModule mod_php5.c>
-    php_value memory_limit 768M
-    php_value max_execution_time 18000
-    php_flag session.auto_start off
-    php_flag suhosin.session.cryptua off
-</IfModule>
-
-<IfModule mod_php7.c>
-    php_value memory_limit 768M
-    php_value max_execution_time 18000
-    php_flag session.auto_start off
-    php_flag suhosin.session.cryptua off
-</IfModule>
-
-<IfModule mod_security.c>
-    SecFilterEngine Off
-    SecFilterScanPOST Off
-</IfModule>
-
-<IfModule mod_ssl.c>
-    SSLOptions StdEnvVars
-</IfModule>
-
-<IfModule mod_rewrite.c>
-    Options +FollowSymLinks
-    RewriteEngine on
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-    RewriteCond %{REQUEST_METHOD} ^TRAC[EK]
-    RewriteRule .* - [L,R=405]
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-l
-    RewriteRule .* index.php [L]
-</IfModule>
-
-    AddDefaultCharset Off
-
-<IfModule mod_expires.c>
-    ExpiresDefault "access plus 1 year"
-    ExpiresByType text/html A0
-    ExpiresByType text/plain A0
-</IfModule>
-
-    RedirectMatch 404 /\.git
-
-    <Files composer.json>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files composer.lock>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files .gitignore>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files .htaccess>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files .htaccess.sample>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files .php_cs>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files .travis.yml>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files CHANGELOG.md>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files CONTRIBUTING.md>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files CONTRIBUTOR_LICENSE_AGREEMENT.html>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files COPYING.txt>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files Gruntfile.js>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files LICENSE.txt>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files LICENSE_AFL.txt>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files nginx.conf.sample>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files package.json>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files php.ini.sample>
-        order allow,deny
-        deny from all
-    </Files>
-    <Files README.md>
-        order allow,deny
-        deny from all
-    </Files>
-
-<IfModule mod_headers.c>
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-XSS-Protection "1; mode=block"
-</IfModule>
-
-EOF
+    if [ -f .htaccess ]
+    then
+        CMD="mv .htaccess .htaccess.merchant"
+        runCommand
+    fi
+    CMD="wget --quiet -O .htaccess https://raw.githubusercontent.com/magento/magento2/2.0/.htaccess"
+    runCommand
 
     if [ -f pub/static/.htaccess ]
     then
-        CMD="cp pub/static/.htaccess pub/static/.htaccess.merchant"
+        CMD="mv pub/static/.htaccess pub/static/.htaccess.merchant"
         runCommand
     fi
-    cat << 'EOF' > pub/static/.htaccess
-<IfModule mod_php5.c>
-php_flag engine 0
-</IfModule>
-
-<IfModule mod_php7.c>
-php_flag engine 0
-</IfModule>
-
-# To avoid situation when web server automatically adds extension to path
-Options -MultiViews
-
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-
-    # Remove signature of the static files that is used to overcome the browser cache
-    RewriteRule ^version.+?/(.+)$ $1 [L]
-
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-l
-
-    RewriteRule .* ../static.php?resource=$0 [L]
-</IfModule>
-
-############################################
-## setting MIME types
-
-# JavaScript
-AddType application/javascript js jsonp
-AddType application/json json
-
-# CSS
-AddType text/css css
-
-# Images and icons
-AddType image/x-icon ico
-AddType image/gif gif
-AddType image/png png
-AddType image/jpeg jpg
-AddType image/jpeg jpeg
-
-# SVG
-AddType image/svg+xml svg
-
-# Fonts
-AddType application/vnd.ms-fontobject eot
-AddType application/x-font-ttf ttf
-AddType application/x-font-otf otf
-AddType application/x-font-woff woff
-AddType application/font-woff2 woff2
-
-# Flash
-AddType application/x-shockwave-flash swf
-
-# Archives and exports
-AddType application/zip gzip
-AddType application/x-gzip gz gzip
-AddType application/x-bzip2 bz2
-AddType text/csv csv
-AddType application/xml xml
-
-<IfModule mod_headers.c>
-
-    <FilesMatch .*\.(ico|jpg|jpeg|png|gif|svg|js|css|swf|eot|ttf|otf|woff|woff2)$>
-        Header append Cache-Control public
-    </FilesMatch>
-
-    <FilesMatch .*\.(zip|gz|gzip|bz2|csv|xml)$>
-        Header append Cache-Control no-store
-    </FilesMatch>
-
-</IfModule>
-
-<IfModule mod_expires.c>
-
-############################################
-## Add default Expires header
-## http://developer.yahoo.com/performance/rules.html#expires
-
-    ExpiresActive On
-
-    # Data
-    <FilesMatch \.(zip|gz|gzip|bz2|csv|xml)$>
-        ExpiresDefault "access plus 0 seconds"
-    </FilesMatch>
-    ExpiresByType text/xml "access plus 0 seconds"
-    ExpiresByType text/csv "access plus 0 seconds"
-    ExpiresByType application/json "access plus 0 seconds"
-    ExpiresByType application/zip "access plus 0 seconds"
-    ExpiresByType application/x-gzip "access plus 0 seconds"
-    ExpiresByType application/x-bzip2 "access plus 0 seconds"
-
-    # CSS, JavaScript
-    <FilesMatch \.(css|js)$>
-        ExpiresDefault "access plus 1 year"
-    </FilesMatch>
-    ExpiresByType text/css "access plus 1 year"
-    ExpiresByType application/javascript "access plus 1 year"
-
-    # Favicon, images, flash
-    <FilesMatch \.(ico|gif|png|jpg|jpeg|swf|svg)$>
-        ExpiresDefault "access plus 1 year"
-    </FilesMatch>
-    ExpiresByType image/gif "access plus 1 year"
-    ExpiresByType image/png "access plus 1 year"
-    ExpiresByType image/jpg "access plus 1 year"
-    ExpiresByType image/jpeg "access plus 1 year"
-    ExpiresByType image/svg+xml "access plus 1 year"
-
-    # Fonts
-    <FilesMatch \.(eot|ttf|otf|svg|woff|woff2)$>
-        ExpiresDefault "access plus 1 year"
-    </FilesMatch>
-    ExpiresByType application/vnd.ms-fontobject "access plus 1 year"
-    ExpiresByType application/x-font-ttf "access plus 1 year"
-    ExpiresByType application/x-font-otf "access plus 1 year"
-    ExpiresByType application/x-font-woff "access plus 1 year"
-    ExpiresByType application/font-woff2 "access plus 1 year"
-
-</IfModule>
-EOF
+    CMD="wget --quiet -O pub/static/.htaccess https://raw.githubusercontent.com/magento/magento2/2.0/pub/static/.htaccess"
+    runCommand
 }
 
 function updateMagentoEnvFile()
@@ -1168,11 +929,11 @@ then
     dropDB
     createNewDB
     extractCode
-    CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \; && chmod u+x bin/magento"
-    runCommand
     restoreDB
     updateMagentoEnvFile
-    updateMagentoHtaccessFile
+    overwriteOriginalFiles
+    CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \; && chmod u+x bin/magento"
+    runCommand
     updateBaseUrl
     resetAdminPassword
 else
