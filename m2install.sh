@@ -803,7 +803,7 @@ function gitClone()
 
     if [[ "$GIT_EE_REPO" ]] && [[ "$MAGENTO_EE_PATH" ]]
     then
-        CMD="${BIN_GIT} clone $GIT_EE_REPO"
+        CMD="${BIN_GIT} clone $GIT_EE_REPO $MAGENTO_EE_PATH"
         runCommand
         CMD="cd ${MAGENTO_EE_PATH}"
         runCommand
