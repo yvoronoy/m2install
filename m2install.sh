@@ -470,7 +470,7 @@ function overwriteOriginalFiles()
 {
     if [ ! -f pub/static.php ]
     then
-        CMD="wget --quiet -O pub/static.php https://raw.githubusercontent.com/magento/magento2/2.0/pub/static.php"
+        CMD="curl -s -o pub/static.php https://raw.githubusercontent.com/magento/magento2/2.0/pub/static.php"
         runCommand
     fi
 
@@ -479,7 +479,7 @@ function overwriteOriginalFiles()
         CMD="mv .htaccess .htaccess.merchant"
         runCommand
     fi
-    CMD="wget --quiet -O .htaccess https://raw.githubusercontent.com/magento/magento2/2.0/.htaccess"
+    CMD="curl -s -o .htaccess https://raw.githubusercontent.com/magento/magento2/2.0/.htaccess"
     runCommand
 
     if [ -f pub/static/.htaccess ]
@@ -487,7 +487,7 @@ function overwriteOriginalFiles()
         CMD="mv pub/static/.htaccess pub/static/.htaccess.merchant"
         runCommand
     fi
-    CMD="wget --quiet -O pub/static/.htaccess https://raw.githubusercontent.com/magento/magento2/2.0/pub/static/.htaccess"
+    CMD="curl -s -o pub/static/.htaccess https://raw.githubusercontent.com/magento/magento2/2.0/pub/static/.htaccess"
     runCommand
 }
 
