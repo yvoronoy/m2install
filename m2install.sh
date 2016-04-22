@@ -452,6 +452,12 @@ function updateBaseUrl()
     mysqlQuery
 }
 
+function clearCookieDomain()
+{
+    SQLQUERY="DELETE FROM ${DB_NAME}.${TBL_PREFIX}core_config_data WHERE path = 'web/cookie/cookie_domain'"
+    mysqlQuery
+}
+
 function resetAdminPassword()
 {
     SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}admin_user SET ${DB_NAME}.${TBL_PREFIX}admin_user.email = 'mail@magento.com' \
@@ -935,6 +941,7 @@ then
     CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \; && chmod u+x bin/magento"
     runCommand
     updateBaseUrl
+    clearCookieDomain
     resetAdminPassword
 else
     downloadSourceCode
