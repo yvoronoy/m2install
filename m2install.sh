@@ -277,11 +277,6 @@ function printConfirmation()
     else
         printString "Magento EE will NOT be installed."
     fi
-
-    if [[ "$MAGE_MODE" == "dev" ]]
-    then
-        printString "In order to generate static/di content, add mode param: `basename $0` --mode prod"
-    fi
 }
 
 function showWizard()
