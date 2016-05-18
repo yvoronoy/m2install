@@ -292,7 +292,7 @@ function showWizard()
         fi
         printLine
         printConfirmation
-        if askConfirmation
+        if askConfirmation "Confirm That the Entered Data Is Correct? (y/N)"
         then
             I=0
         else
