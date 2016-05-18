@@ -685,6 +685,10 @@ function _installSampleDataForBeta()
 
 function linkEnterpriseEdition()
 {
+    if [ "${SOURCE}" == 'composer' ]
+    then
+        return;
+    fi
     if [ "${MAGENTO_EE_PATH}" ]
     then
         if [ ! -d "$MAGENTO_EE_PATH" ]
@@ -750,12 +754,12 @@ function downloadSourceCode()
 
 function composerInstall()
 {
-    CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-community-edition . $COMPOSER_VERSION"
-    runCommand
-
     if [ "$MAGENTO_EE_PATH" ]
     then
-        CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-enterprise-edition ${MAGENTO_EE_PATH} ${COMPOSER_VERSION}"
+        CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-enterprise-edition . ${COMPOSER_VERSION}"
+        runCommand
+    else
+        CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-community-edition . $COMPOSER_VERSION"
         runCommand
     fi
 }
