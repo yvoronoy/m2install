@@ -453,6 +453,12 @@ function clearCookieDomain()
     mysqlQuery
 }
 
+function clearCustomAdmin()
+{
+    SQLQUERY="DELETE FROM ${DB_NAME}.${TBL_PREFIX}core_config_data WHERE path = 'admin/url/custom'"
+    mysqlQuery
+}
+
 function resetAdminPassword()
 {
     SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}admin_user SET ${DB_NAME}.${TBL_PREFIX}admin_user.email = 'mail@magento.com' \
@@ -941,6 +947,7 @@ then
     runCommand
     updateBaseUrl
     clearCookieDomain
+    clearCustomAdmin
     resetAdminPassword
 else
     downloadSourceCode
