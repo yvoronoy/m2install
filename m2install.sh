@@ -490,6 +490,14 @@ function overwriteOriginalFiles()
     fi
     CMD="curl -s -o pub/static/.htaccess https://raw.githubusercontent.com/magento/magento2/2.0/pub/static/.htaccess"
     runCommand
+
+    if [ -f pub/media/.htaccess ]
+    then
+        CMD="mv pub/media/.htaccess pub/media/.htaccess.merchant"
+        runCommand
+    fi
+    CMD="curl -s -o pub/media/.htaccess https://raw.githubusercontent.com/magento/magento2/2.0/pub/media/.htaccess"
+    runCommand
 }
 
 function updateMagentoEnvFile()
