@@ -15,6 +15,20 @@ If you have any issues please report it to https://github.com/yvoronoy/m2install
   - `php bin/magento support:backup:code (db)`
  - Script can automatically install vanilla magento
 
+##Installation
+Download latest version by using curl
+```
+curl -o m2install.sh https://raw.githubusercontent.com/yvoronoy/m2install/master/m2install.sh
+```
+In case you are using `bash completion` you can download completion for this script.
+```
+#For Linux User
+curl -o /etc/bash_completion.d/m2install-bash-completion https://raw.githubusercontent.com/yvoronoy/m2install/master/m2install-bash-completion
+
+#For OSX User with brew
+curl -o /usr/local/etc/bash_completion.d/m2install-bash-completion https://raw.githubusercontent.com/yvoronoy/m2install/master/m2install-bash-completion
+```
+
 ##Usage
 ```
 $ m2install.sh --help

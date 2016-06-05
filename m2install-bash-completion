@@ -1,0 +1,38 @@
+#
+# Copletion for m2install
+#
+_m2install()
+{
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    opts="--help --source --force --sample-data --ee-path --git-branch --mode --quiet";
+
+    case "$prev" in 
+        --source)
+            COMPREPLY=( $(compgen -W "git composer" ${cur}) )
+            return 0;
+        ;;
+        --sample-data)
+            COMPREPLY=( $(compgen -W "yes no" ${cur}) )
+            return 0;
+        ;;
+        --ee-path)
+            COMPREPLY=( $(compgen -W "$(ls -d */ 2>/dev/null)" ${cur}) )
+            return 0;
+        ;;
+        --git-branch)
+            COMPREPLY=( $(compgen -W "$(git branch | sed s/*//g)" ${cur}) )
+            return 0;
+        ;;
+        --mode)
+            COMPREPLY=( $(compgen -W "dev prod" ${cur}) )
+            return 0;
+        ;;
+    esac
+
+    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+}
+complete -F _m2install m2install.sh
+
