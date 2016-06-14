@@ -9,5 +9,6 @@
         }
     ],
     "minimum-stability": "stable",
+    "bin": ["m2install.sh"]
     "require": {}
 }
