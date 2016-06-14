@@ -16,10 +16,16 @@ If you have any issues please report it to https://github.com/yvoronoy/m2install
  - Script can automatically install vanilla magento
 
 ##Installation
-Download latest version by using curl
+Download latest version by curl
 ```
 curl -o m2install.sh https://raw.githubusercontent.com/yvoronoy/m2install/master/m2install.sh
 ```
+
+You can install by composer
+```
+composer require yvoronoy/m2install
+```
+
 In case you are using `bash completion` you can download completion for this script.
 ```
 #For Linux User
