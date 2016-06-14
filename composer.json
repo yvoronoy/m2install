@@ -1,0 +1,13 @@
+{
+    "name": "yvoronoy/m2install",
+    "description": "Magento 2 Bash Install/Restore Script",
+    "license": "GNU",
+    "authors": [
+        {
+            "name": "Yaroslav Voronoy",
+            "email": "y.voronoy@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}
