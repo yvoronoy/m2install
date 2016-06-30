@@ -447,6 +447,12 @@ function updateBaseUrl()
     mysqlQuery
 }
 
+function clearBaseLinks()
+{
+    SQLQUERY="DELETE FROM ${DB_NAME}.${TBL_PREFIX}core_config_data WHERE path IN ('web/unsecure/base_link_url', 'web/secure/base_link_url')";
+    mysqlQuery
+}
+
 function clearCookieDomain()
 {
     SQLQUERY="DELETE FROM ${DB_NAME}.${TBL_PREFIX}core_config_data WHERE path = 'web/cookie/cookie_domain'"
@@ -956,6 +962,7 @@ then
     CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \; && chmod u+x bin/magento"
     runCommand
     updateBaseUrl
+    clearBaseLinks
     clearCookieDomain
     clearCustomAdmin
     resetAdminPassword
