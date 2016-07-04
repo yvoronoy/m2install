@@ -7,7 +7,7 @@ _m2install()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="--help --source --force --sample-data --ee-path --git-branch --mode --quiet";
+    opts="--help --source --force --sample-data --ee-path --git-branch --mode --quiet --code-dump --db-dump";
 
     case "$prev" in 
         --source)
@@ -28,6 +28,14 @@ _m2install()
         ;;
         --mode)
             COMPREPLY=( $(compgen -W "dev prod" ${cur}) )
+            return 0;
+        ;;
+        --code-dump)
+            COMPREPLY=( $(compgen -f ${cur}) )
+            return 0;
+        ;;
+        --db-dump)
+            COMPREPLY=( $(compgen -f ${cur}) )
             return 0;
         ;;
     esac

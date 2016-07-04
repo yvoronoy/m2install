@@ -135,6 +135,7 @@ function extract()
              *.tgz)       gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x ;;
              *.gz)        gunzip $EXTRACT_FILENAME;;
              *.tbz2)      tar xjf $EXTRACT_FILENAME;;
+             *.zip)       unzip -qu -x $EXTRACT_FILENAME;;
              *)           printError "'$EXTRACT_FILENAME' cannot be extracted";;
          esac
      else
@@ -210,13 +211,19 @@ function getDbDumpFilename()
 
 function foundSupportBackupFiles()
 {
-    getCodeDumpFilename
+    if [[ ! "$FILENAME_CODE_DUMP" ]]
+    then
+        getCodeDumpFilename
+    fi
     if [ ! -f "$FILENAME_CODE_DUMP" ]
     then
         return 1;
     fi
 
-    getDbDumpFilename
+    if [[ ! "$FILENAME_DB_DUMP" ]]
+    then
+        getDbDumpFilename
+    fi
     if [ ! -f "$FILENAME_DB_DUMP" ]
     then
         return 1;
@@ -431,7 +438,6 @@ function restoreDB()
 function extractCode()
 {
     printString -n "Please wait Code dump start extract - "
-    getCodeDumpFilename
 
     EXTRACT_FILENAME=$FILENAME_CODE_DUMP
     extract
@@ -939,6 +945,16 @@ do
         -h|--help)
             printUsage
             exit;
+        ;;
+        --code-dump)
+            checkArgumentHasValue $1 $2
+            FILENAME_CODE_DUMP="$2"
+            shift
+        ;;
+        --db-dump)
+            checkArgumentHasValue $1 $2
+            FILENAME_DB_DUMP="$2"
+            shift
         ;;
     esac
     shift
