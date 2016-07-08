@@ -130,12 +130,12 @@ function extract()
 {
      if [ -f $EXTRACT_FILENAME ] ; then
          case $EXTRACT_FILENAME in
-             *.tar.bz2)   tar xjf $EXTRACT_FILENAME;;
-             *.tar.gz)    gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x ;;
-             *.tgz)       gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x ;;
-             *.gz)        gunzip $EXTRACT_FILENAME;;
-             *.tbz2)      tar xjf $EXTRACT_FILENAME;;
-             *.zip)       unzip -qu -x $EXTRACT_FILENAME;;
+             *.tar.bz2)   tar xjf "$EXTRACT_FILENAME";;
+             *.tar.gz)    gunzip -c "$EXTRACT_FILENAME" | gunzip -cf | tar -x ;;
+             *.tgz)       gunzip -c "$EXTRACT_FILENAME" | gunzip -cf | tar -x ;;
+             *.gz)        gunzip "$EXTRACT_FILENAME";;
+             *.tbz2)      tar xjf "$EXTRACT_FILENAME";;
+             *.zip)       unzip -qu -x "$EXTRACT_FILENAME";;
              *)           printError "'$EXTRACT_FILENAME' cannot be extracted";;
          esac
      else
@@ -424,9 +424,9 @@ function restoreDB()
 
     if which pv > /dev/null
     then
-        CMD="pv ${FILENAME_DB_DUMP} | gunzip -cf";
+        CMD="pv \"${FILENAME_DB_DUMP}\" | gunzip -cf";
     else
-        CMD="gunzip -cf $FILENAME_DB_DUMP"
+        CMD="gunzip -cf \"$FILENAME_DB_DUMP\""
     fi
 
     CMD="${CMD} | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/' \
