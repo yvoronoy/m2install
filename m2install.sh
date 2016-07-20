@@ -280,7 +280,7 @@ function printConfirmation()
     fi
     if [ "${MAGENTO_EE_PATH}" ]
     then
-        printString "Magento EE will be installed to ${MAGENTO_EE_PATH}"
+        printString "Magento EE will be installed from ${MAGENTO_EE_PATH}"
     else
         printString "Magento EE will NOT be installed."
     fi
