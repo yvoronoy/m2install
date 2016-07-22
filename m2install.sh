@@ -20,6 +20,7 @@
 
 VERBOSE=1
 CURRENT_DIR_NAME=$(basename $(pwd))
+STEPS=
 
 HTTP_HOST=http://mage2.dev/
 BASE_PATH=${CURRENT_DIR_NAME}
@@ -959,8 +960,18 @@ do
             FILENAME_DB_DUMP="$2"
             shift
         ;;
+        --step)
+            checkArgumentHasValue $1 $2
+            STEPS=$(echo $2 | tr "," "\n")
+            shift
+        ;;
     esac
     shift
+done
+
+for step in $STEPS
+do
+    eval $step
 done
 
 initQuietMode
