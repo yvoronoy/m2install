@@ -881,6 +881,21 @@ function isInputNegative()
     fi
 }
 
+function validateStep()
+{
+    local _step;
+    local _steps="restore-db restore-code configure-db configure-files configure"
+    _step=$1;
+    if echo $_steps | grep -q "$_step"
+    then
+        if type -t $_step &>/dev/null
+        then
+            return 0;
+        fi
+    fi
+    return 1;
+}
+
 function printUsage()
 {
     cat <<EOF
@@ -971,7 +986,10 @@ done
 
 for step in $STEPS
 do
-    eval $step
+    if validateStep $step
+    then
+        VALID_STEPS+=($step)
+    fi
 done
 
 initQuietMode
@@ -1006,6 +1024,11 @@ else
     installMagento
     installSampleData
 fi
+for step in $VALID_STEPS
+do
+    CMD="$step"
+    runCommand
+done
 
 deployStaticContent
 compileDi
