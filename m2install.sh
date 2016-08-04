@@ -416,8 +416,11 @@ function createNewDB()
     runCommand
 }
 
-function restoreDB()
+function restore-db()
 {
+    dropDB
+    createNewDB
+
     printString "Please wait DB dump starts restore"
 
     getDbDumpFilename
@@ -436,7 +439,7 @@ function restoreDB()
     runCommand
 }
 
-function extractCode()
+function restore-code()
 {
     printString -n "Please wait Code dump start extract - "
 
@@ -445,6 +448,23 @@ function extractCode()
 
     mkdir -p var pub/media pub/static
     printString "OK"
+}
+
+function configure-files()
+{
+    updateMagentoEnvFile
+    overwriteOriginalFiles
+    CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \; && chmod u+x bin/magento"
+    runCommand
+}
+
+function configure-db()
+{
+    updateBaseUrl
+    clearBaseLinks
+    clearCookieDomain
+    clearCustomAdmin
+    resetAdminPassword
 }
 
 function updateBaseUrl()
@@ -735,6 +755,14 @@ function linkEnterpriseEdition()
     fi
 }
 
+function runComposerInstall()
+{
+    CMD="${BIN_COMPOSER} update"
+    runCommand
+    CMD="${BIN_COMPOSER} install"
+    runCommand
+}
+
 function installMagento()
 {
     CMD="rm -rf var/generation/*"
@@ -1001,29 +1029,11 @@ promptSaveConfig
 START_TIME=$(date +%s)
 if foundSupportBackupFiles
 then
-    dropDB
-    createNewDB
-    extractCode
-    restoreDB
-    updateMagentoEnvFile
-    overwriteOriginalFiles
-    CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \; && chmod u+x bin/magento"
-    runCommand
-    updateBaseUrl
-    clearBaseLinks
-    clearCookieDomain
-    clearCustomAdmin
-    resetAdminPassword
+    VALID_STEPS="restore-code configure-files restore-db configure-db"
 else
-    downloadSourceCode
-    linkEnterpriseEdition
-    CMD="${BIN_COMPOSER} update"
-    runCommand
-    CMD="${BIN_COMPOSER} install"
-    runCommand
-    installMagento
-    installSampleData
+    VALID_STEPS="downloadSourceCode linkEnterpriseEdition runComposerInstall installMagento installSampleData"
 fi
+
 for step in $VALID_STEPS
 do
     CMD="$step"
