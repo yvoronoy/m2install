@@ -725,11 +725,11 @@ function linkEnterpriseEdition()
             printError "Use absolute or relative path to EE code base or [N] to skip it"
             exit
         fi
-        CMD="php ${MAGENTO_EE_PATH}/dev/tools/build-ee.php --ce-source $(pwd) --ee-source=${MAGENTO_EE_PATH}"
+        CMD="php ${MAGENTO_EE_PATH}/dev/tools/build-ee.php --ce-source $(pwd) --ee-source ${MAGENTO_EE_PATH}"
         runCommand
         CMD="cp ${MAGENTO_EE_PATH}/composer.json $(pwd)/"
         runCommand
-        CMD="rm -rf $(pwd)/composer.lock"
+        CMD="cp ${MAGENTO_EE_PATH}/composer.lock $(pwd)/"
         runCommand
     fi
 }
@@ -988,8 +988,6 @@ then
 else
     downloadSourceCode
     linkEnterpriseEdition
-    CMD="${BIN_COMPOSER} update"
-    runCommand
     CMD="${BIN_COMPOSER} install"
     runCommand
     installMagento
