@@ -119,9 +119,11 @@ function printLine()
 
 function runCommand()
 {
+    local _prefixMessage=$1;
+    local _suffixMessage=$2
     if [[ "$VERBOSE" -eq 1 ]]
     then
-        echo $1 $CMD $2;
+        echo ${_prefixMessage}${CMD}${_suffixMessage}
     fi
 
     eval $CMD;
@@ -1069,7 +1071,7 @@ fi
 for step in $STEPS
 do
     CMD="${step}"
-    runCommand "=>"
+    runCommand "=> "
 done
 
 END_TIME=$(date +%s)
