@@ -121,7 +121,7 @@ function runCommand()
 {
     if [[ "$VERBOSE" -eq 1 ]]
     then
-        echo $CMD;
+        echo $1 $CMD $2;
     fi
 
     eval $CMD;
@@ -131,14 +131,15 @@ function extract()
 {
      if [ -f $EXTRACT_FILENAME ] ; then
          case $EXTRACT_FILENAME in
-             *.tar.bz2)   tar xjf "$EXTRACT_FILENAME";;
-             *.tar.gz)    gunzip -c "$EXTRACT_FILENAME" | gunzip -cf | tar -x ;;
-             *.tgz)       gunzip -c "$EXTRACT_FILENAME" | gunzip -cf | tar -x ;;
-             *.gz)        gunzip "$EXTRACT_FILENAME";;
-             *.tbz2)      tar xjf "$EXTRACT_FILENAME";;
-             *.zip)       unzip -qu -x "$EXTRACT_FILENAME";;
-             *)           printError "'$EXTRACT_FILENAME' cannot be extracted";;
+             *.tar.bz2)   CMD="tar xjf $EXTRACT_FILENAME";;
+             *.tar.gz)    CMD="gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x" ;;
+             *.tgz)       CMD="gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x" ;;
+             *.gz)        CMD="gunzip $EXTRACT_FILENAME" ;;
+             *.tbz2)      CMD="tar xjf $EXTRACT_FILENAME" ;;
+             *.zip)       CMD="unzip -qu -x $EXTRACT_FILENAME" ;;
+             *)           printError "'$EXTRACT_FILENAME' cannot be extracted"; CMD='' ;;
          esac
+        runCommand
      else
          printError "'$EXTRACT_FILENAME' is not a valid file"
      fi
@@ -416,7 +417,7 @@ function createNewDB()
     runCommand
 }
 
-function restore-db()
+function restore_db()
 {
     dropDB
     createNewDB
@@ -439,18 +440,16 @@ function restore-db()
     runCommand
 }
 
-function restore-code()
+function restore_code()
 {
-    printString -n "Please wait Code dump start extract - "
-
     EXTRACT_FILENAME=$FILENAME_CODE_DUMP
     extract
 
-    mkdir -p var pub/media pub/static
-    printString "OK"
+    CMD="mkdir -p var pub/media pub/static"
+    runCommand
 }
 
-function configure-files()
+function configure_files()
 {
     updateMagentoEnvFile
     overwriteOriginalFiles
@@ -458,7 +457,7 @@ function configure-files()
     runCommand
 }
 
-function configure-db()
+function configure_db()
 {
     updateBaseUrl
     clearBaseLinks
@@ -786,10 +785,6 @@ function installMagento()
 
 function downloadSourceCode()
 {
-    if [ "${SOURCE}" != 'composer' ] && [ "${SOURCE}" != 'git' ]
-    then
-        return;
-    fi
     if [ "$(ls -A ./)" ]; then
         printError "Can't download source code from ${SOURCE} since current directory doesn't empty."
         printError "You can remove all files from current directory using next command:"
@@ -909,9 +904,8 @@ function isInputNegative()
 
 function validateStep()
 {
-    local _step;
-    local _steps="restore-db restore-code configure-db configure-files configure"
-    _step=$1;
+    local _step=$1;
+    local _steps="restore_db restore_code configure_db configure_files configure"
     if echo $_steps | grep -q "$_step"
     then
         if type -t $_step &>/dev/null
@@ -920,6 +914,35 @@ function validateStep()
         fi
     fi
     return 1;
+}
+
+function prepareSteps()
+{
+    local _validSteps=()
+    local _step=
+
+    STEPS=$(echo $STEPS | tr "," " ")
+
+    for _step in ${STEPS[@]}
+    do
+        if validateStep $_step
+        then
+            _validSteps+=($_step)
+        fi
+    done
+    STEPS=${_validSteps[@]};
+}
+
+function setProductionMode()
+{
+    CMD="${BIN_MAGE} deploy:mode:set production"
+    runCommand
+}
+
+function setFilesystemPermission()
+{
+    CMD="chmod -R 2777 ./var ./pub/media ./pub/static ./app/etc"
+    runCommand
 }
 
 function printUsage()
@@ -938,6 +961,8 @@ Options:
     --git-branch (branch name)           Specify Git Branch.
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
     --quiet                              Quiet mode. Suppress output all commands
+    --step (restore_code,restore_db      Specify step through comma without spaces.
+        configure_db, configure_files)    - Example: `basename $0` --step restore_db,configure_db
 EOF
 }
 
@@ -1003,19 +1028,11 @@ do
         ;;
         --step)
             checkArgumentHasValue $1 $2
-            STEPS=$(echo $2 | tr "," "\n")
+            STEPS=$2
             shift
         ;;
     esac
     shift
-done
-
-for step in $STEPS
-do
-    if validateStep $step
-    then
-        VALID_STEPS+=($step)
-    fi
 done
 
 initQuietMode
@@ -1025,23 +1042,35 @@ showWizard
 promptSaveConfig
 
 START_TIME=$(date +%s)
-if foundSupportBackupFiles
+if [ "$STEPS" ]
 then
-    VALID_STEPS="restore-code configure-files restore-db configure-db"
+    prepareSteps
+elif foundSupportBackupFiles
+then
+    STEPS="restore_code configure_files restore_db configure_db"
+    if [[ "$MAGE_MODE" == "production" ]]
+    then
+        STEPS="${STEPS} setProductionMode";
+    fi
+    STEPS="${STEPS} setFilesystemPermission";
 else
-    VALID_STEPS="downloadSourceCode linkEnterpriseEdition runComposerInstall installMagento installSampleData"
+    if [[ "${SOURCE}" ]]
+    then
+        STEPS="downloadSourceCode "
+    fi
+    STEPS+="linkEnterpriseEdition runComposerInstall installMagento installSampleData"
+    if [[ "$MAGE_MODE" == "production" ]]
+    then
+        STEPS="${STEPS} setProductionMode";
+    fi
+    STEPS="${STEPS} setFilesystemPermission";
 fi
 
-for step in $VALID_STEPS
+for step in $STEPS
 do
-    CMD="$step"
-    runCommand
+    CMD="${step}"
+    runCommand "=>"
 done
-
-deployStaticContent
-compileDi
-CMD="chmod -R 2777 ./var ./pub/media ./pub/static ./app/etc"
-runCommand
 
 END_TIME=$(date +%s)
 SUMMARY_TIME=$(expr $(expr $END_TIME - $START_TIME) / 60);
