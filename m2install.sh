@@ -20,7 +20,7 @@
 
 VERBOSE=1
 CURRENT_DIR_NAME=$(basename $(pwd))
-STEPS=
+STEPS=()
 
 HTTP_HOST=http://mage2.dev/
 BASE_PATH=${CURRENT_DIR_NAME}
@@ -677,10 +677,6 @@ function compileDi()
 
 function installSampleData()
 {
-    if [ ! "${USE_SAMPLE_DATA}" ]
-    then
-        return;
-    fi
     if php bin/magento --version | grep -q beta
     then
         _installSampleDataForBeta;
@@ -921,18 +917,25 @@ function validateStep()
 function prepareSteps()
 {
     local _validSteps=()
-    local _step=
+    local _step;
+    local _steps;
 
-    STEPS=$(echo $STEPS | tr "," " ")
+    _steps=$(echo $STEPS | tr "," " ")
+    STEPS=();
 
-    for _step in ${STEPS[@]}
+    for _step in ${_steps[@]}
     do
         if validateStep $_step
         then
-            _validSteps+=($_step)
+          addStep $_step
         fi
     done
-    STEPS=${_validSteps[@]};
+}
+
+function addStep()
+{
+  local _step=$1
+  STEPS+=($_step)
 }
 
 function setProductionMode()
@@ -1044,31 +1047,40 @@ showWizard
 promptSaveConfig
 
 START_TIME=$(date +%s)
-if [ "$STEPS" ]
+if [[ "$STEPS" ]]
 then
     prepareSteps
 elif foundSupportBackupFiles
 then
-    STEPS="restore_code configure_files restore_db configure_db"
+    addStep "restore_code"
+    addStep "configure_files"
+    addStep "restore_db"
+    addStep "configure_db"
     if [[ "$MAGE_MODE" == "production" ]]
     then
-        STEPS="${STEPS} setProductionMode";
+        addStep "setProductionMode"
     fi
-    STEPS="${STEPS} setFilesystemPermission";
+    addStep "setFilesystemPermission"
 else
     if [[ "${SOURCE}" ]]
     then
-        STEPS="downloadSourceCode "
+        addStep "downloadSourceCode"
     fi
-    STEPS+="linkEnterpriseEdition runComposerInstall installMagento installSampleData"
+    addStep "linkEnterpriseEdition"
+    addStep "runComposerInstall"
+    addStep "installMagento"
+    if [[ "${USE_SAMPLE_DATA}" ]]
+    then
+        addStep "installSampleData"
+    fi
     if [[ "$MAGE_MODE" == "production" ]]
     then
-        STEPS="${STEPS} setProductionMode";
+        addStep "setProductionMode"
     fi
-    STEPS="${STEPS} setFilesystemPermission";
+    addStep "setFilesystemPermission"
 fi
 
-for step in $STEPS
+for step in ${STEPS[@]}
 do
     CMD="${step}"
     runCommand "=> "
