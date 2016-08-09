@@ -20,6 +20,7 @@
 
 VERBOSE=1
 CURRENT_DIR_NAME=$(basename $(pwd))
+STEPS=()
 
 HTTP_HOST=http://mage2.dev/
 BASE_PATH=${CURRENT_DIR_NAME}
@@ -118,9 +119,11 @@ function printLine()
 
 function runCommand()
 {
+    local _prefixMessage=$1;
+    local _suffixMessage=$2
     if [[ "$VERBOSE" -eq 1 ]]
     then
-        echo $CMD;
+        echo ${_prefixMessage}${CMD}${_suffixMessage}
     fi
 
     eval $CMD;
@@ -130,14 +133,15 @@ function extract()
 {
      if [ -f $EXTRACT_FILENAME ] ; then
          case $EXTRACT_FILENAME in
-             *.tar.bz2)   tar xjf "$EXTRACT_FILENAME";;
-             *.tar.gz)    gunzip -c "$EXTRACT_FILENAME" | gunzip -cf | tar -x ;;
-             *.tgz)       gunzip -c "$EXTRACT_FILENAME" | gunzip -cf | tar -x ;;
-             *.gz)        gunzip "$EXTRACT_FILENAME";;
-             *.tbz2)      tar xjf "$EXTRACT_FILENAME";;
-             *.zip)       unzip -qu -x "$EXTRACT_FILENAME";;
-             *)           printError "'$EXTRACT_FILENAME' cannot be extracted";;
+             *.tar.bz2)   CMD="tar xjf $EXTRACT_FILENAME";;
+             *.tar.gz)    CMD="gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x" ;;
+             *.tgz)       CMD="gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x" ;;
+             *.gz)        CMD="gunzip $EXTRACT_FILENAME" ;;
+             *.tbz2)      CMD="tar xjf $EXTRACT_FILENAME" ;;
+             *.zip)       CMD="unzip -qu -x $EXTRACT_FILENAME" ;;
+             *)           printError "'$EXTRACT_FILENAME' cannot be extracted"; CMD='' ;;
          esac
+        runCommand
      else
          printError "'$EXTRACT_FILENAME' is not a valid file"
      fi
@@ -415,8 +419,11 @@ function createNewDB()
     runCommand
 }
 
-function restoreDB()
+function restore_db()
 {
+    dropDB
+    createNewDB
+
     printString "Please wait DB dump starts restore"
 
     getDbDumpFilename
@@ -435,15 +442,30 @@ function restoreDB()
     runCommand
 }
 
-function extractCode()
+function restore_code()
 {
-    printString -n "Please wait Code dump start extract - "
-
     EXTRACT_FILENAME=$FILENAME_CODE_DUMP
     extract
 
-    mkdir -p var pub/media pub/static
-    printString "OK"
+    CMD="mkdir -p var pub/media pub/static"
+    runCommand
+}
+
+function configure_files()
+{
+    updateMagentoEnvFile
+    overwriteOriginalFiles
+    CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \; && chmod u+x bin/magento"
+    runCommand
+}
+
+function configure_db()
+{
+    updateBaseUrl
+    clearBaseLinks
+    clearCookieDomain
+    clearCustomAdmin
+    resetAdminPassword
 }
 
 function updateBaseUrl()
@@ -655,10 +677,6 @@ function compileDi()
 
 function installSampleData()
 {
-    if [ ! "${USE_SAMPLE_DATA}" ]
-    then
-        return;
-    fi
     if php bin/magento --version | grep -q beta
     then
         _installSampleDataForBeta;
@@ -734,6 +752,12 @@ function linkEnterpriseEdition()
     fi
 }
 
+function runComposerInstall()
+{
+    CMD="${BIN_COMPOSER} install"
+    runCommand
+}
+
 function installMagento()
 {
     CMD="rm -rf var/generation/*"
@@ -759,10 +783,6 @@ function installMagento()
 
 function downloadSourceCode()
 {
-    if [ "${SOURCE}" != 'composer' ] && [ "${SOURCE}" != 'git' ]
-    then
-        return;
-    fi
     if [ "$(ls -A ./)" ]; then
         printError "Can't download source code from ${SOURCE} since current directory doesn't empty."
         printError "You can remove all files from current directory using next command:"
@@ -880,6 +900,56 @@ function isInputNegative()
     fi
 }
 
+function validateStep()
+{
+    local _step=$1;
+    local _steps="restore_db restore_code configure_db configure_files configure"
+    if echo $_steps | grep -q "$_step"
+    then
+        if type -t $_step &>/dev/null
+        then
+            return 0;
+        fi
+    fi
+    return 1;
+}
+
+function prepareSteps()
+{
+    local _validSteps=()
+    local _step;
+    local _steps;
+
+    _steps=$(echo $STEPS | tr "," " ")
+    STEPS=();
+
+    for _step in ${_steps[@]}
+    do
+        if validateStep $_step
+        then
+          addStep $_step
+        fi
+    done
+}
+
+function addStep()
+{
+  local _step=$1
+  STEPS+=($_step)
+}
+
+function setProductionMode()
+{
+    CMD="${BIN_MAGE} deploy:mode:set production"
+    runCommand
+}
+
+function setFilesystemPermission()
+{
+    CMD="chmod -R 2777 ./var ./pub/media ./pub/static ./app/etc"
+    runCommand
+}
+
 function printUsage()
 {
     cat <<EOF
@@ -896,6 +966,8 @@ Options:
     --git-branch (branch name)           Specify Git Branch.
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
     --quiet                              Quiet mode. Suppress output all commands
+    --step (restore_code,restore_db      Specify step through comma without spaces.
+        configure_db, configure_files)    - Example: `basename $0` --step restore_db,configure_db
 EOF
 }
 
@@ -959,6 +1031,11 @@ do
             FILENAME_DB_DUMP="$2"
             shift
         ;;
+        --step)
+            checkArgumentHasValue $1 $2
+            STEPS=$2
+            shift
+        ;;
     esac
     shift
 done
@@ -970,34 +1047,44 @@ showWizard
 promptSaveConfig
 
 START_TIME=$(date +%s)
-if foundSupportBackupFiles
+if [[ "$STEPS" ]]
 then
-    dropDB
-    createNewDB
-    extractCode
-    restoreDB
-    updateMagentoEnvFile
-    overwriteOriginalFiles
-    CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \; && chmod u+x bin/magento"
-    runCommand
-    updateBaseUrl
-    clearBaseLinks
-    clearCookieDomain
-    clearCustomAdmin
-    resetAdminPassword
+    prepareSteps
+elif foundSupportBackupFiles
+then
+    addStep "restore_code"
+    addStep "configure_files"
+    addStep "restore_db"
+    addStep "configure_db"
+    if [[ "$MAGE_MODE" == "production" ]]
+    then
+        addStep "setProductionMode"
+    fi
+    addStep "setFilesystemPermission"
 else
-    downloadSourceCode
-    linkEnterpriseEdition
-    CMD="${BIN_COMPOSER} install"
-    runCommand
-    installMagento
-    installSampleData
+    if [[ "${SOURCE}" ]]
+    then
+        addStep "downloadSourceCode"
+    fi
+    addStep "linkEnterpriseEdition"
+    addStep "runComposerInstall"
+    addStep "installMagento"
+    if [[ "${USE_SAMPLE_DATA}" ]]
+    then
+        addStep "installSampleData"
+    fi
+    if [[ "$MAGE_MODE" == "production" ]]
+    then
+        addStep "setProductionMode"
+    fi
+    addStep "setFilesystemPermission"
 fi
 
-deployStaticContent
-compileDi
-CMD="chmod -R 2777 ./var ./pub/media ./pub/static ./app/etc"
-runCommand
+for step in ${STEPS[@]}
+do
+    CMD="${step}"
+    runCommand "=> "
+done
 
 END_TIME=$(date +%s)
 SUMMARY_TIME=$(expr $(expr $END_TIME - $START_TIME) / 60);
