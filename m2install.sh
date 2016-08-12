@@ -424,16 +424,12 @@ function restore_db()
     dropDB
     createNewDB
 
-    printString "Please wait DB dump starts restore"
-
     getDbDumpFilename
-    CMD=
 
+    CMD="gunzip -cf \"$FILENAME_DB_DUMP\""
     if which pv > /dev/null
     then
         CMD="pv \"${FILENAME_DB_DUMP}\" | gunzip -cf";
-    else
-        CMD="gunzip -cf \"$FILENAME_DB_DUMP\""
     fi
 
     CMD="${CMD} | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/' \
