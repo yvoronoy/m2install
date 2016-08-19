@@ -1,14 +1,14 @@
 #Magento 2 Bash Install/Restore Script
-This script is designed to simplify the installation process of Magento 2 and rapid deployment of merchants code and DB dumps.
+This script is designed to simplify the installation process of Magento 2 and rapid deployment of merchant code and DB dumps.
 
-m2install can be helpfull tool for support teams and teams who often needed install or deploy merchants backups or dumps.
+m2install can be a helpful tool for support teams and teams who often need to install or deploy merchant backups or dumps.
 
-The main purpose of this script is run a m2install, wait a bit and get a working magento instance.
+The main purpose of this script is run m2install, wait a bit and get a working magento instance.
 Don't waste time on routine operations.
 
-If you have any issues please report it to https://github.com/yvoronoy/m2install/issues
+If you have any issues please report them to https://github.com/yvoronoy/m2install/issues
 
-##What m2install exactly can to do?
+##What can m2install exactly do?
  - Can automatically restore backup files created by 
   - `php bin/magento setup:backup --code --db`
  - Can automatically restore support dumps created by Enterpsie Support Tool 
@@ -57,7 +57,7 @@ Options:
 In order to deploy the customer dumps you need:
  
  * Put DB and code dumps to new directory
- * Goto to directory and run m2install
+ * Go to directory and run m2install
 
 ##How to install Magento 2 using GIT
 To install Magento 2 from git repository run m2install with --source git param
@@ -65,17 +65,17 @@ To install Magento 2 from git repository run m2install with --source git param
  * ```m2install -s git```
 
 ##How to install Magento 2 using Composer
-To install Magento 2 from git repository run m2install with --source git param
+To install Magento 2 from composer run m2install with --source composer param
  * ```m2install --source composer``` or
  * ```m2install -s composer```
 
 
 ####How to Install Magento 2 with Sample Data
  * Run m2install
- * Use wizzard to install the sample data.
+ * Use wizard to install the sample data.
 
-##Wizzard
-m2install will show you wizzard on first run and prompt to save entered values to config file.
+##Wizard
+m2install shows you wizard on first run and prompts to save entered values to config file.
 ```
 $ m2install.sh 
 Current Directory: /Users/yvoronoy/Sites/m2/ee202
@@ -109,13 +109,13 @@ DB_USER=root
 DB_PASSWORD=dbpassword
 ```
 
-When you first run m2install script, it will show wizzard which prompt to save the config file in your home directory.
+When you first run m2install script, it shows wizard which prompts to save the config file to your home directory.
 
-m2install using fallback mechanism to find config files recursive from home directory to current directory.
-For example if you want install magento to directory 
+m2install uses fallback mechanism to find config files recursively from home directory to current directory.
+For example if you want to install magento to directory 
 ~/www/m2/ga/magento2ee
 
-you can override config file which placed in your home directory.
+you can override config file which is placed in your home directory.
 ```
 ~/.m2install.conf
 ~/www/.m2install.conf
