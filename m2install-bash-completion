@@ -1,5 +1,5 @@
 #
-# Copletion for m2install
+# Completion for m2install
 #
 _m2install()
 {
