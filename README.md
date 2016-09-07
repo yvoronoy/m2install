@@ -1,4 +1,4 @@
-#Magento 2 Bash Install/Restore Script
+#Magento 2 Bash Install/Restore Script [![Code Climate](https://codeclimate.com/github/yvoronoy/m2install/badges/gpa.svg)](https://codeclimate.com/github/yvoronoy/m2install)
 This script is designed to simplify the installation process of Magento 2 and rapid deployment of merchant code and DB dumps.
 
 m2install can be a helpful tool for support teams and teams who often need to install or deploy merchant backups or dumps.
