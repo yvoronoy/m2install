@@ -427,7 +427,7 @@ function restore_db()
 
     CMD="${CMD} | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/'
         | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password'
-        | ${BIN_MYSQL} -h$DB_HOST -u$DB_USER --password=$DB_PASSWORD --force $DB_NAME";
+        | ${BIN_MYSQL} -h$DB_HOST -u$DB_USER --force $DB_NAME";
     runCommand
 }
 
@@ -459,8 +459,7 @@ function configure_db()
 
 function updateBaseUrl()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data AS e SET e.value = '${BASE_URL}'
-        WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
+    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data AS e SET e.value = '${BASE_URL}' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
     mysqlQuery
 }
 
@@ -486,8 +485,7 @@ function clearCustomAdmin()
 
 function resetAdminPassword()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}admin_user SET ${DB_NAME}.${TBL_PREFIX}admin_user.email = 'mail@magento.com'
-        WHERE ${DB_NAME}.${TBL_PREFIX}admin_user.username = 'admin'"
+    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}admin_user SET ${DB_NAME}.${TBL_PREFIX}admin_user.email = 'mail@magento.com' WHERE ${DB_NAME}.${TBL_PREFIX}admin_user.username = 'admin'"
     mysqlQuery
     CMD="${BIN_MAGE} admin:user:create
         --admin-user='admin'
