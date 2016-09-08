@@ -149,7 +149,7 @@ function extract()
 
 function mysqlQuery()
 {
-    CMD="${BIN_MYSQL} -h$DB_HOST -u${DB_USER} --password=${DB_PASSWORD} --execute=\"${SQLQUERY}\"";
+    CMD="${BIN_MYSQL} -h$DB_HOST -u${DB_USER} --execute=\"${SQLQUERY}\"";
     runCommand
 }
 
@@ -396,10 +396,6 @@ EOF
 function dropDB()
 {
     CMD="${BIN_MYSQLADMIN} -h${DB_HOST} -u${DB_USER}"
-    if [ "${DB_PASSWORD}" ]
-    then
-        CMD="${CMD} -p${DB_PASSWORD}"
-    fi
     CMD="${CMD} -f drop ${DB_NAME}"
     if [[ "$VERBOSE" -ne 1 ]]
     then
@@ -411,10 +407,6 @@ function dropDB()
 function createNewDB()
 {
     CMD="${BIN_MYSQLADMIN} -h${DB_HOST} -u${DB_USER}"
-    if [ "${DB_PASSWORD}" ]
-    then
-        CMD="${CMD} -p${DB_PASSWORD}"
-    fi
     CMD="${CMD} -f create ${DB_NAME}"
 
     runCommand
@@ -971,6 +963,7 @@ EOF
 
 export LC_CTYPE=C
 export LANG=C
+export MYSQL_PWD=${DB_PASSWORD}
 
 loadConfigFile
 
