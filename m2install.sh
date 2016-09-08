@@ -125,7 +125,8 @@ function runCommand()
         echo "${_prefixMessage}${CMD}${_suffixMessage}"
     fi
 
-    eval "$CMD";
+    # shellcheck disable=SC2086
+    eval ${CMD};
 }
 
 function extract()
@@ -148,8 +149,8 @@ function extract()
 
 function mysqlQuery()
 {
-    printString "MySQL Query: ${SQLQUERY}"
-    ${BIN_MYSQL} -h$DB_HOST -u${DB_USER} --password=${DB_PASSWORD} --execute="${SQLQUERY}";
+    CMD="${BIN_MYSQL} -h$DB_HOST -u${DB_USER} --password=${DB_PASSWORD} --execute=\"${SQLQUERY}\"";
+    runCommand
 }
 
 function generateDBName()
@@ -432,8 +433,8 @@ function restore_db()
         CMD="pv \"${FILENAME_DB_DUMP}\" | gunzip -cf";
     fi
 
-    CMD="${CMD} | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/' \
-        | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password' \
+    CMD="${CMD} | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/'
+        | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password'
         | ${BIN_MYSQL} -h$DB_HOST -u$DB_USER --password=$DB_PASSWORD --force $DB_NAME";
     runCommand
 }
@@ -466,7 +467,7 @@ function configure_db()
 
 function updateBaseUrl()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data AS e SET e.value = '${BASE_URL}' \
+    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data AS e SET e.value = '${BASE_URL}'
         WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
     mysqlQuery
 }
@@ -493,14 +494,14 @@ function clearCustomAdmin()
 
 function resetAdminPassword()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}admin_user SET ${DB_NAME}.${TBL_PREFIX}admin_user.email = 'mail@magento.com' \
+    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}admin_user SET ${DB_NAME}.${TBL_PREFIX}admin_user.email = 'mail@magento.com'
         WHERE ${DB_NAME}.${TBL_PREFIX}admin_user.username = 'admin'"
     mysqlQuery
-    CMD="${BIN_MAGE} admin:user:create \
-        --admin-user='admin' \
-        --admin-password='123123q' \
-        --admin-email='mail@magento.com' \
-        --admin-firstname='Magento' \
+    CMD="${BIN_MAGE} admin:user:create
+        --admin-user='admin'
+        --admin-password='123123q'
+        --admin-email='mail@magento.com'
+        --admin-firstname='Magento'
         --admin-lastname='User'"
     runCommand
 }
@@ -915,7 +916,7 @@ function prepareSteps()
     local _step;
     local _steps;
 
-    _steps=$(echo "$STEPS_STR" | tr "," " ")
+    _steps=($(echo "${STEPS[@]}" | tr "," " "))
     STEPS=();
 
     for _step in "${_steps[@]}"
@@ -1028,7 +1029,7 @@ do
         ;;
         --step)
             checkArgumentHasValue "$1" "$2"
-            STEPS_STR=$2
+            STEPS=($2)
             shift
         ;;
     esac
@@ -1042,7 +1043,7 @@ showWizard
 promptSaveConfig
 
 START_TIME=$(date +%s)
-if [[ "$STEPS_STR" ]]
+if [[ "${STEPS[@]}" ]]
 then
     prepareSteps
 elif foundSupportBackupFiles
@@ -1080,9 +1081,8 @@ do
     CMD="${step}"
     runCommand "=> "
 done
-
 END_TIME=$(date +%s)
-SUMMARY_TIME=$(($(("$END_TIME" - "$START_TIME")) / 60));
+SUMMARY_TIME=$((((END_TIME - START_TIME)) / 60));
 printString "$(basename "$0") takes $SUMMARY_TIME minutes to complete install/deploy process"
 
 printLine
