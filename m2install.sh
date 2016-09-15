@@ -489,6 +489,10 @@ function clearCustomAdmin()
     mysqlQuery
     SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data SET ${DB_NAME}.${TBL_PREFIX}core_config_data.value = '0' WHERE path = 'admin/url/use_custom'"
     mysqlQuery
+    SQLQUERY="DELETE FROM ${DB_NAME}.${TBL_PREFIX}core_config_data WHERE path = 'admin/url/custom_path'"
+    mysqlQuery
+    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data SET ${DB_NAME}.${TBL_PREFIX}core_config_data.value = '0' WHERE path = 'admin/url/use_custom_path'"
+    mysqlQuery
 }
 
 function resetAdminPassword()
