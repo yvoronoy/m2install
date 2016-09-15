@@ -19,7 +19,7 @@
 # @license   http://www.gnu.org/licenses/
 
 VERBOSE=1
-CURRENT_DIR_NAME=$(basename $(pwd))
+CURRENT_DIR_NAME=$(basename "$(pwd)")
 STEPS=()
 
 HTTP_HOST=http://mage2.dev/
@@ -38,7 +38,6 @@ USE_WIZARD=1
 
 GIT_CE_REPO=
 GIT_EE_REPO=
-GIT_USERNAME=
 GIT_BRANCH=develop
 
 SOURCE=
@@ -100,20 +99,20 @@ function printString()
 {
     if [[ "$VERBOSE" -eq 1 ]]
     then
-        echo $@;
+        echo "$@";
     fi
 }
 
 function printError()
 {
-    >&2 echo $@;
+    >&2 echo "$@";
 }
 
 function printLine()
 {
     if [[ "$VERBOSE" -eq 1 ]]
     then
-        printf '%50s\n' | tr ' ' -
+        printf '%50s\n' ' ' | tr ' ' -
     fi
 }
 
@@ -123,15 +122,16 @@ function runCommand()
     local _suffixMessage=$2
     if [[ "$VERBOSE" -eq 1 ]]
     then
-        echo ${_prefixMessage}${CMD}${_suffixMessage}
+        echo "${_prefixMessage}${CMD}${_suffixMessage}"
     fi
 
-    eval $CMD;
+    # shellcheck disable=SC2086
+    eval ${CMD};
 }
 
 function extract()
 {
-     if [ -f $EXTRACT_FILENAME ] ; then
+     if [ -f "$EXTRACT_FILENAME" ] ; then
          case $EXTRACT_FILENAME in
              *.tar.bz2)   CMD="tar xjf $EXTRACT_FILENAME";;
              *.tar.gz)    CMD="gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x" ;;
@@ -149,8 +149,8 @@ function extract()
 
 function mysqlQuery()
 {
-    printString "MySQL Query: ${SQLQUERY}"
-    SQLQUERY_RESULT=$(${BIN_MYSQL} -h$DB_HOST -u${DB_USER} --password=${DB_PASSWORD} --execute="${SQLQUERY}");
+    CMD="${BIN_MYSQL} -h$DB_HOST -u${DB_USER} --execute=\"${SQLQUERY}\"";
+    runCommand
 }
 
 function generateDBName()
@@ -158,15 +158,15 @@ function generateDBName()
     prepareBasePath
     if [ "$BASE_PATH" ]
     then
-        DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[A-Z]' '[a-z]');
+        DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[:upper:]' '[:lower:]');
     else
-        DB_NAME=${DB_USER}_$(echo "$CURRENT_DIR_NAME" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[A-Z]' '[a-z]');
+        DB_NAME=${DB_USER}_$(echo "$CURRENT_DIR_NAME" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[:upper:]' '[:lower:]');
     fi
 }
 
 function prepareBasePath()
 {
-    BASE_PATH=$(echo ${BASE_PATH} | sed "s/^\///g" | sed "s/\/$//g" );
+    BASE_PATH=$(echo "${BASE_PATH}" | sed "s/^\///g" | sed "s/\/$//g" );
 }
 
 function prepareBaseURL()
@@ -174,7 +174,7 @@ function prepareBaseURL()
     prepareBasePath
     HTTP_HOST=$(echo ${HTTP_HOST}/ | sed "s/\/\/$/\//g" );
     BASE_URL=${HTTP_HOST}${BASE_PATH}/
-    BASE_URL=$(echo $BASE_URL | sed "s/\/\/$/\//g" );
+    BASE_URL=$(echo "$BASE_URL" | sed "s/\/\/$/\//g" );
 }
 
 function initQuietMode()
@@ -193,23 +193,23 @@ function initQuietMode()
 
 function getCodeDumpFilename()
 {
-    FILENAME_CODE_DUMP=$(ls -1 *.tbz2 *.tar.bz2 2> /dev/null | head -n1)
+    FILENAME_CODE_DUMP=$(find . -maxdepth 1 -name '*.tbz2' -o -name '*.tar.bz2' | head -n1)
     if [ "${FILENAME_CODE_DUMP}" == "" ]
     then
-        FILENAME_CODE_DUMP=$(ls -1 *.tar.gz 2> /dev/null | grep -v 'logs.tar.gz' | head -n1)
+        FILENAME_CODE_DUMP=$(find . -maxdepth 1 -name '*.tar.gz' | grep -v 'logs.tar.gz' | head -n1)
     fi
     if [ ! "$FILENAME_CODE_DUMP" ]
     then
-        FILENAME_CODE_DUMP=$(ls -1 *_code.tgz 2> /dev/null | head -n1)
+        FILENAME_CODE_DUMP=$(find . -maxdepth 1 -name '*_code.tgz' | head -n1)
     fi
 }
 
 function getDbDumpFilename()
 {
-    FILENAME_DB_DUMP=$(ls -1 *.sql.gz 2> /dev/null | head -n1)
+    FILENAME_DB_DUMP=$(find . -maxdepth 1 -name '*.sql.gz' | head -n1)
     if [ ! "$FILENAME_DB_DUMP" ]
     then
-        FILENAME_DB_DUMP=$(ls -1 *_db.gz 2> /dev/null | head -n1)
+        FILENAME_DB_DUMP=$(find . -maxdepth 1 -name '*_db.gz' | head -n1)
     fi
 }
 
@@ -238,18 +238,18 @@ function foundSupportBackupFiles()
 
 function wizard()
 {
-    askValue "Enter Server Name of Document Root" ${HTTP_HOST}
+    askValue "Enter Server Name of Document Root" "${HTTP_HOST}"
     HTTP_HOST=${READVALUE}
-    askValue "Enter Base Path" ${BASE_PATH}
+    askValue "Enter Base Path" "${BASE_PATH}"
     BASE_PATH=${READVALUE}
-    askValue "Enter DB Host" ${DB_HOST}
+    askValue "Enter DB Host" "${DB_HOST}"
     DB_HOST=${READVALUE}
-    askValue "Enter DB User" ${DB_USER}
+    askValue "Enter DB User" "${DB_USER}"
     DB_USER=${READVALUE}
-    askValue "Enter DB Password" ${DB_PASSWORD}
+    askValue "Enter DB Password" "${DB_PASSWORD}"
     DB_PASSWORD=${READVALUE}
     generateDBName
-    askValue "Enter DB Name" ${DB_NAME}
+    askValue "Enter DB Name" "${DB_NAME}"
     DB_NAME=${READVALUE}
 
     if foundSupportBackupFiles
@@ -260,7 +260,7 @@ function wizard()
     then
         USE_SAMPLE_DATA=1
     fi
-    askValue "Enter Path to EE or [nN] to skip EE installation" ${MAGENTO_EE_PATH}
+    askValue "Enter Path to EE or [nN] to skip EE installation" "${MAGENTO_EE_PATH}"
     MAGENTO_EE_PATH=${READVALUE}
 }
 
@@ -314,17 +314,18 @@ function showWizard()
 
 function loadConfigFile()
 {
-    NEAREST_CONFIG_FILE=`(find \`pwd\` -maxdepth 1 -name $CONFIG_NAME ;\
-        x=\`pwd\`;\
+    NEAREST_CONFIG_FILE=$( (find "$(pwd)" -maxdepth 1 -name $CONFIG_NAME ;\
+        x=$(pwd);\
         while [ "$x" != "/" ] ;\
-        do x=\`dirname "$x"\`;\
+        do x=$(dirname "$x");\
             find "$x" -maxdepth 1 -name $CONFIG_NAME;\
-        done) | sed '1!G;h;$!d'`
+        done) | sed '1!G;h;$!d')
     if [ "$NEAREST_CONFIG_FILE" ]
     then
         for FILE in $NEAREST_CONFIG_FILE
         do
-            source $FILE
+            # shellcheck source=/dev/null
+            source "$FILE"
         done
         USE_WIZARD=0
     fi
@@ -337,7 +338,7 @@ function promptSaveConfig()
     then
         return;
     fi
-    _local=$(dirname $BASE_PATH)
+    _local=$(dirname "$BASE_PATH")
     if [ "$_local" == "." ]
     then
         _local=
@@ -364,7 +365,7 @@ GIT_EE_REPO=$GIT_EE_REPO
 GIT_BRANCH=$GIT_BRANCH
 EOF
 )
-        _currentConfigContent=$(cat $NEAREST_CONFIG_FILE)
+        _currentConfigContent=$(cat "$NEAREST_CONFIG_FILE")
 
         if [ "$_configContent" == "$_currentConfigContent" ]
         then
@@ -395,10 +396,6 @@ EOF
 function dropDB()
 {
     CMD="${BIN_MYSQLADMIN} -h${DB_HOST} -u${DB_USER}"
-    if [ "${DB_PASSWORD}" ]
-    then
-        CMD="${CMD} -p${DB_PASSWORD}"
-    fi
     CMD="${CMD} -f drop ${DB_NAME}"
     if [[ "$VERBOSE" -ne 1 ]]
     then
@@ -410,10 +407,6 @@ function dropDB()
 function createNewDB()
 {
     CMD="${BIN_MYSQLADMIN} -h${DB_HOST} -u${DB_USER}"
-    if [ "${DB_PASSWORD}" ]
-    then
-        CMD="${CMD} -p${DB_PASSWORD}"
-    fi
     CMD="${CMD} -f create ${DB_NAME}"
 
     runCommand
@@ -432,9 +425,9 @@ function restore_db()
         CMD="pv \"${FILENAME_DB_DUMP}\" | gunzip -cf";
     fi
 
-    CMD="${CMD} | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/' \
-        | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password' \
-        | ${BIN_MYSQL} -h$DB_HOST -u$DB_USER --password=$DB_PASSWORD --force $DB_NAME";
+    CMD="${CMD} | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/'
+        | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password'
+        | ${BIN_MYSQL} -h$DB_HOST -u$DB_USER --force $DB_NAME";
     runCommand
 }
 
@@ -466,8 +459,7 @@ function configure_db()
 
 function updateBaseUrl()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data AS e SET e.value = '${BASE_URL}' \
-        WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
+    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data AS e SET e.value = '${BASE_URL}' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
     mysqlQuery
 }
 
@@ -497,14 +489,13 @@ function clearCustomAdmin()
 
 function resetAdminPassword()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}admin_user SET ${DB_NAME}.${TBL_PREFIX}admin_user.email = 'mail@magento.com' \
-        WHERE ${DB_NAME}.${TBL_PREFIX}admin_user.username = 'admin'"
+    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}admin_user SET ${DB_NAME}.${TBL_PREFIX}admin_user.email = 'mail@magento.com' WHERE ${DB_NAME}.${TBL_PREFIX}admin_user.username = 'admin'"
     mysqlQuery
-    CMD="${BIN_MAGE} admin:user:create \
-        --admin-user='admin' \
-        --admin-password='123123q' \
-        --admin-email='mail@magento.com' \
-        --admin-firstname='Magento' \
+    CMD="${BIN_MAGE} admin:user:create
+        --admin-user='admin'
+        --admin-password='123123q'
+        --admin-email='mail@magento.com'
+        --admin-firstname='Magento'
         --admin-lastname='User'"
     runCommand
 }
@@ -556,9 +547,9 @@ function updateMagentoEnvFile()
         CMD="cp app/etc/env.php app/etc/env.php.merchant"
         runCommand
 
-        _key=$(cat app/etc/env.php.merchant | grep key)
-        _date=$(cat app/etc/env.php.merchant | grep date)
-        _table_prefix=$(cat app/etc/env.php.merchant | grep table_prefix)
+        _key=$(grep key app/etc/env.php.merchant)
+        _date=$(grep date app/etc/env.php.merchant)
+        _table_prefix=$(grep table_prefix app/etc/env.php.merchant)
     fi
     cat << EOF > app/etc/env.php
 <?php
@@ -881,7 +872,7 @@ function printGitConfirmation()
 
 function checkArgumentHasValue()
 {
-    if [ ! $2 ]
+    if [ ! "$2" ]
     then
         printError "ERROR: $1 Argument is empty."
         printLine
@@ -904,9 +895,9 @@ function validateStep()
 {
     local _step=$1;
     local _steps="restore_db restore_code configure_db configure_files configure"
-    if echo $_steps | grep -q "$_step"
+    if echo "$_steps" | grep -q "$_step"
     then
-        if type -t $_step &>/dev/null
+        if type -t "$_step" &>/dev/null
         then
             return 0;
         fi
@@ -916,18 +907,17 @@ function validateStep()
 
 function prepareSteps()
 {
-    local _validSteps=()
     local _step;
     local _steps;
 
-    _steps=$(echo $STEPS | tr "," " ")
+    _steps=($(echo "${STEPS[@]}" | tr "," " "))
     STEPS=();
 
-    for _step in ${_steps[@]}
+    for _step in "${_steps[@]}"
     do
-        if validateStep $_step
+        if validateStep "$_step"
         then
-          addStep $_step
+          addStep "$_step"
         fi
     done
 }
@@ -953,10 +943,10 @@ function setFilesystemPermission()
 function printUsage()
 {
     cat <<EOF
-`basename $0` is designed to simplify the installation process of Magento 2
+$(basename "$0") is designed to simplify the installation process of Magento 2
 and deployment of client dumps created by Magento 2 Support Extension.
 
-Usage: `basename $0` [options]
+Usage: $(basename "$0") [options]
 Options:
     -h, --help                           Get this help.
     -s, --source (git, composer)         Get source code.
@@ -967,7 +957,7 @@ Options:
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
     --quiet                              Quiet mode. Suppress output all commands
     --step (restore_code,restore_db      Specify step through comma without spaces.
-        configure_db, configure_files)    - Example: `basename $0` --step restore_db,configure_db
+        configure_db, configure_files)    - Example: $(basename "$0") --step restore_db,configure_db
 EOF
 }
 
@@ -975,20 +965,21 @@ EOF
 
 export LC_CTYPE=C
 export LANG=C
+export MYSQL_PWD=${DB_PASSWORD}
 
 loadConfigFile
 
-while [[ $# > 0 ]]
+while [[ $# -gt 0 ]]
 do
     case "$1" in
         -s|--source)
-            checkArgumentHasValue $1 $2
+            checkArgumentHasValue "$1" "$2"
             SOURCE="$2"
             shift
         ;;
         -d|--sample-data)
-            checkArgumentHasValue $1 $2
-            if isInputNegative $2
+            checkArgumentHasValue "$1" "$2"
+            if isInputNegative "$2"
             then
                 USE_SAMPLE_DATA=
             else
@@ -997,17 +988,17 @@ do
             shift
         ;;
         -e|--ee-path)
-            checkArgumentHasValue $1 $2
+            checkArgumentHasValue "$1" "$2"
             MAGENTO_EE_PATH="$2"
             shift
         ;;
         -b|--git-branch)
-            checkArgumentHasValue $1 $2
+            checkArgumentHasValue "$1" "$2"
             GIT_BRANCH="$2"
             shift
         ;;
         --mode)
-            checkArgumentHasValue $1 $2
+            checkArgumentHasValue "$1" "$2"
             MAGE_MODE=$2
             shift
         ;;
@@ -1022,18 +1013,18 @@ do
             exit;
         ;;
         --code-dump)
-            checkArgumentHasValue $1 $2
+            checkArgumentHasValue "$1" "$2"
             FILENAME_CODE_DUMP="$2"
             shift
         ;;
         --db-dump)
-            checkArgumentHasValue $1 $2
+            checkArgumentHasValue "$1" "$2"
             FILENAME_DB_DUMP="$2"
             shift
         ;;
         --step)
-            checkArgumentHasValue $1 $2
-            STEPS=$2
+            checkArgumentHasValue "$1" "$2"
+            STEPS=($2)
             shift
         ;;
     esac
@@ -1041,13 +1032,13 @@ do
 done
 
 initQuietMode
-printString Current Directory: `pwd`
+printString Current Directory: "$(pwd)"
 printString "Configuration loaded from: $NEAREST_CONFIG_FILE"
 showWizard
 promptSaveConfig
 
 START_TIME=$(date +%s)
-if [[ "$STEPS" ]]
+if [[ "${STEPS[@]}" ]]
 then
     prepareSteps
 elif foundSupportBackupFiles
@@ -1080,20 +1071,19 @@ else
     addStep "setFilesystemPermission"
 fi
 
-for step in ${STEPS[@]}
+for step in "${STEPS[@]}"
 do
     CMD="${step}"
     runCommand "=> "
 done
-
 END_TIME=$(date +%s)
-SUMMARY_TIME=$(expr $(expr $END_TIME - $START_TIME) / 60);
-printString "$(basename $0) takes $SUMMARY_TIME minutes to complete install/deploy process"
+SUMMARY_TIME=$((((END_TIME - START_TIME)) / 60));
+printString "$(basename "$0") takes $SUMMARY_TIME minutes to complete install/deploy process"
 
 printLine
 
-printString ${BASE_URL}
-printString ${BASE_URL}admin
+printString "${BASE_URL}"
+printString "${BASE_URL}admin"
 printString "User: admin"
 printString "Pass: 123123q"
 
