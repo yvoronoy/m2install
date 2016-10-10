@@ -47,7 +47,6 @@ MAGE_MODE=dev
 BIN_MAGE="php -d memory_limit=2G bin/magento"
 BIN_COMPOSER="composer"
 BIN_MYSQL="mysql"
-BIN_MYSQLADMIN="mysqladmin"
 BIN_GIT="git"
 
 
@@ -149,7 +148,7 @@ function extract()
 
 function mysqlQuery()
 {
-    CMD="${BIN_MYSQL} -h$DB_HOST -u${DB_USER} --execute=\"${SQLQUERY}\"";
+    CMD="${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=${DB_PASSWORD} --execute=\"${SQLQUERY}\"";
     runCommand
 }
 
@@ -395,21 +394,14 @@ EOF
 
 function dropDB()
 {
-    CMD="${BIN_MYSQLADMIN} -h${DB_HOST} -u${DB_USER}"
-    CMD="${CMD} -f drop ${DB_NAME}"
-    if [[ "$VERBOSE" -ne 1 ]]
-    then
-        CMD="${CMD} &> /dev/null"
-    fi
-    runCommand
+    SQLQUERY="DROP DATABASE IF EXISTS ${DB_NAME}";
+    mysqlQuery
 }
 
 function createNewDB()
 {
-    CMD="${BIN_MYSQLADMIN} -h${DB_HOST} -u${DB_USER}"
-    CMD="${CMD} -f create ${DB_NAME}"
-
-    runCommand
+    SQLQUERY="CREATE DATABASE IF NOT EXISTS ${DB_NAME}";
+    mysqlQuery
 }
 
 function restore_db()
@@ -427,7 +419,7 @@ function restore_db()
 
     CMD="${CMD} | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/'
         | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password'
-        | ${BIN_MYSQL} -h$DB_HOST -u$DB_USER --force $DB_NAME";
+        | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=${DB_PASSWORD} --force $DB_NAME";
     runCommand
 }
 
@@ -965,7 +957,6 @@ EOF
 
 export LC_CTYPE=C
 export LANG=C
-export MYSQL_PWD=${DB_PASSWORD}
 
 loadConfigFile
 
