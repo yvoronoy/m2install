@@ -199,7 +199,11 @@ function getCodeDumpFilename()
     fi
     if [ ! "$FILENAME_CODE_DUMP" ]
     then
-        FILENAME_CODE_DUMP=$(find . -maxdepth 1 -name '*_code.tgz' | head -n1)
+        FILENAME_CODE_DUMP=$(find . -maxdepth 1 -name '*.tgz' | head -n1)
+    fi
+    if [ ! "$FILENAME_CODE_DUMP" ]
+    then
+        FILENAME_CODE_DUMP=$(find . -maxdepth 1 -name '*.zip' | head -n1)
     fi
 }
 
