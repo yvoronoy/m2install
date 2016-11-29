@@ -323,6 +323,10 @@ function loadConfigFile()
         do x=$(dirname "$x");\
             find "$x" -maxdepth 1 -name $CONFIG_NAME;\
         done) | sed '1!G;h;$!d')
+    if [ ! "$NEAREST_CONFIG_FILE" ]
+    then
+        NEAREST_CONFIG_FILE="$HOME/$CONFIG_NAME"
+    fi
     if [ "$NEAREST_CONFIG_FILE" ]
     then
         for FILE in $NEAREST_CONFIG_FILE
