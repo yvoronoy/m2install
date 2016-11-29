@@ -465,7 +465,7 @@ function updateBaseUrl()
 
 function clearBaseLinks()
 {
-    SQLQUERY="DELETE FROM ${DB_NAME}.${TBL_PREFIX}core_config_data WHERE path IN ('web/unsecure/base_link_url', 'web/secure/base_link_url')";
+    SQLQUERY="DELETE FROM ${DB_NAME}.${TBL_PREFIX}core_config_data WHERE path IN ('web/unsecure/base_link_url', 'web/secure/base_link_url', 'web/unsecure/base_static_url', 'web/unsecure/base_media_url', 'web/secure/base_static_url', 'web/secure/base_media_url')";
     mysqlQuery
 }
 
