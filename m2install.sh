@@ -1054,6 +1054,11 @@ then
 else
     if [[ "${SOURCE}" ]]
     then
+        if askConfirmation "Current directory is not empty. Do you want to clean current Directory (y/N)"
+        then
+            CMD="ls -A | xargs rm -rf"
+            runCommand
+        fi
         addStep "downloadSourceCode"
     fi
     addStep "linkEnterpriseEdition"
