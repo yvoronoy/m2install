@@ -264,6 +264,21 @@ function wizard()
     fi
 }
 
+function noSourceWizard()
+{
+    if [[ "$SOURCE" ]]
+    then
+        return;
+    fi
+    if [[ ! "$SOURCE" ]] && askConfirmation "Do you want install Enterprise Edition (y/N)"
+    then
+        askValue "Enter path to the directory with Enterprise Edition it will be linked" "${MAGENTO_EE_PATH}"
+        MAGENTO_EE_PATH=${READVALUE}
+    else
+        MAGENTO_EE_PATH=
+    fi
+}
+
 function printConfirmation()
 {
     printComposerConfirmation
@@ -299,6 +314,7 @@ function showWizard()
         then
             showComposerWizzard
             showWizzardGit
+            noSourceWizard
             wizard
         fi
         printLine
