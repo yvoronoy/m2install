@@ -28,7 +28,7 @@ DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=
 
-COMPOSER_VERSION='2.0.0'
+MAGENTO_VERSION=2.1
 
 DB_NAME=
 USE_SAMPLE_DATA=
@@ -38,7 +38,6 @@ USE_WIZARD=1
 
 GIT_CE_REPO=
 GIT_EE_REPO=
-GIT_BRANCH=develop
 
 SOURCE=
 FORCE=
@@ -365,11 +364,10 @@ BASE_PATH=$_local
 DB_HOST=$DB_HOST
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
-COMPOSER_VERSION=$COMPOSER_VERSION
+MAGENTO_VERSION=$MAGENTO_VERSION
 MAGENTO_EE_PATH=$MAGENTO_EE_PATH
 GIT_CE_REPO=$GIT_CE_REPO
 GIT_EE_REPO=$GIT_EE_REPO
-GIT_BRANCH=$GIT_BRANCH
 EOF
 )
         _currentConfigContent=$(cat "$NEAREST_CONFIG_FILE")
@@ -389,11 +387,10 @@ BASE_PATH=$_local
 DB_HOST=$DB_HOST
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
-COMPOSER_VERSION=$COMPOSER_VERSION
+MAGENTO_VERSION=$MAGENTO_VERSION
 MAGENTO_EE_PATH=$MAGENTO_EE_PATH
 GIT_CE_REPO=$GIT_CE_REPO
 GIT_EE_REPO=$GIT_EE_REPO
-GIT_BRANCH=$GIT_BRANCH
 EOF
             printString "Config file has been created in ~/$CONFIG_NAME";
         fi
@@ -795,10 +792,10 @@ function composerInstall()
 {
     if [ "$MAGENTO_EE_PATH" ]
     then
-        CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-enterprise-edition . ${COMPOSER_VERSION}"
+        CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-enterprise-edition . ${MAGENTO_VERSION}"
         runCommand
     else
-        CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-community-edition . $COMPOSER_VERSION"
+        CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-community-edition . $MAGENTO_VERSION"
         runCommand
     fi
 }
@@ -809,8 +806,8 @@ showComposerWizzard()
     then
         return;
     fi
-    askValue "Composer Magento version" ${COMPOSER_VERSION}
-    COMPOSER_VERSION=${READVALUE}
+    askValue "Composer Magento version" ${MAGENTO_VERSION}
+    MAGENTO_VERSION=${READVALUE}
 
 }
 
@@ -821,7 +818,7 @@ printComposerConfirmation()
         return;
     fi
     printString "Magento code will be downloaded from composer";
-    printString "Composer version: $COMPOSER_VERSION";
+    printString "Composer version: $MAGENTO_VERSION";
 }
 
 function showWizzardGit()
@@ -834,15 +831,15 @@ function showWizzardGit()
     GIT_CE_REPO=${READVALUE}
     askValue "Git EE repository" ${GIT_EE_REPO}
     GIT_EE_REPO=${READVALUE}
-    askValue "Git branch" ${GIT_BRANCH}
-    GIT_BRANCH=${READVALUE}
+    askValue "Git branch" ${MAGENTO_VERSION}
+    MAGENTO_VERSION=${READVALUE}
 }
 
 function gitClone()
 {
     CMD="${BIN_GIT} clone $GIT_CE_REPO ."
     runCommand
-    CMD="${BIN_GIT} checkout $GIT_BRANCH"
+    CMD="${BIN_GIT} checkout $MAGENTO_VERSION"
     runCommand
 
     if [[ "$GIT_EE_REPO" ]] && [[ "$MAGENTO_EE_PATH" ]]
@@ -851,7 +848,7 @@ function gitClone()
         runCommand
         CMD="cd ${MAGENTO_EE_PATH}"
         runCommand
-        CMD="${BIN_GIT} checkout $GIT_BRANCH"
+        CMD="${BIN_GIT} checkout $MAGENTO_VERSION"
         runCommand
         CMD="cd .."
         runCommand
@@ -867,7 +864,7 @@ function printGitConfirmation()
     printString "Magento code will be downloaded from GIT";
     printString "Git CE repository: ${GIT_CE_REPO}"
     printString "Git EE repository: ${GIT_EE_REPO}"
-    printString "Git branch: ${GIT_BRANCH}"
+    printString "Git branch: ${MAGENTO_VERSION}"
 }
 
 function checkArgumentHasValue()
@@ -953,7 +950,7 @@ Options:
     -f, --force                          Install/Restore without any confirmations.
     --sample-data (yes, no)              Install sample data.
     --ee-path (/path/to/ee)              Path to Enterprise Edition.
-    --git-branch (branch name)           Specify Git Branch.
+    -v, --version                        Magento Version - it means: Composer version or GIT Branch
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
     --quiet                              Quiet mode. Suppress output all commands
     --step (restore_code,restore_db      Specify step through comma without spaces.
@@ -993,7 +990,12 @@ do
         ;;
         -b|--git-branch)
             checkArgumentHasValue "$1" "$2"
-            GIT_BRANCH="$2"
+            MAGENTO_VERSION="$2"
+            shift
+        ;;
+        -v|--version)
+            checkArgumentHasValue "$1" "$2"
+            MAGENTO_VERSION="$2"
             shift
         ;;
         --mode)
