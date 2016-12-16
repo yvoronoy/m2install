@@ -262,8 +262,6 @@ function wizard()
     then
         USE_SAMPLE_DATA=1
     fi
-    askValue "Enter Path to EE or [nN] to skip EE installation" "${MAGENTO_EE_PATH}"
-    MAGENTO_EE_PATH=${READVALUE}
 }
 
 function printConfirmation()
@@ -286,7 +284,7 @@ function printConfirmation()
     fi
     if [ "${MAGENTO_EE_PATH}" ]
     then
-        printString "Magento EE will be installed from ${MAGENTO_EE_PATH}"
+        printString "Magento EE will be installed"
     else
         printString "Magento EE will NOT be installed."
     fi
@@ -808,6 +806,12 @@ showComposerWizzard()
     fi
     askValue "Composer Magento version" ${MAGENTO_VERSION}
     MAGENTO_VERSION=${READVALUE}
+    if askConfirmation "Do you want to install Enterprise Edition (y/N)"
+    then
+        MAGENTO_EE_PATH="y"
+    else
+        MAGENTO_EE_PATH=
+    fi
 
 }
 
@@ -833,6 +837,13 @@ function showWizzardGit()
     GIT_EE_REPO=${READVALUE}
     askValue "Git branch" ${MAGENTO_VERSION}
     MAGENTO_VERSION=${READVALUE}
+    if askConfirmation "Do you want to install Enterprise Edition (y/N)"
+    then
+        askValue "Enter path to the directory with Enterprise Edition" "${MAGENTO_EE_PATH}"
+        MAGENTO_EE_PATH=${READVALUE}
+    else
+        MAGENTO_EE_PATH=
+    fi
 }
 
 function gitClone()
