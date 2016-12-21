@@ -455,7 +455,7 @@ function configure_files()
 {
     updateMagentoEnvFile
     overwriteOriginalFiles
-    CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \; && chmod u+x bin/magento"
+    CMD="find . -type d -exec chmod 775 {} && find . -type f -exec chmod 664 {}"
     runCommand
 }
 
@@ -960,6 +960,8 @@ function setProductionMode()
 
 function setFilesystemPermission()
 {
+    CMD="chmod u+x bin/magento"
+    runCommand
     CMD="chmod -R 2777 ./var ./pub/media ./pub/static ./app/etc"
     runCommand
 }
