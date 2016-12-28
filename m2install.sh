@@ -455,7 +455,7 @@ function configure_files()
 {
     updateMagentoEnvFile
     overwriteOriginalFiles
-    CMD="find . -type d -exec chmod 775 {} && find . -type f -exec chmod 664 {}"
+    CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
     runCommand
 }
 
