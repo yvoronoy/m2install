@@ -695,6 +695,15 @@ function _installSampleData()
         return;
     fi
 
+    if [ -f "${HOME}/.config/composer/auth.json" ]
+    then
+        if [ -d "var/composer_home" ]
+        then
+            CMD="cp ${HOME}/.config/composer/auth.json var/composer_home/"
+            runCommand
+        fi
+    fi
+
     if [ -f "${HOME}/.composer/auth.json" ]
     then
         if [ -d "var/composer_home" ]
