@@ -330,25 +330,21 @@ function showWizard()
 
 function loadConfigFile()
 {
-    NEAREST_CONFIG_FILE=$( (find "$(pwd)" -maxdepth 1 -name $CONFIG_NAME ;\
-        x=$(pwd);\
-        while [ "$x" != "/" ] ;\
-        do x=$(dirname "$x");\
-            find "$x" -maxdepth 1 -name $CONFIG_NAME;\
-        done) | sed '1!G;h;$!d')
-    if [ ! "$NEAREST_CONFIG_FILE" ]
-    then
-        NEAREST_CONFIG_FILE="$HOME/$CONFIG_NAME"
-    fi
-    if [ "$NEAREST_CONFIG_FILE" ]
-    then
-        for FILE in $NEAREST_CONFIG_FILE
-        do
-            # shellcheck source=/dev/null
-            source "$FILE"
-        done
-        USE_WIZARD=0
-    fi
+    local filePath=
+    local configPaths[0]="$HOME/$CONFIG_NAME"
+    configPaths[1]="$HOME/${CONFIG_NAME}.override"
+    configPaths[2]="./$(basename $CONFIG_NAME)"
+    NEAREST_CONFIG_FILE=()
+
+    for filePath in ${configPaths[@]}
+    do
+        if [ -f "${filePath}" ]
+        then
+            NEAREST_CONFIG_FILE+=($filePath)
+            source $filePath
+            USE_WIZARD=0
+        fi
+    done
     generateDBName
 }
 
@@ -393,9 +389,9 @@ EOF
 
     fi
 
-    if askConfirmation "Do you want save/override config to ~/$CONFIG_NAME (y/N)"
+    if askConfirmation "Do you want save/override config to $HOME/$CONFIG_NAME (y/N)"
     then
-        cat << EOF > ~/$CONFIG_NAME
+        cat << EOF > $HOME/$CONFIG_NAME
 HTTP_HOST=$HTTP_HOST
 BASE_PATH=$_local
 DB_HOST=$DB_HOST
@@ -406,7 +402,7 @@ MAGENTO_EE_PATH=$MAGENTO_EE_PATH
 GIT_CE_REPO=$GIT_CE_REPO
 GIT_EE_REPO=$GIT_EE_REPO
 EOF
-            printString "Config file has been created in ~/$CONFIG_NAME";
+            printString "Config file has been created in $HOME/$CONFIG_NAME";
         fi
     _local=
 }
@@ -1072,7 +1068,7 @@ done
 
 initQuietMode
 printString Current Directory: "$(pwd)"
-printString "Configuration loaded from: $NEAREST_CONFIG_FILE"
+printString "Configuration loaded from: ${NEAREST_CONFIG_FILE[*]}"
 showWizard
 promptSaveConfig
 
