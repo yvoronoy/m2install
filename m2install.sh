@@ -511,7 +511,7 @@ function overwriteOriginalFiles()
 {
     if [ ! -f pub/static.php ]
     then
-        CMD="curl -s -o pub/static.php https://raw.githubusercontent.com/magento/magento2/2.0/pub/static.php"
+        CMD="curl -s -o pub/static.php https://raw.githubusercontent.com/magento/magento2/2.1/pub/static.php"
         runCommand
     fi
 
@@ -520,7 +520,15 @@ function overwriteOriginalFiles()
         CMD="mv .htaccess .htaccess.merchant"
         runCommand
     fi
-    CMD="curl -s -o .htaccess https://raw.githubusercontent.com/magento/magento2/2.0/.htaccess"
+    CMD="curl -s -o .htaccess https://raw.githubusercontent.com/magento/magento2/2.1/.htaccess"
+    runCommand
+
+    if [ -f pub/.htaccess ]
+    then
+        CMD="mv pub/.htaccess pub/.htaccess.merchant"
+        runCommand
+    fi
+    CMD="curl -s -o pub/.htaccess https://raw.githubusercontent.com/magento/magento2/2.1/pub/.htaccess"
     runCommand
 
     if [ -f pub/static/.htaccess ]
@@ -528,7 +536,7 @@ function overwriteOriginalFiles()
         CMD="mv pub/static/.htaccess pub/static/.htaccess.merchant"
         runCommand
     fi
-    CMD="curl -s -o pub/static/.htaccess https://raw.githubusercontent.com/magento/magento2/2.0/pub/static/.htaccess"
+    CMD="curl -s -o pub/static/.htaccess https://raw.githubusercontent.com/magento/magento2/2.1/pub/static/.htaccess"
     runCommand
 
     if [ -f pub/media/.htaccess ]
@@ -536,7 +544,7 @@ function overwriteOriginalFiles()
         CMD="mv pub/media/.htaccess pub/media/.htaccess.merchant"
         runCommand
     fi
-    CMD="curl -s -o pub/media/.htaccess https://raw.githubusercontent.com/magento/magento2/2.0/pub/media/.htaccess"
+    CMD="curl -s -o pub/media/.htaccess https://raw.githubusercontent.com/magento/magento2/2.1/pub/media/.htaccess"
     runCommand
 }
 
