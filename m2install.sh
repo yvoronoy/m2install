@@ -454,11 +454,8 @@ function configure_files()
     CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
     runCommand
 
-    if [ -d pub/static/frontend ]
-    then
-        CMD="find ./pub/static  -type l -! -exec test -e {} \; -print |xargs unlink"
-        runCommand
-    fi
+    CMD="find ./pub  -type l -! -exec test -e {} \; -print |xargs unlink"
+    runCommand
 }
 
 function configure_db()
