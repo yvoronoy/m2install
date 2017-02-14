@@ -453,6 +453,12 @@ function configure_files()
     overwriteOriginalFiles
     CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
     runCommand
+
+    if [ -d pub/static/frontend ]
+    then
+        CMD="find ./pub/static  -type l -! -exec test -e {} \; -print |xargs unlink"
+        runCommand
+    fi
 }
 
 function configure_db()
