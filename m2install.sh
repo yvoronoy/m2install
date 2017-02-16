@@ -419,6 +419,12 @@ function createNewDB()
     mysqlQuery
 }
 
+function tuneAdminSessionLifetime()
+{
+    SQLQUERY="DELETE FROM ${DB_NAME}.core_config_data WHERE path = 'admin/security/session_lifetime'; INSERT IGNORE INTO ${DB_NAME}.core_config_data (scope, scope_id, path, value) VALUES ('default', 0, 'admin/security/session_lifetime', '31536000');";
+    mysqlQuery
+}
+
 function restore_db()
 {
     dropDB
@@ -451,7 +457,7 @@ function configure_files()
 {
     updateMagentoEnvFile
     overwriteOriginalFiles
-    CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
+    CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {}"
     runCommand
 
     CMD="find ./pub  -type l -! -exec test -e {} \; -print |xargs unlink"
@@ -518,7 +524,7 @@ function overwriteOriginalFiles()
         runCommand
     fi
 
-    if [ -f .htaccess ]
+    if [ -f .htaccess ] && [ ! -f .htaccess.merchant]
     then
         CMD="mv .htaccess .htaccess.merchant"
         runCommand
@@ -526,7 +532,7 @@ function overwriteOriginalFiles()
     CMD="curl -s -o .htaccess https://raw.githubusercontent.com/magento/magento2/2.1/.htaccess"
     runCommand
 
-    if [ -f pub/.htaccess ]
+    if [ -f pub/.htaccess ] && [ ! -f pub/.htaccess.merchant]
     then
         CMD="mv pub/.htaccess pub/.htaccess.merchant"
         runCommand
@@ -534,7 +540,7 @@ function overwriteOriginalFiles()
     CMD="curl -s -o pub/.htaccess https://raw.githubusercontent.com/magento/magento2/2.1/pub/.htaccess"
     runCommand
 
-    if [ -f pub/static/.htaccess ]
+    if [ -f pub/static/.htaccess ] && [ ! -f pub/static/.htaccess.merchant]
     then
         CMD="mv pub/static/.htaccess pub/static/.htaccess.merchant"
         runCommand
@@ -542,7 +548,7 @@ function overwriteOriginalFiles()
     CMD="curl -s -o pub/static/.htaccess https://raw.githubusercontent.com/magento/magento2/2.1/pub/static/.htaccess"
     runCommand
 
-    if [ -f pub/media/.htaccess ]
+    if [ -f pub/media/.htaccess ] && [ ! -f pub/media/.htaccess.merchant]
     then
         CMD="mv pub/media/.htaccess pub/media/.htaccess.merchant"
         runCommand
@@ -560,7 +566,7 @@ function updateMagentoEnvFile()
     _table_prefix="'table_prefix' => '${TBL_PREFIX}',"
 
 
-    if [ -f app/etc/env.php ]
+    if [ -f app/etc/env.php ] && [ ! -f app/etc/env.php.merchant ]
     then
         CMD="cp app/etc/env.php app/etc/env.php.merchant"
         runCommand
@@ -787,13 +793,22 @@ function installMagento()
     dropDB
     createNewDB
 
-    CMD="${BIN_MAGE} setup:install --base-url=${BASE_URL} \
-    --db-host=${DB_HOST} --db-name=${DB_NAME} --db-user=${DB_USER}  \
-    --admin-firstname=Magento --admin-lastname=User --admin-email=mail@magento.com \
-    --admin-user=admin --admin-password=123123q --language=en_US \
-    --currency=USD --timezone=America/Chicago --use-rewrites=1 --backend-frontname=admin"
-    if [ "${DB_PASSWORD}" ]
-    then
+    CMD="${BIN_MAGE} setup:install \
+    --base-url=${BASE_URL} \
+    --db-host=${DB_HOST} \
+    --db-name=${DB_NAME} \
+    --db-user=${DB_USER} \
+    --admin-firstname=Magento \
+    --admin-lastname=User \
+    --admin-email=mail@magento.com \
+    --admin-user=admin \
+    --admin-password=123123q \
+    --language=en_US \
+    --currency=USD \
+    --timezone=America/Chicago \
+    --use-rewrites=1 \
+    --backend-frontname=admin"
+    if [ "${DB_PASSWORD}" ]; then
         CMD="${CMD} --db-password=${DB_PASSWORD}"
     fi
     runCommand
@@ -976,9 +991,9 @@ function setProductionMode()
 
 function setFilesystemPermission()
 {
-    CMD="chmod u+x bin/magento"
+    CMD="chmod u+x ./bin/magento"
     runCommand
-    CMD="chmod -R 2777 ./var ./pub/media ./pub/static ./app/etc"
+    CMD="chmod -R a+rwX ./var ./pub/media ./pub/static ./app/etc"
     runCommand
 }
 
@@ -1098,6 +1113,7 @@ then
         addStep "setProductionMode"
     fi
     addStep "setFilesystemPermission"
+    addStep "tuneAdminSessionLifetime"
 else
     if [[ "${SOURCE}" ]]
     then
@@ -1120,6 +1136,7 @@ else
         addStep "setProductionMode"
     fi
     addStep "setFilesystemPermission"
+    addStep "tuneAdminSessionLifetime"
 fi
 
 for step in "${STEPS[@]}"
@@ -1129,7 +1146,7 @@ do
 done
 END_TIME=$(date +%s)
 SUMMARY_TIME=$((((END_TIME - START_TIME)) / 60));
-printString "$(basename "$0") takes $SUMMARY_TIME minutes to complete install/deploy process"
+printString "$(basename "$0") took $SUMMARY_TIME minutes to complete install/deploy process"
 
 printLine
 
@@ -1137,4 +1154,3 @@ printString "${BASE_URL}"
 printString "${BASE_URL}admin"
 printString "User: admin"
 printString "Pass: 123123q"
-
