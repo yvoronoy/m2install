@@ -421,7 +421,7 @@ function createNewDB()
 
 function tuneAdminSessionLifetime()
 {
-    SQLQUERY="DELETE FROM ${DB_NAME}.core_config_data WHERE path = 'admin/security/session_lifetime'; INSERT IGNORE INTO ${DB_NAME}.core_config_data (scope, scope_id, path, value) VALUES ('default', 0, 'admin/security/session_lifetime', '31536000');";
+    SQLQUERY="INSERT INTO ${DB_NAME}.${TBL_PREFIX}core_config_data (scope, scope_id, path, value) VALUES ('default', 0, 'admin/security/session_lifetime', '31536000') ON DUPLICATE KEY UPDATE value='31536000';";
     mysqlQuery
 }
 
@@ -457,7 +457,7 @@ function configure_files()
 {
     updateMagentoEnvFile
     overwriteOriginalFiles
-    CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {}"
+    CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
     runCommand
 
     CMD="find ./pub  -type l -! -exec test -e {} \; -print |xargs unlink"
@@ -993,7 +993,7 @@ function setFilesystemPermission()
 {
     CMD="chmod u+x ./bin/magento"
     runCommand
-    CMD="chmod -R a+rwX ./var ./pub/media ./pub/static ./app/etc"
+    CMD="chmod -R 2777 ./var ./pub/media ./pub/static ./app/etc"
     runCommand
 }
 
