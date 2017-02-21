@@ -460,7 +460,7 @@ function configure_files()
     CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
     runCommand
 
-    CMD="find ./pub  -type l -! -exec test -e {} \; -print |xargs unlink"
+    CMD="find ./pub  -type l -! -exec test -e {} \; -print | xargs --no-run-if-empty unlink"
     runCommand
 }
 
