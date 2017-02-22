@@ -32,7 +32,8 @@ MAGENTO_VERSION=2.1
 
 DB_NAME=
 USE_SAMPLE_DATA=
-MAGENTO_EE_PATH=
+MAGENTO_EE_PATH=magento2ee
+INSTALL_EE=
 CONFIG_NAME=.m2install.conf
 USE_WIZARD=1
 
@@ -272,10 +273,7 @@ function noSourceWizard()
     fi
     if [[ ! "$SOURCE" ]] && askConfirmation "Do you want install Enterprise Edition (y/N)"
     then
-        askValue "Enter path to the directory with Enterprise Edition it will be linked" "${MAGENTO_EE_PATH}"
-        MAGENTO_EE_PATH=${READVALUE}
-    else
-        MAGENTO_EE_PATH=
+        INSTALL_EE=1
     fi
 }
 
@@ -297,7 +295,7 @@ function printConfirmation()
     else
         printString "Sample Data will NOT be installed."
     fi
-    if [ "${MAGENTO_EE_PATH}" ]
+    if [ "${INSTALL_EE}" ]
     then
         printString "Magento EE will be installed"
     else
@@ -350,7 +348,7 @@ function loadConfigFile()
 
 function promptSaveConfig()
 {
-    if [ "$FORCE" ]
+    if [ "$FORCE" ] || [ -f "$HOME/$CONFIG_NAME" ]
     then
         return;
     fi
@@ -375,7 +373,7 @@ DB_HOST=$DB_HOST
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
 MAGENTO_VERSION=$MAGENTO_VERSION
-MAGENTO_EE_PATH=$MAGENTO_EE_PATH
+INSTALL_EE=$INSTALL_EE
 GIT_CE_REPO=$GIT_CE_REPO
 GIT_EE_REPO=$GIT_EE_REPO
 EOF
@@ -389,7 +387,7 @@ EOF
 
     fi
 
-    if askConfirmation "Do you want save/override config to $HOME/$CONFIG_NAME (y/N)"
+    if askConfirmation "Do you want save config to $HOME/$CONFIG_NAME (y/N)"
     then
         cat << EOF > $HOME/$CONFIG_NAME
 HTTP_HOST=$HTTP_HOST
@@ -398,7 +396,7 @@ DB_HOST=$DB_HOST
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
 MAGENTO_VERSION=$MAGENTO_VERSION
-MAGENTO_EE_PATH=$MAGENTO_EE_PATH
+INSTALL_EE=$INSTALL_EE
 GIT_CE_REPO=$GIT_CE_REPO
 GIT_EE_REPO=$GIT_EE_REPO
 EOF
@@ -759,7 +757,7 @@ function linkEnterpriseEdition()
     then
         return;
     fi
-    if [ "${MAGENTO_EE_PATH}" ]
+    if [ "${MAGENTO_EE_PATH}" ] && [ "$INSTALL_EE" ]
     then
         if [ ! -d "$MAGENTO_EE_PATH" ]
         then
@@ -835,7 +833,7 @@ function downloadSourceCode()
 
 function composerInstall()
 {
-    if [ "$MAGENTO_EE_PATH" ]
+    if [ "$INSTALL_EE" ]
     then
         CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-enterprise-edition . ${MAGENTO_VERSION}"
         runCommand
@@ -855,9 +853,7 @@ showComposerWizzard()
     MAGENTO_VERSION=${READVALUE}
     if askConfirmation "Do you want to install Enterprise Edition (y/N)"
     then
-        MAGENTO_EE_PATH="y"
-    else
-        MAGENTO_EE_PATH=
+        INSTALL_EE=1
     fi
 
 }
@@ -886,10 +882,7 @@ function showWizzardGit()
     MAGENTO_VERSION=${READVALUE}
     if askConfirmation "Do you want to install Enterprise Edition (y/N)"
     then
-        askValue "Enter path to the directory with Enterprise Edition" "${MAGENTO_EE_PATH}"
-        MAGENTO_EE_PATH=${READVALUE}
-    else
-        MAGENTO_EE_PATH=
+        INSTALL_EE=1
     fi
 }
 
@@ -900,7 +893,7 @@ function gitClone()
     CMD="${BIN_GIT} checkout $MAGENTO_VERSION"
     runCommand
 
-    if [[ "$GIT_EE_REPO" ]] && [[ "$MAGENTO_EE_PATH" ]]
+    if [[ "$GIT_EE_REPO" ]] && [[ "$INSTALL_EE" ]]
     then
         CMD="${BIN_GIT} clone $GIT_EE_REPO $MAGENTO_EE_PATH"
         runCommand
@@ -1009,12 +1002,14 @@ Options:
     -s, --source (git, composer)         Get source code.
     -f, --force                          Install/Restore without any confirmations.
     --sample-data (yes, no)              Install sample data.
-    --ee-path (/path/to/ee)              Path to Enterprise Edition.
+    --ee                                 Install Enterprise Edition.
     -v, --version                        Magento Version - it means: Composer version or GIT Branch
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
     --quiet                              Quiet mode. Suppress output all commands
     --step (restore_code,restore_db      Specify step through comma without spaces.
-        configure_db, configure_files)    - Example: $(basename "$0") --step restore_db,configure_db
+        configure_db, configure_files)   - Example: $(basename "$0") --step restore_db,configure_db
+    _________________________________________________________________________________________________
+    --ee-path (/path/to/ee)              (DEPRECATED use --ee flag) Path to Enterprise Edition.
 EOF
 }
 
@@ -1046,7 +1041,11 @@ do
         -e|--ee-path)
             checkArgumentHasValue "$1" "$2"
             MAGENTO_EE_PATH="$2"
+            INSTALL_EE=1
             shift
+        ;;
+        --ee)
+            INSTALL_EE=1
         ;;
         -b|--git-branch)
             checkArgumentHasValue "$1" "$2"

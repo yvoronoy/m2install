@@ -7,10 +7,14 @@ _m2install()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="--help --source --force --sample-data --ee-path --git-branch --mode --quiet --code-dump --db-dump";
+    opts="--help -h --source -s --force -f --sample-data --step --ee-path --ee --git-branch --mode --quiet --code-dump --db-dump";
 
     case "$prev" in 
         --source)
+            COMPREPLY=( $(compgen -W "git composer" ${cur}) )
+            return 0;
+        ;;
+        -s)
             COMPREPLY=( $(compgen -W "git composer" ${cur}) )
             return 0;
         ;;
@@ -36,6 +40,10 @@ _m2install()
         ;;
         --db-dump)
             COMPREPLY=( $(compgen -f ${cur}) )
+            return 0;
+        ;;
+        --step)
+            COMPREPLY=( $(compgen -W "restore_code restore_db configure_db configure_files" ${cur}) )
             return 0;
         ;;
     esac
