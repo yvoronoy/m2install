@@ -32,7 +32,7 @@ MAGENTO_VERSION=2.1
 
 DB_NAME=
 USE_SAMPLE_DATA=
-MAGENTO_EE_PATH=magento2ee
+EE_PATH=magento2ee
 INSTALL_EE=
 CONFIG_NAME=.m2install.conf
 USE_WIZARD=1
@@ -757,19 +757,19 @@ function linkEnterpriseEdition()
     then
         return;
     fi
-    if [ "${MAGENTO_EE_PATH}" ] && [ "$INSTALL_EE" ]
+    if [ "${EE_PATH}" ] && [ "$INSTALL_EE" ]
     then
-        if [ ! -d "$MAGENTO_EE_PATH" ]
+        if [ ! -d "$EE_PATH" ]
         then
-            printError "There is no Enterprise Edition directory ${MAGENTO_EE_PATH}"
+            printError "There is no Enterprise Edition directory ${EE_PATH}"
             printError "Use absolute or relative path to EE code base or [N] to skip it"
             exit
         fi
-        CMD="php ${MAGENTO_EE_PATH}/dev/tools/build-ee.php --ce-source $(pwd) --ee-source ${MAGENTO_EE_PATH}"
+        CMD="php ${EE_PATH}/dev/tools/build-ee.php --ce-source $(pwd) --ee-source ${EE_PATH}"
         runCommand
-        CMD="cp ${MAGENTO_EE_PATH}/composer.json $(pwd)/"
+        CMD="cp ${EE_PATH}/composer.json $(pwd)/"
         runCommand
-        CMD="cp ${MAGENTO_EE_PATH}/composer.lock $(pwd)/"
+        CMD="cp ${EE_PATH}/composer.lock $(pwd)/"
         runCommand
     fi
 }
@@ -895,9 +895,9 @@ function gitClone()
 
     if [[ "$GIT_EE_REPO" ]] && [[ "$INSTALL_EE" ]]
     then
-        CMD="${BIN_GIT} clone $GIT_EE_REPO $MAGENTO_EE_PATH"
+        CMD="${BIN_GIT} clone $GIT_EE_REPO $EE_PATH"
         runCommand
-        CMD="cd ${MAGENTO_EE_PATH}"
+        CMD="cd ${EE_PATH}"
         runCommand
         CMD="${BIN_GIT} checkout $MAGENTO_VERSION"
         runCommand
@@ -1040,7 +1040,7 @@ do
         ;;
         -e|--ee-path)
             checkArgumentHasValue "$1" "$2"
-            MAGENTO_EE_PATH="$2"
+            EE_PATH="$2"
             INSTALL_EE=1
             shift
         ;;
