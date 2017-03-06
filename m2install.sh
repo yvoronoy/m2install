@@ -37,7 +37,7 @@ INSTALL_EE=
 CONFIG_NAME=.m2install.conf
 USE_WIZARD=1
 
-GIT_CE_REPO=
+GIT_CE_REPO="git@github.com:magento/magento2.git"
 GIT_EE_REPO=
 
 SOURCE=
@@ -49,6 +49,15 @@ BIN_COMPOSER="composer"
 BIN_MYSQL="mysql"
 BIN_GIT="git"
 
+BACKEND_FRONTNAME="admin"
+ADMIN_NAME="admin"
+ADMIN_PASSWORD="123123q"
+ADMIN_FIRSTNAME="Admin"
+ADMIN_LASTNAME="Test"
+ADMIN_EMAIL="admin@test.com"
+TIMEZONE="America/Chicago"
+LANGUAGE="en_US"
+CURRENCY="USD"
 
 function printVersion()
 {
@@ -154,12 +163,15 @@ function mysqlQuery()
 
 function generateDBName()
 {
-    prepareBasePath
-    if [ "$BASE_PATH" ]
+    if [ -z "$DB_NAME" ]
     then
-        DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[:upper:]' '[:lower:]');
-    else
-        DB_NAME=${DB_USER}_$(echo "$CURRENT_DIR_NAME" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[:upper:]' '[:lower:]');
+        prepareBasePath
+        if [ "$BASE_PATH" ]
+        then
+            DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[:upper:]' '[:lower:]');
+        else
+            DB_NAME=${DB_USER}_$(echo "$CURRENT_DIR_NAME" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[:upper:]' '[:lower:]');
+        fi
     fi
 }
 
@@ -283,8 +295,20 @@ function printConfirmation()
     printGitConfirmation
     prepareBaseURL
     printString "BASE URL: ${BASE_URL}"
+    printString "BASE PATH: ${BASE_PATH}"
     printString "DB PARAM: ${DB_USER}@${DB_HOST}"
     printString "DB NAME: ${DB_NAME}"
+    printString "DB PASSWORD: ${DB_PASSWORD}"
+    printString "MAGE MODE: ${MAGE_MODE}"
+    printString "BACKEND FRONTNAME: ${BACKEND_FRONTNAME}"
+    printString "ADMIN NAME: ${ADMIN_NAME}"
+    printString "ADMIN PASSWORD: ${ADMIN_PASSWORD}"
+    printString "ADMIN FIRSTNAME: ${ADMIN_FIRSTNAME}"
+    printString "ADMIN LASTNAME: ${ADMIN_LASTNAME}"
+    printString "ADMIN EMAIL: ${ADMIN_EMAIL}"
+    printString "TIMEZONE: ${TIMEZONE}"
+    printString "LANGUAGE: ${LANGUAGE}"
+    printString "CURRENCY: ${CURRENCY}"
     if foundSupportBackupFiles
     then
         return;
@@ -364,20 +388,32 @@ function promptSaveConfig()
         _local=${_local}\$CURRENT_DIR_NAME
     fi
 
-    if [ "$NEAREST_CONFIG_FILE" ]
-    then
-        _configContent=$(cat << EOF
+    _configContent=$(cat << EOF
 HTTP_HOST=$HTTP_HOST
-BASE_PATH=$_local
+BASE_PATH=$BASE_PATH
 DB_HOST=$DB_HOST
+DB_NAME=$DB_NAME
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
 MAGENTO_VERSION=$MAGENTO_VERSION
 INSTALL_EE=$INSTALL_EE
 GIT_CE_REPO=$GIT_CE_REPO
 GIT_EE_REPO=$GIT_EE_REPO
+MAGE_MODE=$MAGE_MODE
+BACKEND_FRONTNAME=$BACKEND_FRONTNAME
+ADMIN_NAME=$ADMIN_NAME
+ADMIN_PASSWORD=$ADMIN_PASSWORD
+ADMIN_FIRSTNAME=$ADMIN_FIRSTNAME
+ADMIN_LASTNAME=$ADMIN_LASTNAME
+ADMIN_EMAIL=$ADMIN_EMAIL
+TIMEZONE=$TIMEZONE
+LANGUAGE=$LANGUAGE
+CURRENCY=$CURRENCY
 EOF
 )
+
+    if [ "$NEAREST_CONFIG_FILE" ]
+    then
         _currentConfigContent=$(cat "$NEAREST_CONFIG_FILE")
 
         if [ "$_configContent" == "$_currentConfigContent" ]
@@ -389,16 +425,8 @@ EOF
 
     if askConfirmation "Do you want save config to $HOME/$CONFIG_NAME (y/N)"
     then
-        cat << EOF > $HOME/$CONFIG_NAME
-HTTP_HOST=$HTTP_HOST
-BASE_PATH=$_local
-DB_HOST=$DB_HOST
-DB_USER=$DB_USER
-DB_PASSWORD=$DB_PASSWORD
-MAGENTO_VERSION=$MAGENTO_VERSION
-INSTALL_EE=$INSTALL_EE
-GIT_CE_REPO=$GIT_CE_REPO
-GIT_EE_REPO=$GIT_EE_REPO
+        cat << EOF > ./$CONFIG_NAME
+$_configContent
 EOF
             printString "Config file has been created in $HOME/$CONFIG_NAME";
         fi
@@ -503,14 +531,14 @@ function clearCustomAdmin()
 
 function resetAdminPassword()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}admin_user SET ${DB_NAME}.${TBL_PREFIX}admin_user.email = 'mail@magento.com' WHERE ${DB_NAME}.${TBL_PREFIX}admin_user.username = 'admin'"
+    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}admin_user SET ${DB_NAME}.${TBL_PREFIX}admin_user.email = '${ADMIN_EMAIL}' WHERE ${DB_NAME}.${TBL_PREFIX}admin_user.username = '${ADMIN_NAME}'"
     mysqlQuery
     CMD="${BIN_MAGE} admin:user:create
-        --admin-user='admin'
-        --admin-password='123123q'
-        --admin-email='mail@magento.com'
-        --admin-firstname='Magento'
-        --admin-lastname='User'"
+        --admin-user='${ADMIN_NAME}'
+        --admin-password='${ADMIN_PASSWORD}'
+        --admin-email='${ADMIN_EMAIL}'
+        --admin-firstname='${ADMIN_FIRSTNAME}'
+        --admin-lastname='${ADMIN_LASTNAME}'"
     runCommand
 }
 
@@ -578,7 +606,7 @@ function updateMagentoEnvFile()
 return array (
   'backend' =>
   array (
-    'frontName' => 'admin',
+    'frontName' => '${BACKEND_FRONTNAME}',
   ),
   'queue' =>
   array (
@@ -796,16 +824,16 @@ function installMagento()
     --db-host=${DB_HOST} \
     --db-name=${DB_NAME} \
     --db-user=${DB_USER} \
-    --admin-firstname=Magento \
-    --admin-lastname=User \
-    --admin-email=mail@magento.com \
-    --admin-user=admin \
-    --admin-password=123123q \
-    --language=en_US \
-    --currency=USD \
-    --timezone=America/Chicago \
+    --admin-firstname=${ADMIN_FIRSTNAME} \
+    --admin-lastname=${ADMIN_LASTNAME} \
+    --admin-email=${ADMIN_EMAIL} \
+    --admin-user=${ADMIN_NAME} \
+    --admin-password=${ADMIN_PASSWORD} \
+    --language=${LANGUAGE} \
+    --currency=${CURRENCY} \
+    --timezone=${TIMEZONE} \
     --use-rewrites=1 \
-    --backend-frontname=admin"
+    --backend-frontname=${BACKEND_FRONTNAME}"
     if [ "${DB_PASSWORD}" ]; then
         CMD="${CMD} --db-password=${DB_PASSWORD}"
     fi
@@ -1150,6 +1178,6 @@ printString "$(basename "$0") took $SUMMARY_TIME minutes to complete install/dep
 printLine
 
 printString "${BASE_URL}"
-printString "${BASE_URL}admin"
-printString "User: admin"
-printString "Pass: 123123q"
+printString "${BASE_URL}${BACKEND_FRONTNAME}"
+printString "User: ${ADMIN_NAME}"
+printString "Pass: ${ADMIN_PASSWORD}"
