@@ -390,7 +390,7 @@ function promptSaveConfig()
 
     _configContent=$(cat << EOF
 HTTP_HOST=$HTTP_HOST
-BASE_PATH=$BASE_PATH
+BASE_PATH=$_local
 DB_HOST=$DB_HOST
 DB_NAME=$DB_NAME
 DB_USER=$DB_USER
@@ -425,7 +425,7 @@ EOF
 
     if askConfirmation "Do you want save config to $HOME/$CONFIG_NAME (y/N)"
     then
-        cat << EOF > ./$CONFIG_NAME
+        cat << EOF > $HOME/$CONFIG_NAME
 $_configContent
 EOF
             printString "Config file has been created in $HOME/$CONFIG_NAME";
