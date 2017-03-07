@@ -362,7 +362,7 @@ function loadConfigFile()
     do
         if [ -f "${filePath}" ]
         then
-            NEAREST_CONFIG_FILE+=($filePath)
+            NEAREST_CONFIG_FILE="$filePath"
             source $filePath
             USE_WIZARD=0
         fi
@@ -372,7 +372,7 @@ function loadConfigFile()
 
 function promptSaveConfig()
 {
-    if [ "$FORCE" ] || [ -f "$HOME/$CONFIG_NAME" ]
+    if [ "$FORCE" ]
     then
         return;
     fi
@@ -423,12 +423,12 @@ EOF
 
     fi
 
-    if askConfirmation "Do you want save config to $HOME/$CONFIG_NAME (y/N)"
+    if askConfirmation "Do you want save config to <magento install dir>/$CONFIG_NAME (y/N)"
     then
-        cat << EOF > $HOME/$CONFIG_NAME
+        cat << EOF > ./$CONFIG_NAME
 $_configContent
 EOF
-            printString "Config file has been created in $HOME/$CONFIG_NAME";
+            printString "Config file has been created in <magento install dir>/$CONFIG_NAME";
         fi
     _local=
 }
@@ -1123,7 +1123,6 @@ initQuietMode
 printString Current Directory: "$(pwd)"
 printString "Configuration loaded from: ${NEAREST_CONFIG_FILE[*]}"
 showWizard
-promptSaveConfig
 
 START_TIME=$(date +%s)
 if [[ "${STEPS[@]}" ]]
@@ -1181,3 +1180,7 @@ printString "${BASE_URL}"
 printString "${BASE_URL}${BACKEND_FRONTNAME}"
 printString "User: ${ADMIN_NAME}"
 printString "Pass: ${ADMIN_PASSWORD}"
+
+printLine
+
+promptSaveConfig
