@@ -362,7 +362,7 @@ function loadConfigFile()
     do
         if [ -f "${filePath}" ]
         then
-            NEAREST_CONFIG_FILE="$filePath"
+            NEAREST_CONFIG_FILE=("${NEAREST_CONFIG_FILE[@]}" "$filePath")
             source $filePath
             USE_WIZARD=0
         fi
@@ -412,9 +412,9 @@ CURRENCY=$CURRENCY
 EOF
 )
 
-    if [ "$NEAREST_CONFIG_FILE" ]
+    if [ "${NEAREST_CONFIG_FILE[*]}" ]
     then
-        _currentConfigContent=$(cat "$NEAREST_CONFIG_FILE")
+        _currentConfigContent=$(cat "$HOME/$CONFIG_NAME")
 
         if [ "$_configContent" == "$_currentConfigContent" ]
         then
@@ -423,14 +423,20 @@ EOF
 
     fi
 
-    if askConfirmation "Do you want save config to <magento install dir>/$CONFIG_NAME (y/N)"
+    configSavePath="$HOME/$CONFIG_NAME"
+    if [ -f "${configSavePath}" ]
     then
-        cat << EOF > ./$CONFIG_NAME
+        configSavePath="./$CONFIG_NAME"
+    fi
+    if askConfirmation "Do you want save config to ${configSavePath} (y/N)"
+    then
+        cat << EOF > ${configSavePath}
 $_configContent
 EOF
-            printString "Config file has been created in <magento install dir>/$CONFIG_NAME";
+            printString "Config file has been created in ${configSavePath}";
         fi
     _local=
+    configSavePath=
 }
 
 function dropDB()
