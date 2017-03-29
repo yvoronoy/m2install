@@ -602,8 +602,14 @@ function updateMagentoEnvFile()
     then
         CMD="cp app/etc/env.php app/etc/env.php.merchant"
         runCommand
-
-        _key=$(grep key app/etc/env.php.merchant)
+    fi
+    if [ -f app/etc/env.php.merchant ]
+    then
+        _key=$(grep key app/etc/env.php.merchant | grep [\'][,])
+        if [ -z "${_key}" ]
+        then
+            _key=$(sed -n "/key/,/[\'][,]/p" app/etc/env.php.merchant)
+        fi
         _date=$(grep date app/etc/env.php.merchant)
         _table_prefix=$(grep table_prefix app/etc/env.php.merchant)
     fi
@@ -1023,6 +1029,15 @@ function setFilesystemPermission()
     CMD="chmod -R 2777 ./var ./pub/media ./pub/static ./app/etc"
     runCommand
 }
+function afterInstall()
+{
+    if [[ "$MAGE_MODE" == "production" ]]
+    then
+        setProductionMode
+    fi
+    tuneAdminSessionLifetime
+    setFilesystemPermission
+}
 
 function printUsage()
 {
@@ -1140,12 +1155,6 @@ then
     addStep "configure_files"
     addStep "restore_db"
     addStep "configure_db"
-    if [[ "$MAGE_MODE" == "production" ]]
-    then
-        addStep "setProductionMode"
-    fi
-    addStep "setFilesystemPermission"
-    addStep "tuneAdminSessionLifetime"
 else
     if [[ "${SOURCE}" ]]
     then
@@ -1163,13 +1172,8 @@ else
     then
         addStep "installSampleData"
     fi
-    if [[ "$MAGE_MODE" == "production" ]]
-    then
-        addStep "setProductionMode"
-    fi
-    addStep "setFilesystemPermission"
-    addStep "tuneAdminSessionLifetime"
 fi
+addStep "afterInstall"
 
 for step in "${STEPS[@]}"
 do
