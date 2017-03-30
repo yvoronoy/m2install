@@ -72,11 +72,11 @@ To install Magento 2 from composer run m2install with --source composer param
  * ```m2install -s composer```
 
 
-####How to Install Magento 2 with Sample Data
+#### How to Install Magento 2 with Sample Data
  * Run m2install
  * Use wizard to install the sample data.
 
-##Wizard
+## Wizard
 m2install shows you wizard on first run and prompts to save entered values to config file.
 ```
 $ m2install.sh 
