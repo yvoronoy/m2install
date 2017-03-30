@@ -1,4 +1,4 @@
-#Magento 2 Bash Install/Restore Script 
+# Magento 2 Bash Install/Restore Script 
 [![Code Climate](https://codeclimate.com/github/yvoronoy/m2install/badges/gpa.svg)](https://codeclimate.com/github/yvoronoy/m2install) [![Packagist](https://img.shields.io/packagist/v/yvoronoy/m2install.svg?maxAge=2592000)](https://packagist.org/packages/yvoronoy/m2install) [![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/yvoronoy/m2install.svg?maxAge=2592000)](https://github.com/yvoronoy/m2install/pulls?q=is%3Apr+is%3Aclosed) [![GitHub closed issues](https://img.shields.io/github/issues-closed/yvoronoy/m2install.svg?maxAge=2592000)](https://github.com/yvoronoy/m2install/issues?q=is%3Aissue+is%3Aclosed)
 
 This script is designed to simplify the installation process of Magento 2 and rapid deployment of merchant code and DB dumps.
@@ -10,14 +10,14 @@ Don't waste time on routine operations.
 
 If you have any issues please report them to https://github.com/yvoronoy/m2install/issues
 
-##What can m2install exactly do?
+## What can m2install exactly do?
  - Can automatically restore backup files created by 
   - `php bin/magento setup:backup --code --db`
  - Can automatically restore support dumps created by Enterpsie Support Tool 
   - `php bin/magento support:backup:code (db)`
  - Script can automatically install vanilla magento
 
-##Installation
+## Installation
 Download latest version by curl
 ```
 curl -o m2install.sh https://raw.githubusercontent.com/yvoronoy/m2install/master/m2install.sh
@@ -37,7 +37,7 @@ curl -o /etc/bash_completion.d/m2install-bash-completion https://raw.githubuserc
 curl -o /usr/local/etc/bash_completion.d/m2install-bash-completion https://raw.githubusercontent.com/yvoronoy/m2install/master/m2install-bash-completion
 ```
 
-##Usage
+## Usage
 ```
 $ m2install.sh --help
 m2install.sh is designed to simplify the installation process of Magento 2
@@ -55,18 +55,18 @@ Options:
     --quiet                              Quiet mode. Suppress output all commands
 ```
 
-##How to deploy backup/support dumps
+## How to deploy backup/support dumps
 In order to deploy the customer dumps you need:
  
  * Put DB and code dumps to new directory
  * Go to directory and run m2install
 
-##How to install Magento 2 using GIT
+## How to install Magento 2 using GIT
 To install Magento 2 from git repository run m2install with --source git param
  * ```m2install --source git``` or
  * ```m2install -s git```
 
-##How to install Magento 2 using Composer
+## How to install Magento 2 using Composer
 To install Magento 2 from composer run m2install with --source composer param
  * ```m2install --source composer``` or
  * ```m2install -s composer```
@@ -100,7 +100,7 @@ In order to generate static/di content, add mode param: m2install.sh --mode prod
 Are you sure? [y/N] 
 ```
 
-##How to use configuration files
+## How to use configuration files
 The config file allows you to store params for DB and URL.
 Example of config file
 ```
