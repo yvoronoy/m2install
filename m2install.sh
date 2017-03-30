@@ -153,7 +153,7 @@ function printLine()
 {
     if [[ "$VERBOSE" -eq 1 ]]
     then
-        printf '%50s\n' ' ' | tr ' ' -
+        echo "--------------------------------------------------"
     fi
 }
 
