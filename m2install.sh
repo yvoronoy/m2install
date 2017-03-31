@@ -501,6 +501,7 @@ function configure_db()
     updateBaseUrl
     clearBaseLinks
     clearCookieDomain
+    clearSslFlag
     clearCustomAdmin
     resetAdminPassword
 }
@@ -520,6 +521,12 @@ function clearBaseLinks()
 function clearCookieDomain()
 {
     SQLQUERY="DELETE FROM ${DB_NAME}.${TBL_PREFIX}core_config_data WHERE path = 'web/cookie/cookie_domain'"
+    mysqlQuery
+}
+
+function clearSslFlag()
+{
+    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data AS e SET e.value = 0 WHERE e.path IN ('web/secure/use_in_adminhtm', 'web/secure/use_in_frontend')"
     mysqlQuery
 }
 
