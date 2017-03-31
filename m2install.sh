@@ -200,9 +200,9 @@ function generateDBName()
         prepareBasePath
         if [ "$BASE_PATH" ]
         then
-            DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g; s/.*/\L&/");
+            DB_NAME=${DB_USER}_$(echo "${BASE_PATH,,}" | sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g");
         else
-            DB_NAME=${DB_USER}_$(echo "$CURRENT_DIR_NAME" | sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g; s/.*/\L&/");
+            DB_NAME=${DB_USER}_$(echo "{$CURRENT_DIR_NAME,,}" | sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g");
         fi
     fi
 }
