@@ -64,6 +64,39 @@ function printVersion()
     printString "1.0.2"
 }
 
+function checkDependencies()
+{
+    # Check if the required dependencies are installed
+
+    DEPENDENCIES=(
+      php
+      composer
+      mysql
+      mysqladmin
+      git
+      cat
+      basename
+      tar
+      gunzip
+      sed
+      tr
+      grep
+      mkdir
+      wget
+      cp
+      mv
+      rm
+      find
+      chmod
+      date
+    )
+
+    for util in ${DEPENDENCIES[@]}; do
+        hash "${util}" &>/dev/null || printError "Error: '${util}' is not found on this system"
+    done;
+
+}
+
 function askValue()
 {
     MESSAGE=$1
@@ -1148,6 +1181,7 @@ do
 done
 
 initQuietMode
+checkDependencies
 printString Current Directory: "$(pwd)"
 printString "Configuration loaded from: ${NEAREST_CONFIG_FILE[*]}"
 showWizard
