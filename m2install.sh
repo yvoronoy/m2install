@@ -79,7 +79,6 @@ function checkDependencies()
       tar
       gunzip
       sed
-      tr
       grep
       mkdir
       wget
@@ -153,7 +152,7 @@ function printLine()
 {
     if [[ "$VERBOSE" -eq 1 ]]
     then
-        printf '%50s\n' ' ' | tr ' ' -
+        echo "--------------------------------------------------"
     fi
 }
 
@@ -201,9 +200,9 @@ function generateDBName()
         prepareBasePath
         if [ "$BASE_PATH" ]
         then
-            DB_NAME=${DB_USER}_$(echo "$BASE_PATH" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[:upper:]' '[:lower:]');
+            DB_NAME=${DB_USER}_$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(php -r "print strtolower('$BASE_PATH');"));
         else
-            DB_NAME=${DB_USER}_$(echo "$CURRENT_DIR_NAME" | sed "s/\//_/g" | sed "s/[^a-zA-Z0-9_]//g" | tr '[:upper:]' '[:lower:]');
+            DB_NAME=${DB_USER}_$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(php -r "print strtolower('$BASE_PATH');"));
         fi
     fi
 }
@@ -1038,7 +1037,7 @@ function prepareSteps()
     local _step;
     local _steps;
 
-    _steps=($(echo "${STEPS[@]}" | tr "," " "))
+    _steps=(${STEPS[@]//,/ })
     STEPS=();
 
     for _step in "${_steps[@]}"
