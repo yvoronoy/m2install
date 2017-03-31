@@ -79,7 +79,6 @@ function checkDependencies()
       tar
       gunzip
       sed
-      tr
       grep
       mkdir
       wget
