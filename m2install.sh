@@ -1038,7 +1038,7 @@ function prepareSteps()
     local _step;
     local _steps;
 
-    _steps=($(echo "${STEPS[@]}" | tr "," " "))
+    _steps=(${STEPS[@]//,/ })
     STEPS=();
 
     for _step in "${_steps[@]}"
