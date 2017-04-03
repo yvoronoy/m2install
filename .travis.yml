@@ -1,0 +1,28 @@
+language: bash
+
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: required
+  
+branches:
+  only:
+    - master
+    - development
+    - /^travis.*$/
+
+notifications:
+  email: false
+
+install:
+  #  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tests/env/osx_dependencies.sh; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then tests/env/linux_dependencies.sh; fi
+  - mysql -u root -e 'CREATE DATABASE travis_magento;'
+  - mysql -u root -e 'GRANT ALL PRIVILEGES on travis_magento.* to "travis"@"localhost";'
+
+#before_script:
+#  - curl -Ls 'https://github.com/kward/shunit2/archive/master.zip' -o 'master.zip' && unzip -q 'master.zip' && rm 'master.zip'
+
+script:
+  - tests/functional/m2_installation.sh
