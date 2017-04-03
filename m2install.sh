@@ -174,13 +174,10 @@ function extract()
 {
      if [ -f "$EXTRACT_FILENAME" ] ; then
          case $EXTRACT_FILENAME in
-             *.tar.bz2)   CMD="tar $STRIP -xjf $EXTRACT_FILENAME";;
-             *.tar.gz)    CMD="gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar $STRIP -x" ;;
-             *.tgz)       CMD="gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar $STRIP -x" ;;
-             *.gz)        CMD="gunzip $EXTRACT_FILENAME" ;;
-             *.tbz2)      CMD="tar $STRIP -xjf $EXTRACT_FILENAME" ;;
-             *.zip)       CMD="unzip -qu -x $EXTRACT_FILENAME" ;;
-             *)           printError "'$EXTRACT_FILENAME' cannot be extracted"; CMD='' ;;
+             *.tar.*|*.t*z*)    CMD="tar $STRIP xf $EXTRACT_FILENAME";;
+             *.gz)              CMD="gunzip $EXTRACT_FILENAME" ;;
+             *.zip)             CMD="unzip -qu -x $EXTRACT_FILENAME" ;;
+             *)                 printError "'$EXTRACT_FILENAME' cannot be extracted"; CMD='' ;;
          esac
         runCommand
      else
