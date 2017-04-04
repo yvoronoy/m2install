@@ -256,6 +256,10 @@ function getDbDumpFilename()
     then
         FILENAME_DB_DUMP=$(find . -maxdepth 1 -name '*_db.gz' | head -n1)
     fi
+    if [ ! "$FILENAME_DB_DUMP" ]
+    then
+        FILENAME_DB_DUMP=$(find . -maxdepth 1 -name '*.sql' | head -n1)
+    fi
 }
 
 function foundSupportBackupFiles()
