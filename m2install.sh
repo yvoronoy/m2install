@@ -21,6 +21,7 @@
 VERBOSE=1
 CURRENT_DIR_NAME=$(basename "$(pwd)")
 STEPS=()
+STRIP=""
 
 HTTP_HOST=http://mage2.dev/
 BASE_PATH=${CURRENT_DIR_NAME}
@@ -173,11 +174,11 @@ function extract()
 {
      if [ -f "$EXTRACT_FILENAME" ] ; then
          case $EXTRACT_FILENAME in
-             *.tar.bz2)   CMD="tar xjf $EXTRACT_FILENAME";;
-             *.tar.gz)    CMD="gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x" ;;
-             *.tgz)       CMD="gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x" ;;
+             *.tar.bz2)   CMD="tar $STRIP -xjf $EXTRACT_FILENAME";;
+             *.tar.gz)    CMD="gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar $STRIP -x" ;;
+             *.tgz)       CMD="gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar $STRIP -x" ;;
              *.gz)        CMD="gunzip $EXTRACT_FILENAME" ;;
-             *.tbz2)      CMD="tar xjf $EXTRACT_FILENAME" ;;
+             *.tbz2)      CMD="tar $STRIP -xjf $EXTRACT_FILENAME" ;;
              *.zip)       CMD="unzip -qu -x $EXTRACT_FILENAME" ;;
              *)           printError "'$EXTRACT_FILENAME' cannot be extracted"; CMD='' ;;
          esac
@@ -202,7 +203,7 @@ function generateDBName()
         then
             DB_NAME=${DB_USER}_$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(php -r "print strtolower('$BASE_PATH');"));
         else
-            DB_NAME=${DB_USER}_$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(php -r "print strtolower('$CURRENT_DIR_NAME');"));
+            DB_NAME=${DB_USER}_$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(php -r "print strtolower('$BASE_PATH');"));
         fi
     fi
 }
@@ -1096,6 +1097,7 @@ Options:
     --quiet                              Quiet mode. Suppress output all commands
     --step (restore_code,restore_db      Specify step through comma without spaces.
         configure_db, configure_files)   - Example: $(basename "$0") --step restore_db,configure_db
+    --strip-components NUMBER            Strip NUMBER leading components from file names on extraction
     _________________________________________________________________________________________________
     --ee-path (/path/to/ee)              (DEPRECATED use --ee flag) Path to Enterprise Edition.
 EOF
@@ -1174,7 +1176,12 @@ do
             checkArgumentHasValue "$1" "$2"
             STEPS=($2)
             shift
-        ;;
+            ;;
+	--strip-components)
+	    checkArgumentHasValue "$1" "$2"
+	    STRIP="--strip-components=$2"
+	    shift
+	    ;;
     esac
     shift
 done
