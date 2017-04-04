@@ -174,13 +174,10 @@ function extract()
 {
      if [ -f "$EXTRACT_FILENAME" ] ; then
          case $EXTRACT_FILENAME in
-             *.tar.bz2)   CMD="tar $STRIP -xjf $EXTRACT_FILENAME";;
-             *.tar.gz)    CMD="gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar $STRIP -x" ;;
-             *.tgz)       CMD="gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar $STRIP -x" ;;
-             *.gz)        CMD="gunzip $EXTRACT_FILENAME" ;;
-             *.tbz2)      CMD="tar $STRIP -xjf $EXTRACT_FILENAME" ;;
-             *.zip)       CMD="unzip -qu -x $EXTRACT_FILENAME" ;;
-             *)           printError "'$EXTRACT_FILENAME' cannot be extracted"; CMD='' ;;
+             *.tar.*|*.t*z*)    CMD="tar $STRIP xf $EXTRACT_FILENAME";;
+             *.gz)              CMD="gunzip $EXTRACT_FILENAME" ;;
+             *.zip)             CMD="unzip -qu -x $EXTRACT_FILENAME" ;;
+             *)                 printError "'$EXTRACT_FILENAME' cannot be extracted"; CMD='' ;;
          esac
         runCommand
      else
@@ -203,7 +200,7 @@ function generateDBName()
         then
             DB_NAME=${DB_USER}_$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(php -r "print strtolower('$BASE_PATH');"));
         else
-            DB_NAME=${DB_USER}_$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(php -r "print strtolower('$BASE_PATH');"));
+            DB_NAME=${DB_USER}_$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(php -r "print strtolower('$CURRENT_DIR_NAME');"));
         fi
     fi
 }
@@ -258,6 +255,10 @@ function getDbDumpFilename()
     if [ ! "$FILENAME_DB_DUMP" ]
     then
         FILENAME_DB_DUMP=$(find . -maxdepth 1 -name '*_db.gz' | head -n1)
+    fi
+    if [ ! "$FILENAME_DB_DUMP" ]
+    then
+        FILENAME_DB_DUMP=$(find . -maxdepth 1 -name '*.sql' | head -n1)
     fi
 }
 
@@ -503,6 +504,8 @@ function restore_db()
         CMD="pv \"${FILENAME_DB_DUMP}\" | gunzip -cf";
     fi
 
+    # Don't be confused by double gunzip in following command. Some poorly
+    # configured web servers can gzip everything including gzip files
     CMD="${CMD} | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/'
         | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password'
         | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=${DB_PASSWORD} --force $DB_NAME";
