@@ -1171,6 +1171,7 @@ do
         ;;
         -f|--force)
             FORCE=1
+            USE_WIZARD=0
         ;;
         --quiet)
             VERBOSE=0
