@@ -9,7 +9,7 @@ matrix:
 branches:
   only:
     - master
-    - development
+    - develop
     - /^travis.*$/
 
 notifications:
