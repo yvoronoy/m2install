@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Magento 2 Bash Install Script
 #
@@ -173,18 +173,31 @@ function extract()
 {
      if [ -f "$EXTRACT_FILENAME" ] ; then
          case $EXTRACT_FILENAME in
-             *.tar.bz2)   CMD="tar xjf $EXTRACT_FILENAME";;
-             *.tar.gz)    CMD="gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x" ;;
-             *.tgz)       CMD="gunzip -c $EXTRACT_FILENAME | gunzip -cf | tar -x" ;;
-             *.gz)        CMD="gunzip $EXTRACT_FILENAME" ;;
-             *.tbz2)      CMD="tar xjf $EXTRACT_FILENAME" ;;
-             *.zip)       CMD="unzip -qu -x $EXTRACT_FILENAME" ;;
-             *)           printError "'$EXTRACT_FILENAME' cannot be extracted"; CMD='' ;;
+             *.tar.*|*.t*z*)
+                CMD="tar $(getStripComponentsValue $EXTRACT_FILENAME) -xf $EXTRACT_FILENAME"
+             ;;
+             *.gz)              CMD="gunzip $EXTRACT_FILENAME" ;;
+             *.zip)             CMD="unzip -qu -x $EXTRACT_FILENAME" ;;
+             *)                 printError "'$EXTRACT_FILENAME' cannot be extracted"; CMD='' ;;
          esac
         runCommand
      else
          printError "'$EXTRACT_FILENAME' is not a valid file"
      fi
+}
+
+function getStripComponentsValue()
+{
+    local stripComponents=
+    local slashCount=
+    slashCount=$(tar -tf $1 | grep pub/index.php | grep -v vendor | sed 's/[.][/]pub[/]index[.]php//' | sed 's/pub[/]index[.]php//' | tr -cd '/' | wc -c)
+
+    if [[ $slashCount -gt 0 ]]
+    then
+        stripComponents="--strip-components=$slashCount"
+    fi
+
+    echo "$stripComponents";
 }
 
 function mysqlQuery()
@@ -257,6 +270,10 @@ function getDbDumpFilename()
     if [ ! "$FILENAME_DB_DUMP" ]
     then
         FILENAME_DB_DUMP=$(find . -maxdepth 1 -name '*_db.gz' | head -n1)
+    fi
+    if [ ! "$FILENAME_DB_DUMP" ]
+    then
+        FILENAME_DB_DUMP=$(find . -maxdepth 1 -name '*.sql' | head -n1)
     fi
 }
 
@@ -502,6 +519,8 @@ function restore_db()
         CMD="pv \"${FILENAME_DB_DUMP}\" | gunzip -cf";
     fi
 
+    # Don't be confused by double gunzip in following command. Some poorly
+    # configured web servers can gzip everything including gzip files
     CMD="${CMD} | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/'
         | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password'
         | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=${DB_PASSWORD} --force $DB_NAME";
@@ -1174,7 +1193,7 @@ do
             checkArgumentHasValue "$1" "$2"
             STEPS=($2)
             shift
-        ;;
+            ;;
     esac
     shift
 done
