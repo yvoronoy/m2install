@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Magento 2 Bash Install Script
 #
@@ -21,7 +21,6 @@
 VERBOSE=1
 CURRENT_DIR_NAME=$(basename "$(pwd)")
 STEPS=()
-STRIP=""
 
 HTTP_HOST=http://mage2.dev/
 BASE_PATH=${CURRENT_DIR_NAME}
@@ -174,7 +173,9 @@ function extract()
 {
      if [ -f "$EXTRACT_FILENAME" ] ; then
          case $EXTRACT_FILENAME in
-             *.tar.*|*.t*z*)    CMD="tar $STRIP xf $EXTRACT_FILENAME";;
+             *.tar.*|*.t*z*)
+                CMD="tar $(getStripComponentsValue $EXTRACT_FILENAME) -xf $EXTRACT_FILENAME"
+             ;;
              *.gz)              CMD="gunzip $EXTRACT_FILENAME" ;;
              *.zip)             CMD="unzip -qu -x $EXTRACT_FILENAME" ;;
              *)                 printError "'$EXTRACT_FILENAME' cannot be extracted"; CMD='' ;;
@@ -183,6 +184,20 @@ function extract()
      else
          printError "'$EXTRACT_FILENAME' is not a valid file"
      fi
+}
+
+function getStripComponentsValue()
+{
+    local stripComponents=
+    local slashCount=
+    slashCount=$(tar -tf $1 | grep pub/index.php | grep -v vendor | sed 's/[.][/]pub[/]index[.]php//' | sed 's/pub[/]index[.]php//' | tr -cd '/' | wc -c)
+
+    if [[ $slashCount -gt 0 ]]
+    then
+        stripComponents="--strip-components=$slashCount"
+    fi
+
+    echo "$stripComponents";
 }
 
 function mysqlQuery()
@@ -1100,7 +1115,6 @@ Options:
     --quiet                              Quiet mode. Suppress output all commands
     --step (restore_code,restore_db      Specify step through comma without spaces.
         configure_db, configure_files)   - Example: $(basename "$0") --step restore_db,configure_db
-    --strip-components NUMBER            Strip NUMBER leading components from file names on extraction
     _________________________________________________________________________________________________
     --ee-path (/path/to/ee)              (DEPRECATED use --ee flag) Path to Enterprise Edition.
 EOF
@@ -1180,11 +1194,6 @@ do
             STEPS=($2)
             shift
             ;;
-	--strip-components)
-	    checkArgumentHasValue "$1" "$2"
-	    STRIP="--strip-components=$2"
-	    shift
-	    ;;
     esac
     shift
 done
