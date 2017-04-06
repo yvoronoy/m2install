@@ -522,6 +522,8 @@ function restore_db()
     # Don't be confused by double gunzip in following command. Some poorly
     # configured web servers can gzip everything including gzip files
     CMD="${CMD} | gunzip -cf | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/'
+        | sed -e 's/TRIGGER[ ][\`][A-Za-z0-9_]*[\`][.]/TRIGGER /'
+        | sed -e 's/AFTER[ ]\(INSERT\)\{0,1\}\(UPDATE\)\{0,1\}\(DELETE\)\{0,1\}[ ]ON[ ][\`][A-Za-z0-9_]*[\`][.]/AFTER \1\2\3 ON /'
         | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password'
         | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=${DB_PASSWORD} --force $DB_NAME";
     runCommand
