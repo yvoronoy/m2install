@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# @copyright Copyright (c) 2015 by Yaroslav Voronoy (y.voronoy@gmail.com)
+# @copyright Copyright (c) 2015-2017 by Yaroslav Voronoy (y.voronoy@gmail.com)
 # @license   http://www.gnu.org/licenses/
 
 set -o errexit
@@ -70,8 +70,6 @@ function printVersion()
 
 function checkDependencies()
 {
-    # Check if the required dependencies are installed
-
     DEPENDENCIES=(
       php
       composer
@@ -93,16 +91,17 @@ function checkDependencies()
       date
     )
 
-    for util in ${DEPENDENCIES[@]}; do
-        hash "${util}" &>/dev/null || printError "Error: '${util}' is not found on this system"
+    for util in "${DEPENDENCIES[@]}"
+    do
+        hash "${util}" &>/dev/null || printError "Error: '${util}' is not found on this system" || exit 1
     done;
 
 }
 
 function askValue()
 {
-    MESSAGE=$1
-    READ_DEFAULT_VALUE=$2
+    MESSAGE="$1"
+    READ_DEFAULT_VALUE="$2"
     READVALUE=
     if [ "${READ_DEFAULT_VALUE}" ]
     then
@@ -178,7 +177,7 @@ function extract()
      if [ -f "$EXTRACT_FILENAME" ] ; then
          case $EXTRACT_FILENAME in
              *.tar.*|*.t*z*)
-                CMD="tar $(getStripComponentsValue $EXTRACT_FILENAME) -xf $EXTRACT_FILENAME"
+                CMD="tar $(getStripComponentsValue ${EXTRACT_FILENAME}) -xf ${EXTRACT_FILENAME}"
              ;;
              *.gz)              CMD="gunzip $EXTRACT_FILENAME" ;;
              *.zip)             CMD="unzip -qu -x $EXTRACT_FILENAME" ;;
@@ -194,9 +193,9 @@ function getStripComponentsValue()
 {
     local stripComponents=
     local slashCount=
-    slashCount=$(tar -tf $1 | grep pub/index.php | grep -v vendor | sed 's/[.][/]pub[/]index[.]php//' | sed 's/pub[/]index[.]php//' | tr -cd '/' | wc -c)
+    slashCount=$(tar -tf "$1" | grep pub/index.php | grep -v vendor | sed 's/[.][/]pub[/]index[.]php//' | sed 's/pub[/]index[.]php//' | tr -cd '/' | wc -c)
 
-    if [[ $slashCount -gt 0 ]]
+    if [[ "$slashCount" -gt 0 ]]
     then
         stripComponents="--strip-components=$slashCount"
     fi
@@ -419,23 +418,35 @@ function showWizard()
     done
 }
 
+function getConfigFiles()
+{
+    local configPaths[0]="$HOME/$CONFIG_NAME"
+    configPaths[1]="$HOME/${CONFIG_NAME}.override"
+    local recursiveconfigs=$( (find "$(pwd)" -maxdepth 1 -name "${CONFIG_NAME}" ;\
+        x=$(pwd);\
+        while [ "$x" != "/" ] ;\
+        do x=$(dirname "$x");\
+            find "$x" -maxdepth 1 -name "${CONFIG_NAME}";\
+        done) | sed '1!G;h;$!d')
+    configPaths=("${configPaths[@]}" "${recursiveconfigs[@]}" "./$(basename ${CONFIG_NAME})");
+    echo "${configPaths[@]}"
+    return 0;
+}
+
 function loadConfigFile()
 {
     local filePath=
-    local configPaths[0]="$HOME/$CONFIG_NAME"
-    configPaths[1]="$HOME/${CONFIG_NAME}.override"
-    configPaths[2]="./$(basename $CONFIG_NAME)"
-    NEAREST_CONFIG_FILE=
+    local configPaths=("$@");
 
-    for filePath in ${configPaths[@]}
+    for filePath in "${configPaths[@]}"
     do
         if [ -f "${filePath}" ]
         then
-            NEAREST_CONFIG_FILE=("${NEAREST_CONFIG_FILE[@]}" "$filePath")
-            source $filePath
+            source "$filePath"
             USE_WIZARD=0
         fi
     done
+    printString "Configuration loaded from: $(getConfigFiles)"
     generateDBName
 }
 
@@ -481,7 +492,7 @@ CURRENCY=$CURRENCY
 EOF
 )
 
-    if [ "${NEAREST_CONFIG_FILE[*]}" ]
+    if [ "$(getConfigFiles)" ]
     then
         _currentConfigContent=$(cat "$HOME/$CONFIG_NAME")
 
@@ -686,7 +697,7 @@ function updateMagentoEnvFile()
     fi
     if [ -f app/etc/env.php.merchant ]
     then
-        _key=$(grep key app/etc/env.php.merchant | grep [\'][,])
+        _key=$(grep key app/etc/env.php.merchant | grep "[\'][,]")
         if [ -z "${_key}" ]
         then
             _key=$(sed -n "/key/,/[\'][,]/p" app/etc/env.php.merchant)
@@ -970,7 +981,7 @@ showComposerWizzard()
     then
         return;
     fi
-    askValue "Composer Magento version" ${MAGENTO_VERSION}
+    askValue "Composer Magento version" "${MAGENTO_VERSION}"
     MAGENTO_VERSION=${READVALUE}
     if askConfirmation "Do you want to install Enterprise Edition (y/N)"
     then
@@ -1155,138 +1166,144 @@ Options:
 EOF
 }
 
+function processOptions()
+{
+    while [[ $# -gt 0 ]]
+    do
+        case "$1" in
+            -s|--source)
+                checkArgumentHasValue "$1" "$2"
+                SOURCE="$2"
+                shift
+            ;;
+            -d|--sample-data)
+                checkArgumentHasValue "$1" "$2"
+                if isInputNegative "$2"
+                then
+                    USE_SAMPLE_DATA=
+                else
+                    USE_SAMPLE_DATA="$2"
+                fi
+                shift
+            ;;
+            -e|--ee-path)
+                checkArgumentHasValue "$1" "$2"
+                EE_PATH="$2"
+                INSTALL_EE=1
+                shift
+            ;;
+            --ee)
+                INSTALL_EE=1
+            ;;
+            -b|--git-branch)
+                checkArgumentHasValue "$1" "$2"
+                MAGENTO_VERSION="$2"
+                shift
+            ;;
+            -v|--version)
+                checkArgumentHasValue "$1" "$2"
+                MAGENTO_VERSION="$2"
+                shift
+            ;;
+            --mode)
+                checkArgumentHasValue "$1" "$2"
+                MAGE_MODE=$2
+                shift
+            ;;
+            -f|--force)
+                FORCE=1
+                USE_WIZARD=0
+            ;;
+            --quiet)
+                VERBOSE=0
+            ;;
+            -h|--help)
+                printUsage
+                exit;
+            ;;
+            --code-dump)
+                checkArgumentHasValue "$1" "$2"
+                REQUEST[codedump]="$2";
+                shift
+            ;;
+            --db-dump)
+                checkArgumentHasValue "$1" "$2"
+                REQUEST[dbdump]="$2";
+                shift
+            ;;
+            --step)
+                checkArgumentHasValue "$1" "$2"
+                STEPS=($2)
+                shift
+                ;;
+            --debug)
+              set -o xtrace;
+            ;;
+        esac
+        shift
+    done
+}
+################################################################################
+# Main
 ################################################################################
 
 export LC_CTYPE=C
 export LANG=C
-
-loadConfigFile
-
 declare -A REQUEST
-REQUEST[scriptname]=$(basename "$0");
-while [[ $# -gt 0 ]]
-do
-    case "$1" in
-        -s|--source)
-            checkArgumentHasValue "$1" "$2"
-            SOURCE="$2"
-            shift
-        ;;
-        -d|--sample-data)
-            checkArgumentHasValue "$1" "$2"
-            if isInputNegative "$2"
-            then
-                USE_SAMPLE_DATA=
-            else
-                USE_SAMPLE_DATA="$2"
-            fi
-            shift
-        ;;
-        -e|--ee-path)
-            checkArgumentHasValue "$1" "$2"
-            EE_PATH="$2"
-            INSTALL_EE=1
-            shift
-        ;;
-        --ee)
-            INSTALL_EE=1
-        ;;
-        -b|--git-branch)
-            checkArgumentHasValue "$1" "$2"
-            MAGENTO_VERSION="$2"
-            shift
-        ;;
-        -v|--version)
-            checkArgumentHasValue "$1" "$2"
-            MAGENTO_VERSION="$2"
-            shift
-        ;;
-        --mode)
-            checkArgumentHasValue "$1" "$2"
-            MAGE_MODE=$2
-            shift
-        ;;
-        -f|--force)
-            FORCE=1
-            USE_WIZARD=0
-        ;;
-        --quiet)
-            VERBOSE=0
-        ;;
-        -h|--help)
-            printUsage
-            exit;
-        ;;
-        --code-dump)
-            checkArgumentHasValue "$1" "$2"
-            REQUEST[codedump]="$2";
-            shift
-        ;;
-        --db-dump)
-            checkArgumentHasValue "$1" "$2"
-            REQUEST[dbdump]="$2";
-            shift
-        ;;
-        --step)
-            checkArgumentHasValue "$1" "$2"
-            STEPS=($2)
-            shift
-            ;;
-        --debug)
-          set -o xtrace;
-        ;;
-    esac
-    shift
-done
 
-initQuietMode
-checkDependencies
-printString Current Directory: "$(pwd)"
-printString "Configuration loaded from: ${NEAREST_CONFIG_FILE[*]}"
-showWizard
+function main()
+{
+    printString Current Directory: "$(pwd)"
+    loadConfigFile $(getConfigFiles)
+    processOptions "$@"
+    initQuietMode
+    checkDependencies
+    showWizard
 
-START_TIME=$(date +%s)
-if [[ "${STEPS[@]}" ]]
-then
-    prepareSteps
-elif foundSupportBackupFiles
-then
-    addStep "restore_code"
-    addStep "configure_files"
-    addStep "restore_db"
-    addStep "configure_db"
-else
-    if [[ "${SOURCE}" ]]
+    START_TIME=$(date +%s)
+    if [[ "${STEPS[@]}" ]]
     then
-        if [ "$(ls -A)" ] && askConfirmation "Current directory is not empty. Do you want to clean current Directory (y/N)"
+        prepareSteps
+    elif foundSupportBackupFiles
+    then
+        addStep "restore_code"
+        addStep "configure_files"
+        addStep "restore_db"
+        addStep "configure_db"
+    else
+        if [[ "${SOURCE}" ]]
         then
-            CMD="ls -A | xargs rm -rf"
-            runCommand
+            if [ "$(ls -A)" ] && askConfirmation "Current directory is not empty. Do you want to clean current Directory (y/N)"
+            then
+                CMD="ls -A | xargs rm -rf"
+                runCommand
+            fi
+            addStep "downloadSourceCode"
         fi
-        addStep "downloadSourceCode"
+        addStep "linkEnterpriseEdition"
+        addStep "runComposerInstall"
+        addStep "installMagento"
+        if [[ "${USE_SAMPLE_DATA}" ]]
+        then
+            addStep "installSampleData"
+        fi
     fi
-    addStep "linkEnterpriseEdition"
-    addStep "runComposerInstall"
-    addStep "installMagento"
-    if [[ "${USE_SAMPLE_DATA}" ]]
-    then
-        addStep "installSampleData"
-    fi
-fi
-addStep "afterInstall"
-executeSteps "${STEPS[@]}"
+    addStep "afterInstall"
+    executeSteps "${STEPS[@]}"
 
-END_TIME=$(date +%s)
-SUMMARY_TIME=$((((END_TIME - START_TIME)) / 60));
-printString "$(basename "$0") took $SUMMARY_TIME minutes to complete install/deploy process"
+    END_TIME=$(date +%s)
+    SUMMARY_TIME=$((((END_TIME - START_TIME)) / 60));
+    printString "$(basename "$0") took $SUMMARY_TIME minutes to complete install/deploy process"
 
-printLine
+    printLine
 
-printString "${BASE_URL}"
-printString "${BASE_URL}${BACKEND_FRONTNAME}"
-printString "User: ${ADMIN_NAME}"
-printString "Pass: ${ADMIN_PASSWORD}"
+    printString "${BASE_URL}"
+    printString "${BASE_URL}${BACKEND_FRONTNAME}"
+    printString "User: ${ADMIN_NAME}"
+    printString "Pass: ${ADMIN_PASSWORD}"
 
-printLine
+    printLine
 
-promptSaveConfig
+    promptSaveConfig
+}
+main "${@}"
