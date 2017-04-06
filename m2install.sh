@@ -18,9 +18,13 @@
 # @copyright Copyright (c) 2015 by Yaroslav Voronoy (y.voronoy@gmail.com)
 # @license   http://www.gnu.org/licenses/
 
+set -o errexit
+set -o pipefail
+set -o nounset
+
 VERBOSE=1
 CURRENT_DIR_NAME=$(basename "$(pwd)")
-STEPS=()
+STEPS=
 
 HTTP_HOST=http://mage2.dev/
 BASE_PATH=${CURRENT_DIR_NAME}
@@ -81,7 +85,6 @@ function checkDependencies()
       sed
       grep
       mkdir
-      wget
       cp
       mv
       rm
@@ -146,6 +149,7 @@ function printString()
 function printError()
 {
     >&2 echo "$@";
+    return 1;
 }
 
 function printLine()
@@ -158,8 +162,8 @@ function printLine()
 
 function runCommand()
 {
-    local _prefixMessage=$1;
-    local _suffixMessage=$2
+    local _prefixMessage=${1:-};
+    local _suffixMessage=${2:-}
     if [[ "$VERBOSE" -eq 1 ]]
     then
         echo "${_prefixMessage}${CMD}${_suffixMessage}"
@@ -249,50 +253,66 @@ function initQuietMode()
 
 function getCodeDumpFilename()
 {
-    FILENAME_CODE_DUMP=$(find . -maxdepth 1 -name '*.tbz2' -o -name '*.tar.bz2' | head -n1)
-    if [ "${FILENAME_CODE_DUMP}" == "" ]
+    local codeDumpFilename="";
+    if [[ -f "${REQUEST[codedump]:-}" ]]
     then
-        FILENAME_CODE_DUMP=$(find . -maxdepth 1 -name '*.tar.gz' | grep -v 'logs.tar.gz' | head -n1)
+        codeDumpFilename="${REQUEST[codedump]:-}";
+        echo "$codeDumpFilename";
+        return 0;
     fi
-    if [ ! "$FILENAME_CODE_DUMP" ]
+    codeDumpFilename=$(find . -maxdepth 1 -name '*.tbz2' -o -name '*.tar.bz2' | head -n1)
+    if [ "${codeDumpFilename}" == "" ]
     then
-        FILENAME_CODE_DUMP=$(find . -maxdepth 1 -name '*.tgz' | head -n1)
+        codeDumpFilename=$(find . -maxdepth 1 -name '*.tar.gz' | grep -v 'logs.tar.gz' | head -n1)
     fi
-    if [ ! "$FILENAME_CODE_DUMP" ]
+    if [ ! "$codeDumpFilename" ]
     then
-        FILENAME_CODE_DUMP=$(find . -maxdepth 1 -name '*.zip' | head -n1)
+        codeDumpFilename=$(find . -maxdepth 1 -name '*.tgz' | head -n1)
     fi
+    if [ ! "$codeDumpFilename" ]
+    then
+        codeDumpFilename=$(find . -maxdepth 1 -name '*.zip' | head -n1)
+    fi
+
+    echo "$codeDumpFilename";
+    return 0;
 }
 
 function getDbDumpFilename()
 {
-    FILENAME_DB_DUMP=$(find . -maxdepth 1 -name '*.sql.gz' | head -n1)
-    if [ ! "$FILENAME_DB_DUMP" ]
+    local dbDumpFilename="";
+    if [[ -f "${REQUEST[dbdump]:-}" ]]
     then
-        FILENAME_DB_DUMP=$(find . -maxdepth 1 -name '*_db.gz' | head -n1)
+        dbDumpFilename="${REQUEST[dbdump]:-}";
+        echo "$dbDumpFilename";
+        return 0;
     fi
-    if [ ! "$FILENAME_DB_DUMP" ]
+    dbdumpFilename=$(find . -maxdepth 1 -name '*.sql.gz' | head -n1)
+    if [ ! "$dbdumpFilename" ]
     then
-        FILENAME_DB_DUMP=$(find . -maxdepth 1 -name '*.sql' | head -n1)
+        dbdumpFilename=$(find . -maxdepth 1 -name '*_db.gz' | head -n1)
     fi
+    if [ ! "$dbdumpFilename" ]
+    then
+        dbdumpFilename=$(find . -maxdepth 1 -name '*.sql' | head -n1)
+    fi
+    echo "$dbdumpFilename";
+    return 0;
 }
 
 function foundSupportBackupFiles()
 {
-    if [[ ! "$FILENAME_CODE_DUMP" ]]
-    then
-        getCodeDumpFilename
-    fi
-    if [ ! -f "$FILENAME_CODE_DUMP" ]
+    if [ -z getCodeDumpFilename ]
     then
         return 1;
     fi
 
-    if [[ ! "$FILENAME_DB_DUMP" ]]
+    if [ -z getDbDumpFilename ]
     then
-        getDbDumpFilename
+        return 1;
     fi
-    if [ ! -f "$FILENAME_DB_DUMP" ]
+
+    if [ ! -f "$(getCodeDumpFilename)" ] || [ ! -f "$(getDbDumpFilename)" ]
     then
         return 1;
     fi
@@ -405,7 +425,7 @@ function loadConfigFile()
     local configPaths[0]="$HOME/$CONFIG_NAME"
     configPaths[1]="$HOME/${CONFIG_NAME}.override"
     configPaths[2]="./$(basename $CONFIG_NAME)"
-    NEAREST_CONFIG_FILE=()
+    NEAREST_CONFIG_FILE=
 
     for filePath in ${configPaths[@]}
     do
@@ -502,7 +522,7 @@ function createNewDB()
 
 function tuneAdminSessionLifetime()
 {
-    SQLQUERY="INSERT INTO ${DB_NAME}.${TBL_PREFIX}core_config_data (scope, scope_id, path, value) VALUES ('default', 0, 'admin/security/session_lifetime', '31536000') ON DUPLICATE KEY UPDATE value='31536000';";
+    SQLQUERY="INSERT INTO ${DB_NAME}.$(getTablePrefix)core_config_data (scope, scope_id, path, value) VALUES ('default', 0, 'admin/security/session_lifetime', '31536000') ON DUPLICATE KEY UPDATE value='31536000';";
     mysqlQuery
 }
 
@@ -511,12 +531,10 @@ function restore_db()
     dropDB
     createNewDB
 
-    getDbDumpFilename
-
-    CMD="gunzip -cf \"$FILENAME_DB_DUMP\""
+    CMD="gunzip -cf \"$(getDbDumpFilename)\""
     if which pv > /dev/null
     then
-        CMD="pv \"${FILENAME_DB_DUMP}\" | gunzip -cf";
+        CMD="pv \"$(getDbDumpFilename)\" | gunzip -cf";
     fi
 
     # Don't be confused by double gunzip in following command. Some poorly
@@ -531,7 +549,7 @@ function restore_db()
 
 function restore_code()
 {
-    EXTRACT_FILENAME=$FILENAME_CODE_DUMP
+    EXTRACT_FILENAME="$(getCodeDumpFilename)"
     extract
 
     CMD="mkdir -p var pub/media pub/static"
@@ -561,43 +579,43 @@ function configure_db()
 
 function updateBaseUrl()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data AS e SET e.value = '${BASE_URL}' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
+    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = '${BASE_URL}' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
     mysqlQuery
 }
 
 function clearBaseLinks()
 {
-    SQLQUERY="DELETE FROM ${DB_NAME}.${TBL_PREFIX}core_config_data WHERE path IN ('web/unsecure/base_link_url', 'web/secure/base_link_url', 'web/unsecure/base_static_url', 'web/unsecure/base_media_url', 'web/secure/base_static_url', 'web/secure/base_media_url')";
+    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path IN ('web/unsecure/base_link_url', 'web/secure/base_link_url', 'web/unsecure/base_static_url', 'web/unsecure/base_media_url', 'web/secure/base_static_url', 'web/secure/base_media_url')";
     mysqlQuery
 }
 
 function clearCookieDomain()
 {
-    SQLQUERY="DELETE FROM ${DB_NAME}.${TBL_PREFIX}core_config_data WHERE path = 'web/cookie/cookie_domain'"
+    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path = 'web/cookie/cookie_domain'"
     mysqlQuery
 }
 
 function clearSslFlag()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data AS e SET e.value = 0 WHERE e.path IN ('web/secure/use_in_adminhtm', 'web/secure/use_in_frontend')"
+    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = 0 WHERE e.path IN ('web/secure/use_in_adminhtm', 'web/secure/use_in_frontend')"
     mysqlQuery
 }
 
 function clearCustomAdmin()
 {
-    SQLQUERY="DELETE FROM ${DB_NAME}.${TBL_PREFIX}core_config_data WHERE path = 'admin/url/custom'"
+    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path = 'admin/url/custom'"
     mysqlQuery
-    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data SET ${DB_NAME}.${TBL_PREFIX}core_config_data.value = '0' WHERE path = 'admin/url/use_custom'"
+    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data SET ${DB_NAME}.$(getTablePrefix)core_config_data.value = '0' WHERE path = 'admin/url/use_custom'"
     mysqlQuery
-    SQLQUERY="DELETE FROM ${DB_NAME}.${TBL_PREFIX}core_config_data WHERE path = 'admin/url/custom_path'"
+    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path = 'admin/url/custom_path'"
     mysqlQuery
-    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}core_config_data SET ${DB_NAME}.${TBL_PREFIX}core_config_data.value = '0' WHERE path = 'admin/url/use_custom_path'"
+    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data SET ${DB_NAME}.$(getTablePrefix)core_config_data.value = '0' WHERE path = 'admin/url/use_custom_path'"
     mysqlQuery
 }
 
 function resetAdminPassword()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.${TBL_PREFIX}admin_user SET ${DB_NAME}.${TBL_PREFIX}admin_user.email = '${ADMIN_EMAIL}' WHERE ${DB_NAME}.${TBL_PREFIX}admin_user.username = '${ADMIN_NAME}'"
+    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)admin_user SET ${DB_NAME}.$(getTablePrefix)admin_user.email = '${ADMIN_EMAIL}' WHERE ${DB_NAME}.$(getTablePrefix)admin_user.username = '${ADMIN_NAME}'"
     mysqlQuery
     CMD="${BIN_MAGE} admin:user:create
         --admin-user='${ADMIN_NAME}'
@@ -648,14 +666,17 @@ function overwriteOriginalFiles()
     CMD="curl -s -o pub/media/.htaccess https://raw.githubusercontent.com/magento/magento2/2.1/pub/media/.htaccess"
     runCommand
 }
+function getTablePrefix()
+{
+    echo $(grep 'table_prefix' app/etc/env.php | head -n1 | sed "s/[a-z'_ ]*[=][>][ ]*[']//" | sed "s/['][,]//")
+    return 0;
+}
 
 function updateMagentoEnvFile()
 {
-    TBL_PREFIX=$(grep 'table_prefix' app/etc/env.php | head -n1 | sed "s/[a-z'_ ]*[=][>][ ]*[']//" | sed "s/['][,]//")
-
     _key="'key' => 'ec3b1c29111007ac5d9245fb696fb729',"
     _date="'date' => 'Fri, 27 Nov 2015 12:24:54 +0000',"
-    _table_prefix="'table_prefix' => '${TBL_PREFIX}',"
+    _table_prefix="'table_prefix' => '$(getTablePrefix)',"
 
 
     if [ -f app/etc/env.php ] && [ ! -f app/etc/env.php.merchant ]
@@ -1059,8 +1080,7 @@ function prepareSteps()
     local _steps;
 
     _steps=(${STEPS[@]//,/ })
-    STEPS=();
-
+    STEPS=
     for _step in "${_steps[@]}"
     do
         if validateStep "$_step"
@@ -1099,6 +1119,19 @@ function afterInstall()
     setFilesystemPermission
 }
 
+function executeSteps()
+{
+    local _steps=("$@")
+    for step in "${_steps[@]}"
+    do
+        if [ "${step}" ]
+        then
+            CMD="${step}"
+            runCommand "=> "
+        fi
+    done
+}
+
 function printUsage()
 {
     cat <<EOF
@@ -1129,6 +1162,8 @@ export LANG=C
 
 loadConfigFile
 
+declare -A REQUEST
+REQUEST[scriptname]=$(basename "$0");
 while [[ $# -gt 0 ]]
 do
     case "$1" in
@@ -1184,12 +1219,12 @@ do
         ;;
         --code-dump)
             checkArgumentHasValue "$1" "$2"
-            FILENAME_CODE_DUMP="$2"
+            REQUEST[codedump]="$2";
             shift
         ;;
         --db-dump)
             checkArgumentHasValue "$1" "$2"
-            FILENAME_DB_DUMP="$2"
+            REQUEST[dbdump]="$2";
             shift
         ;;
         --step)
@@ -1197,6 +1232,9 @@ do
             STEPS=($2)
             shift
             ;;
+        --debug)
+          set -o xtrace;
+        ;;
     esac
     shift
 done
@@ -1236,12 +1274,8 @@ else
     fi
 fi
 addStep "afterInstall"
+executeSteps "${STEPS[@]}"
 
-for step in "${STEPS[@]}"
-do
-    CMD="${step}"
-    runCommand "=> "
-done
 END_TIME=$(date +%s)
 SUMMARY_TIME=$((((END_TIME - START_TIME)) / 60));
 printString "$(basename "$0") took $SUMMARY_TIME minutes to complete install/deploy process"

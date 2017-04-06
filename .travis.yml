@@ -13,7 +13,7 @@ branches:
     - /^travis.*$/
 
 notifications:
-  email: false
+  email: true
 
 install:
   #  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tests/env/osx_dependencies.sh; fi
