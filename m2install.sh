@@ -573,7 +573,6 @@ function configure_files()
     overwriteOriginalFiles
     CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
     runCommand
-
     CMD="find -L ./pub -type l -delete"
     runCommand
 }
@@ -658,7 +657,7 @@ function overwriteOriginalFiles()
         CMD="mv pub/.htaccess pub/.htaccess.merchant"
         runCommand
     fi
-    CMD="curl -s -o pub/.htaccess https://raw.githubusercontent.com/magento/magento2/2.1/pub/.htaccess"
+    CMD="curl -o pub/.htaccess https://raw.githubusercontent.com/magento/magento2/2.1/pub/.htaccess"
     runCommand
 
     if [ -f pub/static/.htaccess ] && [ ! -f pub/static/.htaccess.merchant ]
@@ -1244,6 +1243,42 @@ function processOptions()
     done
 }
 ################################################################################
+# Action Controllers
+################################################################################
+function magentoInstallAction()
+{
+    if [[ "${SOURCE}" ]]
+    then
+        if [ "$(ls -A)" ] && askConfirmation "Current directory is not empty. Do you want to clean current Directory (y/N)"
+        then
+            CMD="ls -A | xargs rm -rf"
+            runCommand
+        fi
+        addStep "downloadSourceCode"
+    fi
+    addStep "linkEnterpriseEdition"
+    addStep "runComposerInstall"
+    addStep "installMagento"
+    if [[ "${USE_SAMPLE_DATA}" ]]
+    then
+        addStep "installSampleData"
+    fi
+}
+
+function magentoDeployDumpsAction()
+{
+    addStep "restore_code"
+    addStep "configure_files"
+    addStep "restore_db"
+    addStep "configure_db"
+}
+
+function magentoCustomStepsAction()
+{
+    prepareSteps
+}
+
+################################################################################
 # Main
 ################################################################################
 
@@ -1263,30 +1298,12 @@ function main()
     START_TIME=$(date +%s)
     if [[ "${STEPS[@]}" ]]
     then
-        prepareSteps
+        magentoCustomStepsAction;
     elif foundSupportBackupFiles
     then
-        addStep "restore_code"
-        addStep "configure_files"
-        addStep "restore_db"
-        addStep "configure_db"
+        magentoDeployDumpsAction;
     else
-        if [[ "${SOURCE}" ]]
-        then
-            if [ "$(ls -A)" ] && askConfirmation "Current directory is not empty. Do you want to clean current Directory (y/N)"
-            then
-                CMD="ls -A | xargs rm -rf"
-                runCommand
-            fi
-            addStep "downloadSourceCode"
-        fi
-        addStep "linkEnterpriseEdition"
-        addStep "runComposerInstall"
-        addStep "installMagento"
-        if [[ "${USE_SAMPLE_DATA}" ]]
-        then
-            addStep "installSampleData"
-        fi
+        magentoInstallAction;
     fi
     addStep "afterInstall"
     executeSteps "${STEPS[@]}"
@@ -1296,14 +1313,10 @@ function main()
     printString "$(basename "$0") took $SUMMARY_TIME minutes to complete install/deploy process"
 
     printLine
-
     printString "${BASE_URL}"
     printString "${BASE_URL}${BACKEND_FRONTNAME}"
     printString "User: ${ADMIN_NAME}"
     printString "Pass: ${ADMIN_PASSWORD}"
-
-    printLine
-
     promptSaveConfig
 }
 main "${@}"

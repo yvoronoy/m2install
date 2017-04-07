@@ -31,3 +31,4 @@ install:
 script:
   - tests/functional/m2_installation.sh
   - tests/functional/deploy.sh
+  - tests/functional/deploy_with_corrupted_symlinks.sh
