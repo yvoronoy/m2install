@@ -21,6 +21,7 @@ notifications:
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tests/env/osx_dependencies.sh; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then tests/env/linux_dependencies.sh; fi
+  - mysql -u root -e 'CREATE USER "travis"@"localhost";'
   - mysql -u root -e 'CREATE DATABASE travis_magento;'
   - mysql -u root -e 'GRANT ALL PRIVILEGES on travis_magento.* to "travis"@"localhost";'
 
