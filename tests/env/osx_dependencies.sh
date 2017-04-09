@@ -7,9 +7,19 @@ brew tap homebrew/versions
 brew tap homebrew/homebrew-php
 
 # install PHP
-brew install php70
+brew install php70 php70-intl
+
+# Install mcrypt
+brew install -fs php70-mcrypt
+
+# Install MySQL
+brew install mysql
+
+# Start MySQL service
+brew services start mysql
+
+# Wait 10 seconds until MySQL service start
+sleep 10
 
 # install composer
-curl -sS https://getcomposer.org/installer | php
-
-alias composer='/Users/travis/build/yyevgenii/m2install/composer.phar'
+curl -sS https://getcomposer.org/installer | sudo php -- --install-dir="/usr/local/bin" --filename="composer"
