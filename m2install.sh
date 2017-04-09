@@ -159,6 +159,28 @@ function printLine()
     fi
 }
 
+function setRequest()
+{
+    local _key=$1
+    local _value=$2
+
+    local expression="REQUEST_${_key}=${_value}"
+    eval "${expression}";
+}
+
+function getRequest()
+{
+    local _key=$1
+    local _variableName="REQUEST_${_key}";
+    if [[ "${!_variableName:-}" ]]
+    then
+        echo "${!_variableName}"
+        return 0;
+    fi
+    echo "";
+    return 0;
+}
+
 function runCommand()
 {
     local _prefixMessage=${1:-};
@@ -253,9 +275,9 @@ function initQuietMode()
 function getCodeDumpFilename()
 {
     local codeDumpFilename="";
-    if [[ -f "${REQUEST[codedump]:-}" ]]
+    if [[ -f "$(getRequest codedump)" ]]
     then
-        codeDumpFilename="${REQUEST[codedump]:-}";
+        codeDumpFilename="$(getRequest codedump)";
         echo "$codeDumpFilename";
         return 0;
     fi
@@ -280,9 +302,9 @@ function getCodeDumpFilename()
 function getDbDumpFilename()
 {
     local dbDumpFilename="";
-    if [[ -f "${REQUEST[dbdump]:-}" ]]
+    if [[ -f "$(getRequest dbdump)" ]]
     then
-        dbDumpFilename="${REQUEST[dbdump]:-}";
+        dbDumpFilename="$(getRequest dbdump)";
         echo "$dbDumpFilename";
         return 0;
     fi
@@ -569,11 +591,11 @@ function restore_code()
 
 function configure_files()
 {
+    CMD="find -L ./pub -type l -delete"
+    runCommand
     updateMagentoEnvFile
     overwriteOriginalFiles
     CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
-    runCommand
-    CMD="find -L ./pub -type l -delete"
     runCommand
 }
 
@@ -657,7 +679,7 @@ function overwriteOriginalFiles()
         CMD="mv pub/.htaccess pub/.htaccess.merchant"
         runCommand
     fi
-    CMD="curl -o pub/.htaccess https://raw.githubusercontent.com/magento/magento2/2.1/pub/.htaccess"
+    CMD="curl -s -o pub/.htaccess https://raw.githubusercontent.com/magento/magento2/2.1/pub/.htaccess"
     runCommand
 
     if [ -f pub/static/.htaccess ] && [ ! -f pub/static/.htaccess.merchant ]
@@ -1222,12 +1244,12 @@ function processOptions()
             ;;
             --code-dump)
                 checkArgumentHasValue "$1" "$2"
-                REQUEST[codedump]="$2";
+                setRequest codedump "$2"
                 shift
             ;;
             --db-dump)
                 checkArgumentHasValue "$1" "$2"
-                REQUEST[dbdump]="$2";
+                setRequest dbdump "$2"
                 shift
             ;;
             --step)
@@ -1284,7 +1306,6 @@ function magentoCustomStepsAction()
 
 export LC_CTYPE=C
 export LANG=C
-declare -A REQUEST
 
 function main()
 {
