@@ -7,7 +7,7 @@ rm -rf var
 
 ${BIN_M2INSTALL} -f
 
-assertEqual $(ls app/etc/env.php.merchant) app/etc/env.php.merchant
+assertEqual $(ls app/etc/env.php.merchant) app/etc/env.php.merchant "Original file env.php.merchant has been created"
 
 CURRENT="$(php bin/magento -V --no-ansi)";
 EXPECTED="Magento CLI version 2.1.5";
