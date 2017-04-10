@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# enable ccache
+brew install ccache
+PATH=$PATH:/usr/local/opt/ccache/libexec
+
 # update brew and add repositories
 brew update
 brew tap homebrew/dupes
