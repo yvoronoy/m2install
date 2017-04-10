@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+OUTPUT=$(${BIN_M2INSTALL} --force --source composer --ee -v 2.1.5 --quiet)
+
+CURRENT="$(php bin/magento -V --no-ansi)";
+EXPECTED="Magento CLI version 2.1.5";
+assertEqual "$EXPECTED" "$CURRENT" "Version should match"
+
+assertEqual "" "${OUTPUT}" "Should be without any output in quiet mode"
