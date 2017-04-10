@@ -6,10 +6,10 @@ function assertEqual()
   local message=${3:-}
   if [[ "$1" == "$2" ]]
   then
-    echo "===> Passed"
+    echo "[${message}] ===> Passed"
     return 0;
   else
-    echo "Test [${message}] Failed"
+    echo "[${message}] ===> Failed"
     echo "Expected [${expected}] but current [${current}]"
     exit 1;
   fi
