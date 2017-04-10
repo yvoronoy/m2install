@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 function assertEqual()
 {
   local expected=${1:-}
@@ -7,11 +6,12 @@ function assertEqual()
   local message=${3:-}
   if [[ "$1" == "$2" ]]
   then
+    echo "===> Passed"
     return 0;
   else
-    echo "Test [${message}] failed"
+    echo "Test [${message}] Failed"
     echo "Expected [${expected}] but current [${current}]"
-    return 1;
+    exit 1;
   fi
 }
 
@@ -24,7 +24,7 @@ do
     rm -rf ${SANDBOX_PATH}
     mkdir ${SANDBOX_PATH}
     cd ${SANDBOX_PATH}
-    echo "TEST: $file";
+    echo -n "Run: $(basename $file)";
     . $file
 done
 

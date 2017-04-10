@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-OUTPUT=$(${BIN_M2INSTALL} --force --source composer --ee -v 2.1.5 --quiet)
+OUTPUT=$(${BIN_M2INSTALL} --force --source composer -v 2.1.5 --quiet)
 
 CURRENT="$(php bin/magento -V --no-ansi)";
 EXPECTED="Magento CLI version 2.1.5";

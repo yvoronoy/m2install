@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ${BIN_M2INSTALL} --force --source composer --ee -v 2.1.5 --quiet
-php bin/magento setup:backup --code --db
+bin/magento setup:backup --code --db
 ls -A | grep -v var | xargs rm -rf
 cp var/backups/* ./
 rm -rf var
