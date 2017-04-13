@@ -19,13 +19,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
 SANDBOX_PATH=${ROOT}/sandbox
 BIN_M2INSTALL=$(pwd)/m2install.sh;
 
-for file in ${ROOT}/functional/*
-do
-    rm -rf ${SANDBOX_PATH}
-    mkdir ${SANDBOX_PATH}
-    cd ${SANDBOX_PATH}
-    echo -n "Run: $(basename $file)";
-    . $file
-done
+rm -rf ${SANDBOX_PATH}
+mkdir ${SANDBOX_PATH}
+cd ${SANDBOX_PATH}
 
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+source tests/functional.sh
 ${BIN_M2INSTALL} --force --source composer --ee -v 2.1.5
 bin/magento setup:backup --code --db
 ls -A | grep -v var | xargs rm -rf

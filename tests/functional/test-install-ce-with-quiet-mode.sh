@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+source tests/functional.sh
 
 OUTPUT=$(${BIN_M2INSTALL} --force --source composer -v 2.1.5 --quiet)
 
