@@ -33,6 +33,6 @@ install:
 #  - curl -Ls 'https://github.com/kward/shunit2/archive/master.zip' -o 'master.zip' && unzip -q 'master.zip' && rm 'master.zip'
 
 script:
-  - tests\functional\test-install-ce-with-quiet-mode.sh
-  - tests\functional\test-install-ee-with-sample-data.sh
-  - tests\functional\test-restore-dumps.sh
+  - tests/functional/test-install-ce-with-quiet-mode.sh
+  - tests/functional/test-install-ee-with-sample-data.sh
+  - tests/functional/test-restore-dumps.sh
