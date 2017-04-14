@@ -18,6 +18,10 @@ branches:
 notifications:
   email: true
 
+cache:
+  directories:
+        - $HOME/.composer/cache
+
 install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tests/env/osx_dependencies.sh; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then tests/env/linux_dependencies.sh; fi
@@ -29,5 +33,6 @@ install:
 #  - curl -Ls 'https://github.com/kward/shunit2/archive/master.zip' -o 'master.zip' && unzip -q 'master.zip' && rm 'master.zip'
 
 script:
-  - tests/functional/m2_installation.sh
-  - tests/functional/deploy.sh
+  - tests/functional/test-install-ce-with-quiet-mode.sh
+  - tests/functional/test-install-ee-with-sample-data.sh
+  - tests/functional/test-restore-dumps.sh

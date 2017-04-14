@@ -468,7 +468,6 @@ function loadConfigFile()
             USE_WIZARD=0
         fi
     done
-    printString "Configuration loaded from: $(getConfigFiles)"
     generateDBName
 }
 
@@ -1309,10 +1308,11 @@ export LANG=C
 
 function main()
 {
-    printString Current Directory: "$(pwd)"
     loadConfigFile $(getConfigFiles)
     processOptions "$@"
     initQuietMode
+    printString Current Directory: "$(pwd)"
+    printString "Configuration loaded from: $(getConfigFiles)"
     checkDependencies
     showWizard
 
