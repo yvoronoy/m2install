@@ -625,7 +625,7 @@ function validateDeploymentFromDumps()
             missingDirectories+=("$dir");
         fi
     done
-    if [[ "${missingDirectories[@]}" ]]
+    if [ ! -z "${missingDirectories}" ]
     then
         echo "The following directories are missing: ${missingDirectories[@]}";
     fi
@@ -637,7 +637,7 @@ function validateDeploymentFromDumps()
             missingFiles+=("$file");
         fi
     done
-    if [[ "${missingFiles[@]}" ]]
+    if [ ! -z "${missingFiles}" ]
     then
         echo "The following files are missing: ${missingFiles[@]}";
     fi

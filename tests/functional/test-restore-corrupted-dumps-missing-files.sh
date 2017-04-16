@@ -2,8 +2,7 @@
 source tests/functional.sh
 ${BIN_M2INSTALL} --force --source composer -v 2.1.5 --quiet
 bin/magento setup:backup --db
-tar -czf var/backups/code.tar.gz . \
-  --exclude=lib \
+tar --exclude=lib \
   --exclude=index.php \
   --exclude=pub/media/catalog/* \
   --exclude=pub/media/* \
@@ -14,10 +13,9 @@ tar -czf var/backups/code.tar.gz . \
   --exclude=var/* \
   --exclude=private \
   --exclude=tests \
-  .
+  -czf var/backups/code.tar.gz .
   
-tar -czf var/backups/code2.tar.gz \
-  --exclude=lib \
+tar --exclude=lib \
   --exclude=dev \
   --exclude=index.php \
   --exclude=pub/index.php \
@@ -30,7 +28,7 @@ tar -czf var/backups/code2.tar.gz \
   --exclude=var/* \
   --exclude=private \
   --exclude=tests \
-  .
+  -czf var/backups/code2.tar.gz .
 
 ls -A | grep -v var | xargs rm -rf
 cp var/backups/* ./
