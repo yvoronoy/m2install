@@ -625,7 +625,7 @@ function validateDeploymentFromDumps()
             missingDirectories+=("$dir");
         fi
     done
-    if [ ! -z "${missingDirectories}" ]
+    if [[ "${missingDirectories[@]-}" ]]
     then
         echo "The following directories are missing: ${missingDirectories[@]}";
     fi
@@ -637,11 +637,11 @@ function validateDeploymentFromDumps()
             missingFiles+=("$file");
         fi
     done
-    if [ ! -z "${missingFiles}" ]
+    if [[ "${missingFiles[@]-}" ]]
     then
         echo "The following files are missing: ${missingFiles[@]}";
     fi
-    if [[ "${missingDirectories[@]}" || "${missingFiles[@]}" ]]
+    if [[ "${missingDirectories[@]-}" || "${missingFiles[@]-}" ]]
     then
         printError "Download missing files and directories from vanilla magento"
     fi
