@@ -36,3 +36,4 @@ script:
   - tests/functional/test-install-ce-with-quiet-mode.sh
   - tests/functional/test-install-ee-with-sample-data.sh
   - tests/functional/test-restore-dumps.sh
+  - tests/functional/test-restore-corrupted-dumps-missing-files.sh
