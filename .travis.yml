@@ -45,3 +45,4 @@ script:
   - $MY_SHELL tests/functional/test-install-ce-with-quiet-mode.sh
   - $MY_SHELL tests/functional/test-install-ee-with-sample-data.sh
   - $MY_SHELL tests/functional/test-restore-dumps.sh
+  - $MY_SHELL tests/functional/test-restore-corrupted-dumps-missing-files.sh

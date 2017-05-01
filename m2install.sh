@@ -608,6 +608,45 @@ function configure_db()
     resetAdminPassword
 }
 
+function validateDeploymentFromDumps()
+{
+    local files=(
+      'composer.json'
+      'composer.lock'
+      'index.php'
+      'pub/index.php'
+      'pub/static.php'
+    );
+    local directories=("app" "bin" "dev" "lib" "pub/errors" "setup" "vendor");
+    missingDirectories=();
+    for dir in "${directories[@]}"
+    do
+        if [ ! -d "$dir" ]; then
+            missingDirectories+=("$dir");
+        fi
+    done
+    if [[ "${missingDirectories[@]-}" ]]
+    then
+        echo "The following directories are missing: ${missingDirectories[@]}";
+    fi
+
+    missingFiles=()
+    for file in "${files[@]}"
+    do
+        if [ ! -f "$file" ]; then
+            missingFiles+=("$file");
+        fi
+    done
+    if [[ "${missingFiles[@]-}" ]]
+    then
+        echo "The following files are missing: ${missingFiles[@]}";
+    fi
+    if [[ "${missingDirectories[@]-}" || "${missingFiles[@]-}" ]]
+    then
+        printError "Download missing files and directories from vanilla magento"
+    fi
+}
+
 function updateBaseUrl()
 {
     SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = '${BASE_URL}' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
@@ -1292,6 +1331,7 @@ function magentoDeployDumpsAction()
     addStep "configure_files"
     addStep "restore_db"
     addStep "configure_db"
+    addStep "validateDeploymentFromDumps"
 }
 
 function magentoCustomStepsAction()
