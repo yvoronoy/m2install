@@ -11,10 +11,11 @@ brew tap homebrew/versions
 brew tap homebrew/homebrew-php
 
 # install PHP
-brew install php70 php70-intl
+brew install php70
 
-# Install mcrypt
-brew install -fs php70-mcrypt
+# Install php extensions from source because of some bug described here:
+# https://github.com/Homebrew/homebrew-php/issues/2440
+brew install -fs php70-intl php70-mcrypt
 
 # Install MySQL
 brew install mysql
