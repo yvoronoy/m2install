@@ -758,9 +758,10 @@ function updateMagentoEnvFile()
     fi
     if [ -f app/etc/env.php.merchant ]
     then
-        _key=$(grep key app/etc/env.php.merchant | grep "[\'][,]")
-        if [ -z "${_key}" ]
+        if grep key app/etc/env.php.merchant | grep -q "[\'][,]"
         then
+            _key=$(grep key app/etc/env.php.merchant | grep -q "[\'][,]")
+        else
             _key=$(sed -n "/key/,/[\'][,]/p" app/etc/env.php.merchant)
         fi
         _date=$(grep date app/etc/env.php.merchant)
