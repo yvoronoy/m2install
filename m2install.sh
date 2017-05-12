@@ -18,10 +18,6 @@
 # @copyright Copyright (c) 2015-2017 by Yaroslav Voronoy (y.voronoy@gmail.com)
 # @license   http://www.gnu.org/licenses/
 
-set -o errexit
-set -o pipefail
-set -o nounset
-
 VERBOSE=1
 CURRENT_DIR_NAME=$(basename "$(pwd)")
 STEPS=
