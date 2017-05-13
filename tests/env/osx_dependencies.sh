@@ -11,7 +11,7 @@ brew tap homebrew/versions
 brew tap homebrew/homebrew-php
 
 # install PHP
-brew install php70 php70-intl
+brew install php70
 
 # Install php extensions from source because of some bug described here:
 # https://github.com/Homebrew/homebrew-php/issues/2440
