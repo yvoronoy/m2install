@@ -457,6 +457,7 @@ function loadConfigFile()
 {
     local filePath=
     local configPaths=("$@");
+
     for filePath in "${configPaths[@]}"
     do
         if [ -f "${filePath}" ]
