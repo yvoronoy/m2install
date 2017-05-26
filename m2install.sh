@@ -174,7 +174,7 @@ function getRequest()
         return 0;
     fi
     echo "";
-    return 0;
+    return 1;
 }
 
 function runCommand()
@@ -1288,6 +1288,11 @@ function processOptions()
                 setRequest dbdump "$2"
                 shift
             ;;
+            --restore-table)
+                checkArgumentHasValue "$1" "$2"
+                setRequest restoreTableName "$2"
+                shift
+            ;;
             --step)
                 checkArgumentHasValue "$1" "$2"
                 STEPS=($2)
@@ -1332,6 +1337,16 @@ function magentoDeployDumpsAction()
     addStep "validateDeploymentFromDumps"
 }
 
+function restoreTableAction()
+{
+
+    CMD="{ echo 'SET FOREIGN_KEY_CHECKS=0;';
+       echo 'TRUNCATE ${DB_NAME}.$(getTablePrefix)$(getRequest restoreTableName);';
+       zgrep 'INSERT INTO \`$(getRequest restoreTableName)\`' $(getDbDumpFilename); }
+       | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --force $DB_NAME";
+    runCommand
+}
+
 function magentoCustomStepsAction()
 {
     prepareSteps
@@ -1360,7 +1375,12 @@ function main()
         magentoCustomStepsAction;
     elif foundSupportBackupFiles
     then
-        magentoDeployDumpsAction;
+        if getRequest restoreTableName
+        then
+            restoreTableAction
+        else
+            magentoDeployDumpsAction;
+        fi
     else
         magentoInstallAction;
     fi

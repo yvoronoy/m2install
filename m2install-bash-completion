@@ -7,7 +7,7 @@ _m2install()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="--help -h --source -s --force -f --sample-data --step --ee-path --ee --git-branch --mode --quiet --code-dump --db-dump --debug";
+    opts="--help -h --source -s --force -f --sample-data --step --ee-path --ee --git-branch --mode --quiet --code-dump --db-dump --debug --restore-table";
 
     case "$prev" in 
         --source)
@@ -46,6 +46,9 @@ _m2install()
             COMPREPLY=( $(compgen -W "restore_code restore_db configure_db configure_files" ${cur}) )
             return 0;
         ;;
+        --restore-table)
+            COMPREPLY=( $(compgen -W "table-name" ${cur}) )
+            return 0;
     esac
 
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
