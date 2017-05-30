@@ -537,6 +537,19 @@ EOF
     configSavePath=
 }
 
+function checkDBdump()
+{
+    CMD="gunzip -cf \"$(getDbDumpFilename)\""
+    # Double gunzip for same reason as in restore_db
+    CMD="${CMD} | gunzip -cf | tail -1 | grep -qv '^-- Dump completed on '"
+    runCommand
+    if [[ $? == 0 ]]
+    then
+	printError "db file $(getDbDumpFilename) is truncated; please get new dumps"
+	exit
+    fi
+}
+
 function dropDB()
 {
     SQLQUERY="DROP DATABASE IF EXISTS ${DB_NAME}";
@@ -557,6 +570,7 @@ function tuneAdminSessionLifetime()
 
 function restore_db()
 {
+    checkDBdump
     dropDB
     createNewDB
 
