@@ -755,7 +755,7 @@ function updateMagentoEnvFile()
     then
         if grep key app/etc/env.php.merchant | grep -q "[\'][,]"
         then
-            _key=$(grep key app/etc/env.php.merchant | grep -q "[\'][,]")
+            _key=$(grep key app/etc/env.php.merchant | grep "[\'][,]")
         else
             _key=$(sed -n "/key/,/[\'][,]/p" app/etc/env.php.merchant)
         fi
