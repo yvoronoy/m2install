@@ -34,8 +34,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
 SANDBOX_PATH=${ROOT}/sandbox
 BIN_M2INSTALL=$(pwd)/m2install.sh;
 
-rm -rf ${SANDBOX_PATH}
-mkdir ${SANDBOX_PATH}
+if [ ! -d "${SANDBOX_PATH}" ]
+then
+    mkdir ${SANDBOX_PATH}
+fi
 cd ${SANDBOX_PATH}
 
 
