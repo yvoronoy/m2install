@@ -1177,18 +1177,26 @@ function setFilesystemPermission()
     CMD="chmod -R 2777 ./var ./pub/media ./pub/static ./app/etc"
     runCommand
 }
+
+function executePostDeployScript()
+{
+    if [ ! "$(getRequest skipPostDeploy)" ] && [ -f "$1" ]
+    then
+        printString "==> Run the post deploy $1"
+        source "$1";
+        printString "==> Post deploy script has been finished"
+    fi
+    return 0;
+}
+
 function afterInstall()
 {
     if [[ "$MAGE_MODE" == "production" ]]
     then
         setProductionMode
     fi
-    if [ ! "$(getRequest skipPostDeploy)" ] && [ -f "$(getScriptDirectory)/post-deploy" ]
-    then
-        printString "==> Run the post deploy $(getScriptDirectory)/post-deploy"
-        . "$(getScriptDirectory)/post-deploy";
-        printString "==> Post deploy script has been finished"
-    fi
+    executePostDeployScript "$(getScriptDirectory)/post-deploy"
+    executePostDeployScript "$HOME/post-deploy"
     setFilesystemPermission
 }
 
