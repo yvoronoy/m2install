@@ -1232,6 +1232,7 @@ Options:
     --skip-post-deploy                   Skip the post deploy script if it is exist
     --step (restore_code,restore_db      Specify step through comma without spaces.
         configure_db, configure_files)   - Example: $(basename "$0") --step restore_db,configure_db
+    --restore-table                      Restore only the specific table from DB dumps
     --debug                              Enable debug mode
     _________________________________________________________________________________________________
     --ee-path (/path/to/ee)              (DEPRECATED use --ee flag) Path to Enterprise Edition.
