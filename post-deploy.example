@@ -1,0 +1,2 @@
+SQLQUERY="INSERT INTO ${DB_NAME}.$(getTablePrefix)core_config_data (scope, scope_id, path, value) VALUES ('default', 0, 'admin/security/session_lifetime', '31536000') ON DUPLICATE KEY UPDATE value='31536000';";
+mysqlQuery

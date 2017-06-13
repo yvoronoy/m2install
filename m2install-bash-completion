@@ -7,7 +7,7 @@ _m2install()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="--help -h --source -s --force -f --sample-data --step --ee-path --ee --git-branch --mode --quiet --code-dump --db-dump --debug";
+    opts="--help -h --source -s --force -f --sample-data --step --ee-path --ee --git-branch --mode --quiet --code-dump --db-dump --debug --skip-post-deploy";
 
     case "$prev" in 
         --source)

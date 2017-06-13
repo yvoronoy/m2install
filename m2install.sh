@@ -64,6 +64,12 @@ function printVersion()
     printString "1.0.2"
 }
 
+function getScriptDirectory()
+{
+    echo "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
+    return 0;
+}
+
 function checkDependencies()
 {
     DEPENDENCIES=(
@@ -546,12 +552,6 @@ function dropDB()
 function createNewDB()
 {
     SQLQUERY="CREATE DATABASE IF NOT EXISTS ${DB_NAME}";
-    mysqlQuery
-}
-
-function tuneAdminSessionLifetime()
-{
-    SQLQUERY="INSERT INTO ${DB_NAME}.$(getTablePrefix)core_config_data (scope, scope_id, path, value) VALUES ('default', 0, 'admin/security/session_lifetime', '31536000') ON DUPLICATE KEY UPDATE value='31536000';";
     mysqlQuery
 }
 
@@ -1183,7 +1183,12 @@ function afterInstall()
     then
         setProductionMode
     fi
-    tuneAdminSessionLifetime
+    if [ ! "$(getRequest skipPostDeploy)" ] && [ -f "$(getScriptDirectory)/post-deploy" ]
+    then
+        printString "==> Run the post deploy $(getScriptDirectory)/post-deploy"
+        . "$(getScriptDirectory)/post-deploy";
+        printString "==> Post deploy script has been finished"
+    fi
     setFilesystemPermission
 }
 
@@ -1216,8 +1221,10 @@ Options:
     -v, --version                        Magento Version - it means: Composer version or GIT Branch
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
     --quiet                              Quiet mode. Suppress output all commands
+    --skip-post-deploy                   Skip the post deploy script if it is exist
     --step (restore_code,restore_db      Specify step through comma without spaces.
         configure_db, configure_files)   - Example: $(basename "$0") --step restore_db,configure_db
+    --debug                              Enable debug mode
     _________________________________________________________________________________________________
     --ee-path (/path/to/ee)              (DEPRECATED use --ee flag) Path to Enterprise Edition.
 EOF
@@ -1273,6 +1280,9 @@ function processOptions()
             ;;
             --quiet)
                 VERBOSE=0
+            ;;
+            --skip-post-deploy)
+                setRequest skipPostDeploy 1
             ;;
             -h|--help)
                 printUsage
