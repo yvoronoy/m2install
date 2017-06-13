@@ -42,7 +42,6 @@ install:
 #  - curl -Ls 'https://github.com/kward/shunit2/archive/master.zip' -o 'master.zip' && unzip -q 'master.zip' && rm 'master.zip'
 
 script:
-  - $MY_SHELL tests/functional/test-install-ce-with-quiet-mode.sh
-  - $MY_SHELL tests/functional/test-install-ee-with-sample-data.sh
+  - $MY_SHELL tests/functional/test-install-ee-with-quiet-mode.sh
   - $MY_SHELL tests/functional/test-restore-dumps.sh
   - $MY_SHELL tests/functional/test-restore-corrupted-dumps-missing-files.sh

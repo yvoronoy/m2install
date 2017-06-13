@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 source tests/functional.sh
-${BIN_M2INSTALL} --force --source composer -v 2.1.5 --quiet
 bin/magento setup:backup --db
 tar --exclude=lib \
   --exclude=index.php \
