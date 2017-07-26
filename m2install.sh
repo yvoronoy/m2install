@@ -59,6 +59,8 @@ TIMEZONE="America/Chicago"
 LANGUAGE="en_US"
 CURRENCY="USD"
 
+LOADED_CONFIG_FILE=
+
 function printVersion()
 {
     printString "1.0.2"
@@ -468,6 +470,7 @@ function loadConfigFile()
         if [ -f "${filePath}" ]
         then
             source "$filePath"
+            LOADED_CONFIG_FILE="$filePath"
             USE_WIZARD=0
         fi
     done
@@ -487,7 +490,7 @@ function promptSaveConfig()
     else
         _local=$_local/
     fi
-    if [ "$_local" != '/' ]
+    if [ "$_local" != '' ]
     then
         _local=${_local}\$CURRENT_DIR_NAME
     fi
@@ -516,9 +519,9 @@ CURRENCY=$CURRENCY
 EOF
 )
 
-    if [ "$(getConfigFiles)" ]
+    if [ "${LOADED_CONFIG_FILE}" ]
     then
-        _currentConfigContent=$(cat "$HOME/$CONFIG_NAME")
+        _currentConfigContent=$(cat "${LOADED_CONFIG_FILE}")
 
         if [ "$_configContent" == "$_currentConfigContent" ]
         then
