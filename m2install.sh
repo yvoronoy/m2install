@@ -217,7 +217,7 @@ function getStripComponentsValue()
 {
     local stripComponents=
     local slashCount=
-    slashCount=$(tar -tf "$1" | grep -v vendor | fgrep pub/index.php | sed 's/pub[/]index[.]php//' | sort | head -1 | tr -cd '/' | wc -m | tr ' ')
+    slashCount=$(tar -tf "$1" | grep -v vendor | fgrep pub/index.php | sed 's/pub[/]index[.]php//' | sort | head -1 | tr -cd '/' | wc -m | tr -d ' ')
 
     if [[ "$slashCount" -gt 0 ]]
     then
