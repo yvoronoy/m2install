@@ -254,6 +254,36 @@ function prepareBasePath()
     BASE_PATH=$(echo "${BASE_PATH}" | sed "s/^\///g" | sed "s/\/$//g" );
 }
 
+function getBasePath()
+{
+    local basePath=$(echo "${BASE_PATH}");
+
+    case "$basePath" in
+        "." | '/' | './' | '')
+            basePath=
+            ;;
+    esac
+    echo ${basePath} | sed 's/\/*$/\//' | sed 's/^[.]*\/*//';
+}
+
+function getHostname()
+{
+    local hostName=$(echo ${HTTP_HOST}/ | sed 's/\/*$/\//');
+    echo ${hostName};
+}
+
+function getBaseURL()
+{
+    local baseURL="$(getHostname)$(getBasePath)";
+    local regex='(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
+    if [[ ${baseURL} =~ $regex ]] || [[ "${baseURL}" == 'localhost/' ]]
+    then
+        echo $baseURL;
+    else
+        printError "BASE URL [$baseURL] is invalid";
+    fi
+}
+
 function prepareBaseURL()
 {
     prepareBasePath
