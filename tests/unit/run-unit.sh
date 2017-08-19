@@ -10,7 +10,7 @@ function loadAssertFramework()
         mv assert.sh $(getUnitTestDirectory)/assert.sh
     fi
 
-    source assert.sh
+    source $(getUnitTestDirectory)/assert.sh
 }
 
 function getUnitTestDirectory()
