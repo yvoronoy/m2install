@@ -229,24 +229,33 @@ function getStripComponentsValue()
 
 function mysqlQuery()
 {
-    CMD="${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --execute=\"${SQLQUERY}\"";
+    CMD="${BIN_MYSQL} -h${DB_HOST} -u$(getDbUser) --password=\"${DB_PASSWORD}\" --execute=\"${SQLQUERY}\"";
     runCommand
 }
 
-function generateDBName()
+function getDbName()
 {
-    if [ -z "$DB_NAME" ]
+    local dbName=$(getRequest dbName);
+    if [ -z "${dbName}" ]
     then
-        prepareBasePath
-        if [ "$BASE_PATH" ]
+        dbName=$(getDbUser)_${CURRENT_DIR_NAME}
+        if [ "$(getBasePath)" ]
         then
-            DB_NAME=${DB_USER}_${BASE_PATH}
-        else
-            DB_NAME=${DB_USER}_${CURRENT_DIR_NAME}
+            dbName=$(getDbUser)_$(getBasePath)
         fi
+        dbName=$(echo ${dbName} | sed 's/\/*$//' | sed 's/^_//');
+    fi
+    echo $(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g;" <(php -r "print strtolower('$dbName');"));
+}
+
+function getDbUser()
+{
+    if [ ! "$(getRequest dbUser)" ]
+    then
+        setRequest dbUser ${DB_USER}
     fi
 
-    DB_NAME=$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(php -r "print strtolower('$DB_NAME');"));
+    echo $(getRequest dbUser);
 }
 
 function prepareBasePath()
@@ -280,7 +289,7 @@ function getBaseURL()
     then
         echo $baseURL;
     else
-        printError "BASE URL [$baseURL] is invalid";
+        printError "BASE URL [$baseURL] is invalid should be in following format http[s]://host-name[/base/path/]";
     fi
 }
 
@@ -379,17 +388,16 @@ function wizard()
 {
     askValue "Enter Server Name of Document Root" "${HTTP_HOST}"
     HTTP_HOST=${READVALUE}
-    askValue "Enter Base Path" "${BASE_PATH}"
+    askValue "Enter Base Path" "$(getBasePath)"
     BASE_PATH=${READVALUE}
     askValue "Enter DB Host" "${DB_HOST}"
     DB_HOST=${READVALUE}
-    askValue "Enter DB User" "${DB_USER}"
-    DB_USER=${READVALUE}
+    askValue "Enter DB User" "$(getDbUser)"
+    setRequest dbUser $(READVALUE)
     askValue "Enter DB Password" "${DB_PASSWORD}"
     DB_PASSWORD=${READVALUE}
-    generateDBName
-    askValue "Enter DB Name" "${DB_NAME}"
-    DB_NAME=${READVALUE}
+    askValue "Enter DB Name" "$(getDbName)"
+    setRequest ${READVALUE}
 
     if foundSupportBackupFiles
     then
@@ -419,9 +427,8 @@ function printConfirmation()
     printGitConfirmation
     prepareBaseURL
     printString "BASE URL: ${BASE_URL}"
-    printString "BASE PATH: ${BASE_PATH}"
-    printString "DB PARAM: ${DB_USER}@${DB_HOST}"
-    printString "DB NAME: ${DB_NAME}"
+    printString "DB PARAM: $(getDbUser)@${DB_HOST}"
+    printString "DB NAME: $(getDbName)"
     printString "DB PASSWORD: ${DB_PASSWORD}"
     printString "MAGE MODE: ${MAGE_MODE}"
     printString "BACKEND FRONTNAME: ${BACKEND_FRONTNAME}"
@@ -501,33 +508,36 @@ function loadConfigFile()
             USE_WIZARD=0
         fi
     done
-    generateDBName
+}
+
+function getBasePathWithCurrentDirNameVariable()
+{
+    local basePath=$(getBasePath);
+    if [ "$(getBasePath)" ]
+    then
+        basePath='$CURRENT_DIR_NAME'
+        if [[ "$(dirname $(getBasePath))" != "." ]]
+        then
+            basePath=$(dirname $(getBasePath))/\$CURRENT_DIR_NAME
+        fi
+    fi
+    echo ${basePath};
 }
 
 function promptSaveConfig()
 {
+    local _basePath=$(getBasePathWithCurrentDirNameVariable)
     if [ "$FORCE" ]
     then
         return;
     fi
-    _local=$(dirname "$BASE_PATH")
-    if [ "$_local" == "." ]
-    then
-        _local=
-    else
-        _local=$_local/
-    fi
-    if [ "$_local" != '/' ]
-    then
-        _local=${_local}\$CURRENT_DIR_NAME
-    fi
 
     _configContent=$(cat << EOF
 HTTP_HOST=$HTTP_HOST
-BASE_PATH=$_local
+BASE_PATH=$_basePath
 DB_HOST=$DB_HOST
 DB_NAME=$DB_NAME
-DB_USER=$DB_USER
+DB_USER=$(getDbUser)
 DB_PASSWORD=$DB_PASSWORD
 MAGENTO_VERSION=$MAGENTO_VERSION
 INSTALL_EE=$INSTALL_EE
@@ -575,13 +585,13 @@ EOF
 
 function dropDB()
 {
-    SQLQUERY="DROP DATABASE IF EXISTS ${DB_NAME}";
+    SQLQUERY="DROP DATABASE IF EXISTS $(getDbName)";
     mysqlQuery
 }
 
 function createNewDB()
 {
-    SQLQUERY="CREATE DATABASE IF NOT EXISTS ${DB_NAME}";
+    SQLQUERY="CREATE DATABASE IF NOT EXISTS $(getDbName)";
     mysqlQuery
 }
 
@@ -602,7 +612,7 @@ function restore_db()
         | sed -e 's/TRIGGER[ ][\`][A-Za-z0-9_]*[\`][.]/TRIGGER /'
         | sed -e 's/AFTER[ ]\(INSERT\)\{0,1\}\(UPDATE\)\{0,1\}\(DELETE\)\{0,1\}[ ]ON[ ][\`][A-Za-z0-9_]*[\`][.]/AFTER \1\2\3 ON /'
         | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password'
-        | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --force $DB_NAME";
+        | ${BIN_MYSQL} -h${DB_HOST} -u$(getDbUser) --password=\"${DB_PASSWORD}\" --force $(getDbName)";
     runCommand
 }
 
@@ -676,43 +686,43 @@ function validateDeploymentFromDumps()
 
 function updateBaseUrl()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = '${BASE_URL}' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
+    SQLQUERY="UPDATE $(getDbName).$(getTablePrefix)core_config_data AS e SET e.value = '${BASE_URL}' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
     mysqlQuery
 }
 
 function clearBaseLinks()
 {
-    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path IN ('web/unsecure/base_link_url', 'web/secure/base_link_url', 'web/unsecure/base_static_url', 'web/unsecure/base_media_url', 'web/secure/base_static_url', 'web/secure/base_media_url')";
+    SQLQUERY="DELETE FROM $(getDbName).$(getTablePrefix)core_config_data WHERE path IN ('web/unsecure/base_link_url', 'web/secure/base_link_url', 'web/unsecure/base_static_url', 'web/unsecure/base_media_url', 'web/secure/base_static_url', 'web/secure/base_media_url')";
     mysqlQuery
 }
 
 function clearCookieDomain()
 {
-    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path = 'web/cookie/cookie_domain'"
+    SQLQUERY="DELETE FROM $(getDbName).$(getTablePrefix)core_config_data WHERE path = 'web/cookie/cookie_domain'"
     mysqlQuery
 }
 
 function clearSslFlag()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = 0 WHERE e.path IN ('web/secure/use_in_adminhtm', 'web/secure/use_in_frontend')"
+    SQLQUERY="UPDATE $(getDbName).$(getTablePrefix)core_config_data AS e SET e.value = 0 WHERE e.path IN ('web/secure/use_in_adminhtm', 'web/secure/use_in_frontend')"
     mysqlQuery
 }
 
 function clearCustomAdmin()
 {
-    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path = 'admin/url/custom'"
+    SQLQUERY="DELETE FROM $(getDbName).$(getTablePrefix)core_config_data WHERE path = 'admin/url/custom'"
     mysqlQuery
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data SET ${DB_NAME}.$(getTablePrefix)core_config_data.value = '0' WHERE path = 'admin/url/use_custom'"
+    SQLQUERY="UPDATE $(getDbName).$(getTablePrefix)core_config_data SET $(getDbName).$(getTablePrefix)core_config_data.value = '0' WHERE path = 'admin/url/use_custom'"
     mysqlQuery
-    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path = 'admin/url/custom_path'"
+    SQLQUERY="DELETE FROM $(getDbName).$(getTablePrefix)core_config_data WHERE path = 'admin/url/custom_path'"
     mysqlQuery
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data SET ${DB_NAME}.$(getTablePrefix)core_config_data.value = '0' WHERE path = 'admin/url/use_custom_path'"
+    SQLQUERY="UPDATE $(getDbName).$(getTablePrefix)core_config_data SET $(getDbName).$(getTablePrefix)core_config_data.value = '0' WHERE path = 'admin/url/use_custom_path'"
     mysqlQuery
 }
 
 function resetAdminPassword()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)admin_user SET ${DB_NAME}.$(getTablePrefix)admin_user.email = '${ADMIN_EMAIL}' WHERE ${DB_NAME}.$(getTablePrefix)admin_user.username = '${ADMIN_NAME}'"
+    SQLQUERY="UPDATE $(getDbName).$(getTablePrefix)admin_user SET $(getDbName).$(getTablePrefix)admin_user.email = '${ADMIN_EMAIL}' WHERE $(getDbName).$(getTablePrefix)admin_user.username = '${ADMIN_NAME}'"
     mysqlQuery
     CMD="${BIN_MAGE} admin:user:create
         --admin-user='${ADMIN_NAME}'
@@ -818,8 +828,8 @@ return array (
       'indexer' =>
       array (
         'host' => '${DB_HOST}',
-        'dbname' => '${DB_NAME}',
-        'username' => '${DB_USER}',
+        'dbname' => '$(getDbName)',
+        'username' => '$(getDbUser)',
         'password' => '${DB_PASSWORD}',
         'model' => 'mysql4',
         'engine' => 'innodb',
@@ -830,8 +840,8 @@ return array (
       'default' =>
       array (
         'host' => '${DB_HOST}',
-        'dbname' => '${DB_NAME}',
-        'username' => '${DB_USER}',
+        'dbname' => '$(getDbName)',
+        'username' => '$(getDbUser)',
         'password' => '${DB_PASSWORD}',
         'model' => 'mysql4',
         'engine' => 'innodb',
@@ -1013,8 +1023,8 @@ function installMagento()
     CMD="${BIN_MAGE} setup:install \
     --base-url=${BASE_URL} \
     --db-host=${DB_HOST} \
-    --db-name=${DB_NAME} \
-    --db-user=${DB_USER} \
+    --db-name=$(getDbName) \
+    --db-user=$(getDbUser) \
     --admin-firstname=${ADMIN_FIRSTNAME} \
     --admin-lastname=${ADMIN_LASTNAME} \
     --admin-email=${ADMIN_EMAIL} \
@@ -1390,9 +1400,9 @@ function restoreTableAction()
 {
 
     CMD="{ echo 'SET FOREIGN_KEY_CHECKS=0;';
-       echo 'TRUNCATE ${DB_NAME}.$(getTablePrefix)$(getRequest restoreTableName);';
+       echo 'TRUNCATE $(getDbName).$(getTablePrefix)$(getRequest restoreTableName);';
        zgrep 'INSERT INTO \`$(getRequest restoreTableName)\`' $(getDbDumpFilename); }
-       | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --force $DB_NAME";
+       | ${BIN_MYSQL} -h${DB_HOST} -u$(getDbUser) --password=\"${DB_PASSWORD}\" --force $DB_NAME";
     runCommand
 }
 

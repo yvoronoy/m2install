@@ -1,3 +1,4 @@
 .idea/
 /vendor/
 post-deploy
+tests/unit/assert.sh
