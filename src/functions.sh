@@ -72,3 +72,34 @@ function getDbUser()
 
     echo $(getRequest dbUser);
 }
+
+function setHostName()
+{
+    setRequest hostName "$1"
+}
+
+function getHostName()
+{
+    if [ -z "$(getRequest hostName)" ]
+    then
+        setHostName ${HTTP_HOST:-127.0.0.1}
+    fi
+    if ! grep -q "http" <<<$(getRequest hostName);
+    then
+        setHostName "http://$(getRequest hostName | sed 's/\/*//')"
+    fi
+    echo $(getRequest hostName) | sed 's/\/*$/\//';
+
+}
+
+function getBaseUrl()
+{
+    local baseURL="$(getHostName)$(getBasePath)";
+    local regex='(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
+    if [[ ${baseURL} =~ $regex ]] || [[ "${baseURL}" == 'localhost/' ]]
+    then
+        echo $baseURL;
+    else
+        printError "BASE URL [$baseURL] is invalid should be in following format http[s]://host-name[/base/path/]";
+    fi
+}

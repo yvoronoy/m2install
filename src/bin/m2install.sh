@@ -218,32 +218,6 @@ function prepareBasePath()
     BASE_PATH=$(echo "${BASE_PATH}" | sed "s/^\///g" | sed "s/\/$//g" );
 }
 
-function getHostname()
-{
-    local hostName=$(echo ${HTTP_HOST}/ | sed 's/\/*$/\//');
-    echo ${hostName};
-}
-
-function getBaseURL()
-{
-    local baseURL="$(getHostname)$(getBasePath)";
-    local regex='(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
-    if [[ ${baseURL} =~ $regex ]] || [[ "${baseURL}" == 'localhost/' ]]
-    then
-        echo $baseURL;
-    else
-        printError "BASE URL [$baseURL] is invalid should be in following format http[s]://host-name[/base/path/]";
-    fi
-}
-
-function prepareBaseURL()
-{
-    prepareBasePath
-    HTTP_HOST=$(echo ${HTTP_HOST}/ | sed "s/\/\/$/\//g" );
-    BASE_URL=${HTTP_HOST}${BASE_PATH}/
-    BASE_URL=$(echo "$BASE_URL" | sed "s/\/\/$/\//g" );
-}
-
 function initQuietMode()
 {
     if [[ "$VERBOSE" -eq 1 ]]
@@ -329,8 +303,8 @@ function foundSupportBackupFiles()
 
 function wizard()
 {
-    askValue "Enter Server Name of Document Root" "${HTTP_HOST}"
-    HTTP_HOST=${READVALUE}
+    askValue "Enter Server Name of Document Root" "$(getHostName)"
+    setHostName ${READVALUE}
     askValue "Enter Base Path" "$(getBasePath)"
     BASE_PATH=${READVALUE}
     askValue "Enter DB Host" "${DB_HOST}"
@@ -368,9 +342,8 @@ function printConfirmation()
 {
     printComposerConfirmation
     printGitConfirmation
-    prepareBaseURL
-    printString "BASE URL: ${BASE_URL}"
-    printString "DB PARAM: $(getDbUser)@${DB_HOST}"
+    printString "BASE URL: $(getBaseUrl)"
+    printString "DB PARAM: $(getDbUser)@$(getHostName)"
     printString "DB NAME: $(getDbName)"
     printString "DB PASSWORD: ${DB_PASSWORD}"
     printString "MAGE MODE: ${MAGE_MODE}"
@@ -462,7 +435,7 @@ function promptSaveConfig()
     fi
 
     _configContent=$(cat << EOF
-HTTP_HOST=$HTTP_HOST
+HTTP_HOST=$(getHostName)
 BASE_PATH=$_basePath
 DB_HOST=$DB_HOST
 DB_NAME=$DB_NAME
@@ -615,7 +588,7 @@ function validateDeploymentFromDumps()
 
 function updateBaseUrl()
 {
-    SQLQUERY="UPDATE $(getDbName).$(getTablePrefix)core_config_data AS e SET e.value = '${BASE_URL}' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
+    SQLQUERY="UPDATE $(getDbName).$(getTablePrefix)core_config_data AS e SET e.value = '$(getBaseUrl)' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
     mysqlQuery
 }
 
@@ -950,7 +923,7 @@ function installMagento()
     createNewDB
 
     CMD="${BIN_MAGE} setup:install \
-    --base-url=${BASE_URL} \
+    --base-url=$(getBaseUrl) \
     --db-host=${DB_HOST} \
     --db-name=$(getDbName) \
     --db-user=$(getDbUser) \
@@ -1380,8 +1353,8 @@ function main()
     printString "$(basename "$0") took $SUMMARY_TIME minutes to complete install/deploy process"
 
     printLine
-    printString "${BASE_URL}"
-    printString "${BASE_URL}${BACKEND_FRONTNAME}"
+    printString "$(getBaseUrl)"
+    printString "$(getBaseUrl)${BACKEND_FRONTNAME}"
     printString "User: ${ADMIN_NAME}"
     printString "Pass: ${ADMIN_PASSWORD}"
     promptSaveConfig
