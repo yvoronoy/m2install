@@ -59,8 +59,6 @@ TIMEZONE="America/Chicago"
 LANGUAGE="en_US"
 CURRENCY="USD"
 
-LOADED_CONFIG_FILE=
-
 function printVersion()
 {
     printString "1.0.2"
@@ -470,7 +468,6 @@ function loadConfigFile()
         if [ -f "${filePath}" ]
         then
             source "$filePath"
-            LOADED_CONFIG_FILE="$filePath"
             USE_WIZARD=0
         fi
     done
@@ -483,7 +480,7 @@ function promptSaveConfig()
     then
         return;
     fi
-    _local=$(dirname "$BASE_PATH")
+    local _local=$(dirname "$BASE_PATH")
     if [ "$_local" == "." ]
     then
         _local=
@@ -519,31 +516,26 @@ CURRENCY=$CURRENCY
 EOF
 )
 
-    if [ "${LOADED_CONFIG_FILE}" ]
-    then
-        _currentConfigContent=$(cat "${LOADED_CONFIG_FILE}")
+    local localConfigPath="./$CONFIG_NAME"
 
-        if [ "$_configContent" == "$_currentConfigContent" ]
+    if [ "$(getConfigFiles)" ]
+    then
+        _localConfigContent=$(cat "${localConfigPath}")
+
+        if [ "$_configContent" == "$_localConfigContent" ]
         then
             return;
         fi
 
     fi
 
-    configSavePath="$HOME/$CONFIG_NAME"
-    if [ -f "${configSavePath}" ]
+    if askConfirmation "Do you want save config to ${localConfigPath} (y/N)"
     then
-        configSavePath="./$CONFIG_NAME"
-    fi
-    if askConfirmation "Do you want save config to ${configSavePath} (y/N)"
-    then
-        cat << EOF > ${configSavePath}
+        cat << EOF > ${localConfigPath}
 $_configContent
 EOF
-            printString "Config file has been created in ${configSavePath}";
-        fi
-    _local=
-    configSavePath=
+        printString "Config file has been created in ${localConfigPath}";
+    fi
 }
 
 function dropDB()
