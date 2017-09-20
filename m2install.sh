@@ -695,6 +695,12 @@ function resetAdminPassword()
 
 function overwriteOriginalFiles()
 {
+    if [ -f app/etc/config.local.php ]
+    then
+        CMD="mv app/etc/config.local.php app/etc/config.local.php.merchant"
+        runCommand
+    fi
+
     if [ ! -f pub/static.php ]
     then
         CMD="curl -s -o pub/static.php https://raw.githubusercontent.com/magento/magento2/2.1/pub/static.php"
