@@ -31,6 +31,7 @@ DB_PASSWORD=
 MAGENTO_VERSION=2.1
 
 DB_NAME=
+DB_QUOTED_NAME=
 USE_SAMPLE_DATA=
 EE_PATH=magento2ee
 INSTALL_EE=
@@ -233,6 +234,11 @@ function mysqlQuery()
     runCommand
 }
 
+function quoteDbName()
+{
+    DB_QUOTED_NAME="\\\`$DB_NAME\\\`"
+}
+
 function generateDBName()
 {
     if [ -z "$DB_NAME" ]
@@ -247,6 +253,7 @@ function generateDBName()
     fi
 
     DB_NAME=$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(php -r "print strtolower('$DB_NAME');"));
+    quoteDbName
 }
 
 function prepareBasePath()
@@ -360,6 +367,7 @@ function wizard()
     generateDBName
     askValue "Enter DB Name" "${DB_NAME}"
     DB_NAME=${READVALUE}
+    quoteDbName
 
     if foundSupportBackupFiles
     then
@@ -545,13 +553,13 @@ EOF
 
 function dropDB()
 {
-    SQLQUERY="DROP DATABASE IF EXISTS ${DB_NAME}";
+    SQLQUERY="DROP DATABASE IF EXISTS ${DB_QUOTED_NAME}";
     mysqlQuery
 }
 
 function createNewDB()
 {
-    SQLQUERY="CREATE DATABASE IF NOT EXISTS ${DB_NAME}";
+    SQLQUERY="CREATE DATABASE IF NOT EXISTS ${DB_QUOTED_NAME}";
     mysqlQuery
 }
 
@@ -572,7 +580,7 @@ function restore_db()
         | sed -e 's/TRIGGER[ ][\`][A-Za-z0-9_]*[\`][.]/TRIGGER /'
         | sed -e 's/AFTER[ ]\(INSERT\)\{0,1\}\(UPDATE\)\{0,1\}\(DELETE\)\{0,1\}[ ]ON[ ][\`][A-Za-z0-9_]*[\`][.]/AFTER \1\2\3 ON /'
         | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password'
-        | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --force $DB_NAME";
+        | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --force ${DB_QUOTED_NAME}";
     runCommand
 }
 
@@ -646,43 +654,43 @@ function validateDeploymentFromDumps()
 
 function updateBaseUrl()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = '${BASE_URL}' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
+    SQLQUERY="UPDATE ${DB_QUOTED_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = '${BASE_URL}' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
     mysqlQuery
 }
 
 function clearBaseLinks()
 {
-    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path IN ('web/unsecure/base_link_url', 'web/secure/base_link_url', 'web/unsecure/base_static_url', 'web/unsecure/base_media_url', 'web/secure/base_static_url', 'web/secure/base_media_url')";
+    SQLQUERY="DELETE FROM ${DB_QUOTED_NAME}.$(getTablePrefix)core_config_data WHERE path IN ('web/unsecure/base_link_url', 'web/secure/base_link_url', 'web/unsecure/base_static_url', 'web/unsecure/base_media_url', 'web/secure/base_static_url', 'web/secure/base_media_url')";
     mysqlQuery
 }
 
 function clearCookieDomain()
 {
-    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path = 'web/cookie/cookie_domain'"
+    SQLQUERY="DELETE FROM ${DB_QUOTED_NAME}.$(getTablePrefix)core_config_data WHERE path = 'web/cookie/cookie_domain'"
     mysqlQuery
 }
 
 function clearSslFlag()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = 0 WHERE e.path IN ('web/secure/use_in_adminhtm', 'web/secure/use_in_frontend')"
+    SQLQUERY="UPDATE ${DB_QUOTED_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = 0 WHERE e.path IN ('web/secure/use_in_adminhtm', 'web/secure/use_in_frontend')"
     mysqlQuery
 }
 
 function clearCustomAdmin()
 {
-    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path = 'admin/url/custom'"
+    SQLQUERY="DELETE FROM ${DB_QUOTED_NAME}.$(getTablePrefix)core_config_data WHERE path = 'admin/url/custom'"
     mysqlQuery
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data SET ${DB_NAME}.$(getTablePrefix)core_config_data.value = '0' WHERE path = 'admin/url/use_custom'"
+    SQLQUERY="UPDATE ${DB_QUOTED_NAME}.$(getTablePrefix)core_config_data SET ${DB_QUOTED_NAME}.$(getTablePrefix)core_config_data.value = '0' WHERE path = 'admin/url/use_custom'"
     mysqlQuery
-    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path = 'admin/url/custom_path'"
+    SQLQUERY="DELETE FROM ${DB_QUOTED_NAME}.$(getTablePrefix)core_config_data WHERE path = 'admin/url/custom_path'"
     mysqlQuery
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data SET ${DB_NAME}.$(getTablePrefix)core_config_data.value = '0' WHERE path = 'admin/url/use_custom_path'"
+    SQLQUERY="UPDATE ${DB_QUOTED_NAME}.$(getTablePrefix)core_config_data SET ${DB_QUOTED_NAME}.$(getTablePrefix)core_config_data.value = '0' WHERE path = 'admin/url/use_custom_path'"
     mysqlQuery
 }
 
 function resetAdminPassword()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)admin_user SET ${DB_NAME}.$(getTablePrefix)admin_user.email = '${ADMIN_EMAIL}' WHERE ${DB_NAME}.$(getTablePrefix)admin_user.username = '${ADMIN_NAME}'"
+    SQLQUERY="UPDATE ${DB_QUOTED_NAME}.$(getTablePrefix)admin_user SET ${DB_QUOTED_NAME}.$(getTablePrefix)admin_user.email = '${ADMIN_EMAIL}' WHERE ${DB_QUOTED_NAME}.$(getTablePrefix)admin_user.username = '${ADMIN_NAME}'"
     mysqlQuery
     CMD="${BIN_MAGE} admin:user:create
         --admin-user='${ADMIN_NAME}'
@@ -1366,9 +1374,9 @@ function restoreTableAction()
 {
 
     CMD="{ echo 'SET FOREIGN_KEY_CHECKS=0;';
-       echo 'TRUNCATE ${DB_NAME}.$(getTablePrefix)$(getRequest restoreTableName);';
+       echo 'TRUNCATE ${DB_QUOTED_NAME}.$(getTablePrefix)$(getRequest restoreTableName);';
        zgrep 'INSERT INTO \`$(getRequest restoreTableName)\`' $(getDbDumpFilename); }
-       | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --force $DB_NAME";
+       | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --force ${DB_QUOTED_NAME}";
     runCommand
 }
 
