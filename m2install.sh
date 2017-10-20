@@ -580,7 +580,7 @@ function restore_db()
         | sed -e 's/TRIGGER[ ][\`][A-Za-z0-9_]*[\`][.]/TRIGGER /'
         | sed -e 's/AFTER[ ]\(INSERT\)\{0,1\}\(UPDATE\)\{0,1\}\(DELETE\)\{0,1\}[ ]ON[ ][\`][A-Za-z0-9_]*[\`][.]/AFTER \1\2\3 ON /'
         | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password'
-        | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --force ${DB_QUOTED_NAME}";
+        | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --force ${DB_NAME}";
     runCommand
 }
 
@@ -1376,7 +1376,7 @@ function restoreTableAction()
     CMD="{ echo 'SET FOREIGN_KEY_CHECKS=0;';
        echo 'TRUNCATE ${DB_QUOTED_NAME}.$(getTablePrefix)$(getRequest restoreTableName);';
        zgrep 'INSERT INTO \`$(getRequest restoreTableName)\`' $(getDbDumpFilename); }
-       | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --force ${DB_QUOTED_NAME}";
+       | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --force ${DB_NAME}";
     runCommand
 }
 
