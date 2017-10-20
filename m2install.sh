@@ -252,7 +252,7 @@ function generateDBName()
         fi
     fi
 
-    DB_NAME=$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(php -r "print strtolower('$DB_NAME');"));
+    DB_NAME=$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_.]//g" <(php -r "print strtolower('$DB_NAME');"));
     quoteDbName
 }
 
