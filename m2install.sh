@@ -38,7 +38,11 @@ CONFIG_NAME=.m2install.conf
 USE_WIZARD=1
 
 GIT_CE_REPO="git@github.com:magento/magento2.git"
+GIT_CE_SD_REPO="git@github.com:magento/magento2-sample-data.git"
 GIT_EE_REPO=
+GIT_EE_SD_REPO=
+GIT_CE_SD_PATH=magento2-sample-data
+GIT_EE_SD_PATH=magento2-sample-data-ee
 
 SOURCE=
 FORCE=
@@ -888,6 +892,9 @@ function installSampleData()
     if php bin/magento --version | grep -q beta
     then
         _installSampleDataForBeta;
+    elif [ "$SOURCE" == 'git' ]
+    then
+        _installGitSampleData;
     else
         _installSampleData;
     fi
@@ -943,6 +950,25 @@ function _installSampleDataForBeta()
     CMD="${BIN_MAGE} setup:upgrade"
     runCommand
     CMD="${BIN_MAGE} sampledata:install admin"
+    runCommand
+}
+
+function _installGitSampleData()
+{
+    CMD="${BIN_GIT} clone $GIT_CE_SD_REPO $GIT_CE_SD_PATH && cd $GIT_CE_SD_PATH && ${BIN_GIT} checkout $MAGENTO_VERSION && cd .."
+    runCommand
+    CMD="php -f $GIT_CE_SD_PATH/dev/tools/build-sample-data.php -- --ce-source=."
+    runCommand
+
+    if [[ "$GIT_EE_SD_REPO" ]] && [[ "$INSTALL_EE" ]]
+    then
+        CMD="${BIN_GIT} clone $GIT_EE_SD_REPO $GIT_EE_SD_PATH && cd $GIT_EE_SD_PATH && ${BIN_GIT} checkout $MAGENTO_VERSION && cd .."
+        runCommand
+        CMD="php -f $GIT_EE_SD_PATH/dev/tools/build-sample-data.php -- --ce-source=. --ee-source=$MAGENTO_EE_PATH"
+        runCommand
+    fi
+
+    CMD="${BIN_MAGE} setup:upgrade"
     runCommand
 }
 
