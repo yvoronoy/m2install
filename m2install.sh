@@ -99,7 +99,7 @@ function checkDependencies()
 
     for util in "${DEPENDENCIES[@]}"
     do
-        hash "${util}" &>/dev/null || printError "Error: '${util}' is not found on this system" || exit 1
+        hash "${util}" &>/dev/null || printError "'${util}' is not found on this system" || exit 1
     done;
 
 }
@@ -153,7 +153,7 @@ function printString()
 
 function printError()
 {
-    >&2 echo "$@";
+    >&2 echo "ERROR: $@";
     return 1;
 }
 
@@ -209,7 +209,7 @@ function extract()
              ;;
              *.gz)              CMD="gunzip $EXTRACT_FILENAME" ;;
              *.zip)             CMD="unzip -qu -x $EXTRACT_FILENAME" ;;
-             *)                 printError "'$EXTRACT_FILENAME' cannot be extracted"; CMD='' ;;
+             *)                 printError "'$EXTRACT_FILENAME' cannot be extracted"; exit 1; CMD='' ;;
          esac
         runCommand
      else
@@ -983,8 +983,8 @@ function linkEnterpriseEdition()
         if [ ! -d "$EE_PATH" ]
         then
             printError "There is no Enterprise Edition directory ${EE_PATH}"
-            printError "Use absolute or relative path to EE code base or [N] to skip it"
-            exit
+            printString "Use absolute or relative path to EE code base or [N] to skip it"
+            exit 1
         fi
         CMD="php ${EE_PATH}/dev/tools/build-ee.php --ce-source $(pwd) --ee-source ${EE_PATH}"
         runCommand
@@ -1037,8 +1037,8 @@ function downloadSourceCode()
 {
     if [ "$(ls -A ./)" ]; then
         printError "Can't download source code from ${SOURCE} since current directory doesn't empty."
-        printError "You can remove all files from current directory using next command:"
-        printError "ls -A | xargs rm -rf"
+        printString "You can remove all files from current directory using next command:"
+        printString "ls -A | xargs rm -rf"
         exit 1;
     fi
     if [ "$SOURCE" == 'composer' ]
@@ -1109,8 +1109,12 @@ function showWizzardGit()
 
 function gitClone()
 {
+    validateGitRepository "${GIT_CE_REPO}" "${MAGENTO_VERSION}"
+    validateGitRepository "${GIT_EE_REPO}" "${MAGENTO_VERSION}"
+
     CMD="${BIN_GIT} clone $GIT_CE_REPO ."
     runCommand
+
     CMD="${BIN_GIT} checkout $MAGENTO_VERSION"
     runCommand
 
@@ -1124,6 +1128,19 @@ function gitClone()
         runCommand
         CMD="cd .."
         runCommand
+    fi
+}
+
+function validateGitRepository()
+{
+    local repoName=$1
+    local versionName=$2
+
+    local isBranchExists=$(${BIN_GIT} ls-remote ${repoName} | grep -F ${versionName})
+    if [ ! "$isBranchExists" ]
+    then
+        printError "Requested tag or branch ${versionName} does not exists in ${repoName}"
+        exit 1;
     fi
 }
 
@@ -1143,7 +1160,7 @@ function checkArgumentHasValue()
 {
     if [ ! "$2" ]
     then
-        printError "ERROR: $1 Argument is empty."
+        printError "$1 Argument is empty."
         printLine
         printUsage
         exit
@@ -1292,6 +1309,7 @@ function processOptions()
                 shift
             ;;
             -e|--ee-path)
+                # @DEPRECATED. Use --ee instead.
                 checkArgumentHasValue "$1" "$2"
                 EE_PATH="$2"
                 INSTALL_EE=1
@@ -1301,6 +1319,7 @@ function processOptions()
                 INSTALL_EE=1
             ;;
             -b|--git-branch)
+                # @DEPRECATED. Use -v or --version instead
                 checkArgumentHasValue "$1" "$2"
                 MAGENTO_VERSION="$2"
                 shift
