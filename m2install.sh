@@ -606,6 +606,8 @@ function configure_db()
     clearCookieDomain
     clearSslFlag
     clearCustomAdmin
+    replaceFastlyKey
+    enableBuiltinCache
     resetAdminPassword
 }
 
@@ -681,6 +683,18 @@ function clearCustomAdmin()
     SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path = 'admin/url/custom_path'"
     mysqlQuery
     SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data SET ${DB_NAME}.$(getTablePrefix)core_config_data.value = '0' WHERE path = 'admin/url/use_custom_path'"
+    mysqlQuery
+}
+
+function replaceFastlyKey()
+{
+    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = 'replaced_by_m2install' WHERE e.path = 'system/full_page_cache/fastly/fastly_api_key'"
+    mysqlQuery
+}
+
+function enableBuiltinCache()
+{
+    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = 1 WHERE e.path = 'system/full_page_cache/caching_application'"
     mysqlQuery
 }
 
