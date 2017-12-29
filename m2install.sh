@@ -1237,7 +1237,12 @@ function setFilesystemPermission()
 {
     CMD="chmod u+x ./bin/magento"
     runCommand
-    CMD="chmod -R 2777 ./var ./pub/media ./pub/static ./app/etc"
+    local _writeableDirectories="./var ./pub/media ./pub/static ./app/etc"
+    if [ -d './generated' ]
+    then
+        _writeableDirectories="$_writeableDirectories ./generated"
+    fi
+    CMD="chmod -R 2777 ${_writeableDirectories}"
     runCommand
 }
 
