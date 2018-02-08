@@ -599,6 +599,15 @@ function configure_files()
     runCommand
 }
 
+function appConfigImport()
+{
+    if php bin/magento | grep -q app:config:import
+    then
+        CMD="php bin/magento app:config:import -n"
+        runCommand
+    fi
+}
+
 function configure_db()
 {
     updateBaseUrl
@@ -1424,6 +1433,7 @@ function magentoDeployDumpsAction()
     addStep "restore_db"
     addStep "configure_db"
     addStep "validateDeploymentFromDumps"
+    appConfigImport
 }
 
 function restoreTableAction()
