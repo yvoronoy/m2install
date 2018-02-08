@@ -595,8 +595,18 @@ function configure_files()
     runCommand
     updateMagentoEnvFile
     overwriteOriginalFiles
+    appConfigImport
     CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
     runCommand
+}
+
+function appConfigImport()
+{
+    if php bin/magento | grep -q app:config:import
+    then
+        CMD="php bin/magento app:config:import -n"
+        runCommand
+    fi
 }
 
 function configure_db()
