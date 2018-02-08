@@ -1433,7 +1433,7 @@ function magentoDeployDumpsAction()
     addStep "restore_db"
     addStep "configure_db"
     addStep "validateDeploymentFromDumps"
-    appConfigImport
+    addStep "appConfigImport"
 }
 
 function restoreTableAction()
