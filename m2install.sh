@@ -28,12 +28,13 @@ DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=
 
-MAGENTO_VERSION=2.1
+MAGENTO_VERSION=2.2
 
 DB_NAME=
 USE_SAMPLE_DATA=
 EE_PATH=magento2ee
 INSTALL_EE=
+INSTALL_B2B=
 CONFIG_NAME=.m2install.conf
 USE_WIZARD=1
 
@@ -423,6 +424,12 @@ function printConfirmation()
     else
         printString "Magento EE will NOT be installed."
     fi
+    if [ "${INSTALL_B2B}" ]
+    then
+        printString "Magento B2B will be installed"
+    else
+        printString "Magento B2B will NOT be installed."
+    fi
 }
 
 function showWizard()
@@ -505,6 +512,7 @@ DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
 MAGENTO_VERSION=$MAGENTO_VERSION
 INSTALL_EE=$INSTALL_EE
+INSTALL_B2B=$INSTALL_B2B
 GIT_CE_REPO=$GIT_CE_REPO
 GIT_EE_REPO=$GIT_EE_REPO
 MAGE_MODE=$MAGE_MODE
@@ -730,7 +738,7 @@ function overwriteOriginalFiles()
 
     if [ ! -f pub/static.php ]
     then
-        CMD="curl -s -o pub/static.php https://raw.githubusercontent.com/magento/magento2/2.1/pub/static.php"
+        CMD="curl -s -o pub/static.php https://raw.githubusercontent.com/magento/magento2/${MAGENTO_VERSION}/pub/static.php"
         runCommand
     fi
 
@@ -739,7 +747,7 @@ function overwriteOriginalFiles()
         CMD="mv .htaccess .htaccess.merchant"
         runCommand
     fi
-    CMD="curl -s -o .htaccess https://raw.githubusercontent.com/magento/magento2/2.1/.htaccess"
+    CMD="curl -s -o .htaccess https://raw.githubusercontent.com/magento/magento2/${MAGENTO_VERSION}/.htaccess"
     runCommand
 
     if [ -f pub/.htaccess ] && [ ! -f pub/.htaccess.merchant ]
@@ -747,7 +755,7 @@ function overwriteOriginalFiles()
         CMD="mv pub/.htaccess pub/.htaccess.merchant"
         runCommand
     fi
-    CMD="curl -s -o pub/.htaccess https://raw.githubusercontent.com/magento/magento2/2.1/pub/.htaccess"
+    CMD="curl -s -o pub/.htaccess https://raw.githubusercontent.com/magento/magento2/${MAGENTO_VERSION}/pub/.htaccess"
     runCommand
 
     if [ -f pub/static/.htaccess ] && [ ! -f pub/static/.htaccess.merchant ]
@@ -755,7 +763,7 @@ function overwriteOriginalFiles()
         CMD="mv pub/static/.htaccess pub/static/.htaccess.merchant"
         runCommand
     fi
-    CMD="curl -s -o pub/static/.htaccess https://raw.githubusercontent.com/magento/magento2/2.1/pub/static/.htaccess"
+    CMD="curl -s -o pub/static/.htaccess https://raw.githubusercontent.com/magento/magento2/${MAGENTO_VERSION}/pub/static/.htaccess"
     runCommand
 
     if [ -f pub/media/.htaccess ] && [ ! -f pub/media/.htaccess.merchant ]
@@ -763,7 +771,7 @@ function overwriteOriginalFiles()
         CMD="mv pub/media/.htaccess pub/media/.htaccess.merchant"
         runCommand
     fi
-    CMD="curl -s -o pub/media/.htaccess https://raw.githubusercontent.com/magento/magento2/2.1/pub/media/.htaccess"
+    CMD="curl -s -o pub/media/.htaccess https://raw.githubusercontent.com/magento/magento2/${MAGENTO_VERSION}/pub/media/.htaccess"
     runCommand
 }
 function getTablePrefix()
@@ -995,6 +1003,19 @@ function _installGitSampleData()
     runCommand
 }
 
+function installB2B()
+{
+    if [ "${SOURCE}" == 'git' ]
+    then
+        CMD="${BIN_COMPOSER} config repositories.b2b composer https://repo.magento.com/"
+        runCommand
+    fi
+    CMD="${BIN_COMPOSER} require magento/extension-b2b"
+    runCommand
+    CMD="${BIN_MAGE} setup:upgrade"
+    runCommand
+}
+
 function linkEnterpriseEdition()
 {
     if [ "${SOURCE}" == 'composer' ]
@@ -1082,7 +1103,7 @@ function composerInstall()
         CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-enterprise-edition . ${MAGENTO_VERSION}"
         runCommand
     else
-        CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-community-edition . $MAGENTO_VERSION"
+        CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-community-edition . ${MAGENTO_VERSION}"
         runCommand
     fi
 }
@@ -1203,7 +1224,7 @@ function isInputNegative()
 function validateStep()
 {
     local _step=$1;
-    local _steps="restore_db restore_code configure_db configure_files configure"
+    local _steps="restore_db restore_code configure_db configure_files configure installB2B"
     if echo "$_steps" | grep -q "$_step"
     then
         if type -t "$_step" &>/dev/null
@@ -1346,6 +1367,9 @@ function processOptions()
             --ee)
                 INSTALL_EE=1
             ;;
+            --b2b)
+                INSTALL_B2B=1
+            ;;
             -b|--git-branch)
                 # @DEPRECATED. Use -v or --version instead
                 checkArgumentHasValue "$1" "$2"
@@ -1423,6 +1447,10 @@ function magentoInstallAction()
     if [[ "${USE_SAMPLE_DATA}" ]]
     then
         addStep "installSampleData"
+    fi
+    if [[ "$INSTALL_EE" ]] && [[ "$INSTALL_B2B" ]]
+    then
+        addStep "installB2B"
     fi
 }
 
