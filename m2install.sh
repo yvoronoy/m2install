@@ -1324,6 +1324,7 @@ Options:
     -f, --force                          Install/Restore without any confirmations.
     --sample-data (yes, no)              Install sample data.
     --ee                                 Install Enterprise Edition.
+    --b2b                                Install B2B Edition.
     -v, --version                        Magento Version - it means: Composer version or GIT Branch
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
     --quiet                              Quiet mode. Suppress output all commands
