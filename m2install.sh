@@ -386,6 +386,10 @@ function noSourceWizard()
     then
         INSTALL_EE=1
     fi
+    if [[ "$INSTALL_EE" ]] && askConfirmation "Do you want install B2B Extension (y/N)"
+    then
+         INSTALL_B2B=1
+    fi
 }
 
 function printConfirmation()
@@ -1120,6 +1124,10 @@ showComposerWizzard()
     then
         INSTALL_EE=1
     fi
+    if [[ "$INSTALL_EE" ]] && askConfirmation "Do you want install B2B Extension (y/N)"
+    then
+        INSTALL_B2B=1
+    fi
 
 }
 
@@ -1148,6 +1156,10 @@ function showWizzardGit()
     if askConfirmation "Do you want to install Enterprise Edition (y/N)"
     then
         INSTALL_EE=1
+    fi
+    if [[ "$INSTALL_EE" ]] && askConfirmation "Do you want install B2B Extension (y/N)"
+    then
+        INSTALL_B2B=1
     fi
 }
 
@@ -1324,13 +1336,14 @@ Options:
     -f, --force                          Install/Restore without any confirmations.
     --sample-data (yes, no)              Install sample data.
     --ee                                 Install Enterprise Edition.
-    --b2b                                Install B2B Edition.
+    --b2b                                Install B2B Extension.
     -v, --version                        Magento Version - it means: Composer version or GIT Branch
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
     --quiet                              Quiet mode. Suppress output all commands
     --skip-post-deploy                   Skip the post deploy script if it is exist
     --step (restore_code,restore_db      Specify step through comma without spaces.
-        configure_db, configure_files)   - Example: $(basename "$0") --step restore_db,configure_db
+        configure_db,configure_files     - Example: $(basename "$0") --step restore_db,configure_db
+        installB2B --b2b)                - Example: $(basename "$0") --step installB2B --b2b
     --restore-table                      Restore only the specific table from DB dumps
     --debug                              Enable debug mode
     _________________________________________________________________________________________________
