@@ -956,11 +956,13 @@ function _installSampleData()
             runCommand
         fi
     fi
-
+    if ! grep -q 'https://repo.magento.com' composer.json;
+    then
+        CMD="${BIN_COMPOSER} config repositories.magento composer https://repo.magento.com"
+	runCommand
+    fi
 
     CMD="${BIN_MAGE} sampledata:deploy"
-    runCommand
-    CMD="${BIN_COMPOSER} update"
     runCommand
     CMD="${BIN_MAGE} setup:upgrade"
     runCommand
