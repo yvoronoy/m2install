@@ -1186,9 +1186,6 @@ function gitClone()
     CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION $GIT_CE_REPO ."
     runCommand
 
-    CMD="${BIN_GIT} checkout $MAGENTO_VERSION"
-    runCommand
-
     if [[ "$GIT_EE_REPO" ]] && [[ "$INSTALL_EE" ]]
     then
         CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION $GIT_EE_REPO $EE_PATH"
