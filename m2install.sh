@@ -64,6 +64,16 @@ TIMEZONE="America/Chicago"
 LANGUAGE="en_US"
 CURRENCY="USD"
 
+BUNDLED_EXTENSION=(
+    amzn/amazon-pay-and-login-magento-2-module
+    dotmailer/dotmailer-magento2-extension
+    klarna/module-core
+    klarna/module-kp
+    klarna/module-ordermanagement
+    temando/module-shipping-m2
+    vertex/module-tax
+)
+
 function printVersion()
 {
     printString "1.0.2"
@@ -1009,7 +1019,7 @@ function installB2B()
 {
     if [ "${SOURCE}" == 'git' ]
     then
-        CMD="${BIN_COMPOSER} config repositories.b2b composer https://repo.magento.com/"
+        CMD="${BIN_COMPOSER} config repositories.magento composer https://repo.magento.com/"
         runCommand
     fi
     CMD="${BIN_COMPOSER} require magento/extension-b2b"
@@ -1051,8 +1061,17 @@ function installMagento()
 {
     if [ "${SOURCE}" == 'git' ]
     then
-        CMD="composer require amzn/amazon-pay-and-login-magento-2-module dotmailer/dotmailer-magento2-extension klarna/module-core klarna/module-kp klarna/module-ordermanagement temando/module-shipping-m2 vertex/module-tax"
+        CMD="${BIN_COMPOSER} config repositories.magento composer https://repo.magento.com/"
         runCommand
+        # Install Bundled Extensions for version 2.2.+
+        if [[ $MAGENTO_VERSION =~ ^2\.[^01]\..* ]]
+        then
+            for be in "${BUNDLED_EXTENSION[@]}" 
+            do
+                CMD="composer require --quiet ${be}"
+                runCommand
+            done
+        fi
     fi
 
     CMD="rm -rf var/generation/*"
