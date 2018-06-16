@@ -64,6 +64,16 @@ TIMEZONE="America/Chicago"
 LANGUAGE="en_US"
 CURRENCY="USD"
 
+BUNDLED_EXTENSION=(
+    amzn/amazon-pay-and-login-magento-2-module
+    dotmailer/dotmailer-magento2-extension
+    klarna/module-core
+    klarna/module-kp
+    klarna/module-ordermanagement
+    temando/module-shipping-m2
+    vertex/module-tax
+)
+
 function printVersion()
 {
     printString "1.0.2"
@@ -988,14 +998,14 @@ function _installSampleDataForBeta()
 
 function _installGitSampleData()
 {
-    CMD="${BIN_GIT} clone $GIT_CE_SD_REPO $GIT_CE_SD_PATH && cd $GIT_CE_SD_PATH && ${BIN_GIT} checkout $MAGENTO_VERSION && cd .."
+    CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION $GIT_CE_SD_REPO $GIT_CE_SD_PATH"
     runCommand
     CMD="php -f $GIT_CE_SD_PATH/dev/tools/build-sample-data.php -- --ce-source=."
     runCommand
 
     if [[ "$GIT_EE_SD_REPO" ]] && [[ "$INSTALL_EE" ]]
     then
-        CMD="${BIN_GIT} clone $GIT_EE_SD_REPO $GIT_EE_SD_PATH && cd $GIT_EE_SD_PATH && ${BIN_GIT} checkout $MAGENTO_VERSION && cd .."
+        CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION $GIT_EE_SD_REPO $GIT_EE_SD_PATH"
         runCommand
         CMD="php -f $GIT_EE_SD_PATH/dev/tools/build-sample-data.php -- --ce-source=. --ee-source=$MAGENTO_EE_PATH"
         runCommand
@@ -1009,7 +1019,7 @@ function installB2B()
 {
     if [ "${SOURCE}" == 'git' ]
     then
-        CMD="${BIN_COMPOSER} config repositories.b2b composer https://repo.magento.com/"
+        CMD="${BIN_COMPOSER} config repositories.magento composer https://repo.magento.com/"
         runCommand
     fi
     CMD="${BIN_COMPOSER} require magento/extension-b2b"
@@ -1049,6 +1059,21 @@ function runComposerInstall()
 
 function installMagento()
 {
+    if [ "${SOURCE}" == 'git' ]
+    then
+        CMD="${BIN_COMPOSER} config repositories.magento composer https://repo.magento.com/"
+        runCommand
+        # Install Bundled Extensions for version 2.2.+
+        if [[ $MAGENTO_VERSION =~ ^2\.[^01]\..* ]]
+        then
+            for be in "${BUNDLED_EXTENSION[@]}" 
+            do
+                CMD="composer require --quiet ${be}"
+                runCommand
+            done
+        fi
+    fi
+
     CMD="rm -rf var/generation/*"
     runCommand
 
@@ -1158,21 +1183,12 @@ function gitClone()
     validateGitRepository "${GIT_CE_REPO}" "${MAGENTO_VERSION}"
     validateGitRepository "${GIT_EE_REPO}" "${MAGENTO_VERSION}"
 
-    CMD="${BIN_GIT} clone $GIT_CE_REPO ."
-    runCommand
-
-    CMD="${BIN_GIT} checkout $MAGENTO_VERSION"
+    CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION $GIT_CE_REPO ."
     runCommand
 
     if [[ "$GIT_EE_REPO" ]] && [[ "$INSTALL_EE" ]]
     then
-        CMD="${BIN_GIT} clone $GIT_EE_REPO $EE_PATH"
-        runCommand
-        CMD="cd ${EE_PATH}"
-        runCommand
-        CMD="${BIN_GIT} checkout $MAGENTO_VERSION"
-        runCommand
-        CMD="cd .."
+        CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION $GIT_EE_REPO $EE_PATH"
         runCommand
     fi
 }
