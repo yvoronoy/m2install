@@ -792,119 +792,106 @@ function getTablePrefix()
 
 function updateMagentoEnvFile()
 {
-    _key="'key' => 'ec3b1c29111007ac5d9245fb696fb729',"
-    _date="'date' => 'Fri, 27 Nov 2015 12:24:54 +0000',"
-    _table_prefix="'table_prefix' => '$(getTablePrefix)',"
-
-
     if [ -f app/etc/env.php ] && [ ! -f app/etc/env.php.merchant ]
     then
         CMD="cp app/etc/env.php app/etc/env.php.merchant"
         runCommand
     fi
-    if [ -f app/etc/env.php.merchant ]
-    then
-        if grep key app/etc/env.php.merchant | grep -q "[\'][,]"
-        then
-            _key=$(grep key app/etc/env.php.merchant | grep "[\'][,]")
-        else
-            _key=$(sed -n "/key/,/[\'][,]/p" app/etc/env.php.merchant)
-        fi
-        _date=$(grep date app/etc/env.php.merchant)
-        _table_prefix=$(grep table_prefix app/etc/env.php.merchant)
-    fi
-    cat << EOF > app/etc/env.php
+    local deployConfigurator=$(cat << EOF
 <?php
-return array (
-  'backend' =>
-  array (
-    'frontName' => '${BACKEND_FRONTNAME}',
-  ),
-  'queue' =>
-  array (
-    'amqp' =>
-    array (
-      'host' => '',
-      'port' => '',
-      'user' => '',
-      'password' => '',
-      'virtualhost' => '/',
-      'ssl' => '',
-    ),
-  ),
-  'db' =>
-  array (
-    'connection' =>
-    array (
-      'indexer' =>
-      array (
-        'host' => '${DB_HOST}',
-        'dbname' => '${DB_NAME}',
-        'username' => '${DB_USER}',
-        'password' => '${DB_PASSWORD}',
-        'model' => 'mysql4',
-        'engine' => 'innodb',
-        'initStatements' => 'SET NAMES utf8;',
-        'active' => '1',
-        'persistent' => NULL,
-      ),
-      'default' =>
-      array (
-        'host' => '${DB_HOST}',
-        'dbname' => '${DB_NAME}',
-        'username' => '${DB_USER}',
-        'password' => '${DB_PASSWORD}',
-        'model' => 'mysql4',
-        'engine' => 'innodb',
-        'initStatements' => 'SET NAMES utf8;',
-        'active' => '1',
-      ),
-    ),
-    ${_table_prefix}
-  ),
-  'install' =>
-  array (
-    ${_date}
-  ),
-  'crypt' =>
-  array (
-    ${_key}
-  ),
-  'session' =>
-  array (
-    'save' => 'files',
-  ),
-  'resource' =>
-  array (
-    'default_setup' =>
-    array (
-      'connection' => 'default',
-    ),
-  ),
-  'x-frame-options' => 'SAMEORIGIN',
-  'MAGE_MODE' => 'default',
-  'cache_types' =>
-  array (
-    'config' => 1,
-    'layout' => 1,
-    'block_html' => 1,
-    'collections' => 1,
-    'reflection' => 1,
-    'db_ddl' => 1,
-    'eav' => 1,
-    'full_page' => 1,
-    'config_integration' => 1,
-    'config_integration_api' => 1,
-    'target_rule' => 1,
-    'translate' => 1,
-    'config_webservice' => 1,
-  ),
-);
-EOF
 
-_key=
-_date=
-_table_prefix=
+\$dbHost = '${DB_HOST}';
+\$dbName = '${DB_NAME}';
+\$dbUser = '${DB_USER}';
+\$dbPassword = '${DB_PASSWORD}';
+\$frontName = '${BACKEND_FRONTNAME}';
+
+EOF
+);
+    deployConfigurator+=$(cat << 'EOF'
+
+function updateMode($envConfig, $mode)
+{
+    $envConfig['MAGE_MODE'] = $mode;
+    return $envConfig;
+}
+
+function updateBackendFrontName($envConfig, $frontName)
+{
+    $envConfig['backend'] = array('frontName' => $frontName);
+    return $envConfig;
+}
+
+function updateDbConnection($envConfig, $connectionDetails)
+{
+    if (empty($envConfig['db'])) {
+        return $envConfig;
+    }
+    foreach ($envConfig['db'] as $key => $connections) {
+        if ($key != 'connection') {
+            continue;
+        }
+        foreach ($connections as $connectionName => $connectionParams) {
+            $envConfig['db'][$key][$connectionName] = $connectionDetails;
+        }
+    }
+
+    return $envConfig;
+}
+
+function updateSessionConfiguration($envConfig, $value)
+{
+    $envConfig['session'] = array('save' => $value);
+    return $envConfig;
+}
+
+function removeNonDefaultConfiguration($envConfig)
+{
+    $allowedConfigPaths = array(
+        'backend',
+        'crypt',
+        'db',
+        'resource',
+        'x-frame-options',
+        'MAGE_MODE',
+        'session',
+        'cache_types',
+        'install'
+    );
+    foreach ($envConfig as $path => $value) {
+      if (!in_array($path, $allowedConfigPaths)) {
+          unset($envConfig[$path]);
+      }
+    }
+
+    return $envConfig;
+}
+ob_start();
+require 'vendor/autoload.php';
+ob_end_clean();
+$formatter = new Magento\Framework\App\DeploymentConfig\Writer\PhpFormatter();
+$envConfig = require 'app/etc/env.php';
+$envConfig = removeNonDefaultConfiguration($envConfig);
+$envConfig = updateSessionConfiguration($envConfig, 'files');
+$envConfig = updateDbConnection($envConfig, array(
+    'host' => "$dbHost",
+    'dbname' => "$dbName",
+    'username' => "$dbUser",
+    'password' => "$dbPassword",
+    'model' => 'mysql4',
+    'engine' => 'innodb',
+    'initStatements' => 'SET NAMES utf8;',
+    'active' => '1'
+));
+$envConfig = updateBackendFrontName($envConfig, $frontName);
+$envConfig = updateMode($envConfig, 'default');
+$data = $formatter->format($envConfig);
+echo $data;
+EOF
+);
+
+ echo "$deployConfigurator" | php > app/etc/env.php.generated
+ mv app/etc/env.php.generated app/etc/env.php
 }
 
 function deployStaticContent()
