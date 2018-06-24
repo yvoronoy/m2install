@@ -786,7 +786,7 @@ function overwriteOriginalFiles()
 }
 function getTablePrefix()
 {
-    echo $(grep 'table_prefix' app/etc/env.php | head -n1 | sed "s/[a-z'_ ]*[=][>][ ]*[']//" | sed "s/['][,]//")
+    echo $(grep 'table_prefix' app/etc/env.php | head -n1 | sed "s/[a-z'_ ]*[=][>][ ]*[']//" | sed "s/[',]*//")
     return 0;
 }
 
