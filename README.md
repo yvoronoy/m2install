@@ -75,6 +75,18 @@ To install Magento 2 from composer run m2install with --source composer param
 #### How to Install Magento 2 with Sample Data
  * Run m2install
  * Use wizard to install the sample data.
+ 
+ 
+#### How to Install Magento 2 with B2B extension
+With wizard
+ * Run m2install
+ * Use wizard to install the B2B
+ 
+With CLI flags
+ * ```m2install --ee --b2b``` or
+ * ```m2install --step installB2B --b2b``` if you already have Magento EE
+ 
+Remember that you have to install Enterprise Edition to be able to install B2B extension 
 
 ## Wizard
 m2install shows you wizard on first run and prompts to save entered values to config file.
