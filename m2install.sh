@@ -635,6 +635,7 @@ function configure_db()
     clearCustomAdmin
     replaceFastlyKey
     enableBuiltinCache
+    resetImagePlaceholders
     resetAdminPassword
 }
 
@@ -736,6 +737,12 @@ function resetAdminPassword()
         --admin-firstname='${ADMIN_FIRSTNAME}'
         --admin-lastname='${ADMIN_LASTNAME}'"
     runCommand
+}
+
+function resetImagePlaceholders()
+{
+    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path LIKE 'catalog/placeholder/%'"
+    mysqlQuery
 }
 
 function overwriteOriginalFiles()
