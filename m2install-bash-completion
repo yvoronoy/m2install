@@ -7,7 +7,7 @@ _m2install()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="--help -h --source -s --force -f --sample-data --step --ee-path --ee --git-branch --mode --quiet --code-dump --db-dump --debug --skip-post-deploy --restore-table";
+    opts="--help -h --source -s --force -f --sample-data --step --ee-path --ee --git-branch --mode --quiet --php --code-dump --db-dump --debug --skip-post-deploy --restore-table";
 
     case "$prev" in 
         --source)
@@ -32,6 +32,10 @@ _m2install()
         ;;
         --mode)
             COMPREPLY=( $(compgen -W "dev prod" ${cur}) )
+            return 0;
+        ;;
+        --php)
+            COMPREPLY=( $(compgen -W "php71" ${cur}) )
             return 0;
         ;;
         --code-dump)
