@@ -49,10 +49,20 @@ Options:
     -s, --source (git, composer)         Get source code.
     -f, --force                          Install/Restore without any confirmations.
     --sample-data (yes, no)              Install sample data.
-    --ee-path (/path/to/ee)              Path to Enterprise Edition.
-    --git-branch (branch name)           Specify Git Branch.
+    --ee                                 Install Enterprise Edition.
+    --b2b                                Install B2B Extension.
+    -v, --version                        Magento Version - it means: Composer version or GIT Branch
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
     --quiet                              Quiet mode. Suppress output all commands
+    --skip-post-deploy                   Skip the post deploy script if it is exist
+    --step (restore_code,restore_db      Specify step through comma without spaces.
+        configure_db,configure_files     - Example: $(basename "$0") --step restore_db,configure_db
+        installB2B --b2b)                - Example: $(basename "$0") --step installB2B --b2b
+    --restore-table                      Restore only the specific table from DB dumps
+    --debug                              Enable debug mode
+    --php                                Specify path to PHP CLI (php71 or /usr/bin/php71)
+    _________________________________________________________________________________________________
+    --ee-path (/path/to/ee)              (DEPRECATED use --ee flag) Path to Enterprise Edition.
 ```
 
 ## How to deploy backup/support dumps

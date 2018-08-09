@@ -49,8 +49,9 @@ SOURCE=
 FORCE=
 MAGE_MODE=dev
 
-BIN_MAGE="php -d memory_limit=2G bin/magento"
-BIN_COMPOSER="composer"
+BIN_PHP=php
+BIN_MAGE="-d memory_limit=2G bin/magento"
+BIN_COMPOSER=$(command -v composer)
 BIN_MYSQL="mysql"
 BIN_GIT="git"
 
@@ -284,8 +285,8 @@ function initQuietMode()
         return;
     fi
 
-    BIN_MAGE="${BIN_MAGE} --quiet"
-    BIN_COMPOSER="${BIN_COMPOSER} --quiet"
+    BIN_MAGE="${BIN_PHP} ${BIN_MAGE} --quiet"
+    BIN_COMPOSER="${BIN_PHP} ${BIN_COMPOSER} --quiet"
     BIN_GIT="${BIN_GIT} --quiet"
 
     FORCE=1
@@ -623,9 +624,9 @@ function configure_files()
 
 function appConfigImport()
 {
-    if php bin/magento | grep -q app:config:import
+    if ${BIN_PHP} bin/magento | grep -q app:config:import
     then
-        CMD="php bin/magento app:config:import -n"
+        CMD="${BIN_PHP} bin/magento app:config:import -n"
         runCommand
     fi
 }
@@ -734,7 +735,7 @@ function resetAdminPassword()
 {
     SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)admin_user SET ${DB_NAME}.$(getTablePrefix)admin_user.email = '${ADMIN_EMAIL}' WHERE ${DB_NAME}.$(getTablePrefix)admin_user.username = '${ADMIN_NAME}'"
     mysqlQuery
-    CMD="${BIN_MAGE} admin:user:create
+    CMD="${BIN_PHP} ${BIN_MAGE} admin:user:create
         --admin-user='${ADMIN_NAME}'
         --admin-password='${ADMIN_PASSWORD}'
         --admin-email='${ADMIN_EMAIL}'
@@ -912,7 +913,7 @@ function deployStaticContent()
         return;
     fi
 
-    CMD="${BIN_MAGE} setup:static-content:deploy"
+    CMD="${BIN_PHP} ${BIN_MAGE} setup:static-content:deploy"
     runCommand
 }
 
@@ -922,13 +923,13 @@ function compileDi()
     then
         return;
     fi
-    CMD="${BIN_MAGE} setup:di:compile"
+    CMD="${BIN_PHP} ${BIN_MAGE} setup:di:compile"
     runCommand
 }
 
 function installSampleData()
 {
-    if php bin/magento --version | grep -q beta
+    if ${BIN_PHP} bin/magento --version | grep -q beta
     then
         _installSampleDataForBeta;
     elif [ "$SOURCE" == 'git' ]
@@ -941,7 +942,7 @@ function installSampleData()
 
 function _installSampleData()
 {
-    if ! php bin/magento | grep -q sampledata:deploy
+    if ! ${BIN_PHP} bin/magento | grep -q sampledata:deploy
     then
         printString "Your version does not support sample data"
         return;
@@ -966,13 +967,13 @@ function _installSampleData()
     fi
     if ! grep -q 'https://repo.magento.com' composer.json;
     then
-        CMD="${BIN_COMPOSER} config repositories.magento composer https://repo.magento.com"
+        CMD="${BIN_PHP} ${BIN_COMPOSER} config repositories.magento composer https://repo.magento.com"
 	runCommand
     fi
 
-    CMD="${BIN_MAGE} sampledata:deploy"
+    CMD="${BIN_PHP} ${BIN_MAGE} sampledata:deploy"
     runCommand
-    CMD="${BIN_MAGE} setup:upgrade"
+    CMD="${BIN_PHP} ${BIN_MAGE} setup:upgrade"
     runCommand
 
     if [ -f "var/composer_home/auth.json" ]
@@ -984,13 +985,13 @@ function _installSampleData()
 
 function _installSampleDataForBeta()
 {
-    CMD="${BIN_COMPOSER} config repositories.magento composer http://packages.magento.com"
+    CMD="${BIN_PHP} ${BIN_COMPOSER} config repositories.magento composer http://packages.magento.com"
     runCommand
-    CMD="${BIN_COMPOSER} require magento/sample-data:~1.0.0-beta"
+    CMD="${BIN_PHP} ${BIN_COMPOSER} require magento/sample-data:~1.0.0-beta"
     runCommand
-    CMD="${BIN_MAGE} setup:upgrade"
+    CMD="${BIN_PHP} ${BIN_MAGE} setup:upgrade"
     runCommand
-    CMD="${BIN_MAGE} sampledata:install admin"
+    CMD="${BIN_PHP} ${BIN_MAGE} sampledata:install admin"
     runCommand
 }
 
@@ -998,18 +999,18 @@ function _installGitSampleData()
 {
     CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION $GIT_CE_SD_REPO $GIT_CE_SD_PATH"
     runCommand
-    CMD="php -f $GIT_CE_SD_PATH/dev/tools/build-sample-data.php -- --ce-source=."
+    CMD="${BIN_PHP} -f $GIT_CE_SD_PATH/dev/tools/build-sample-data.php -- --ce-source=."
     runCommand
 
     if [[ "$GIT_EE_SD_REPO" ]] && [[ "$INSTALL_EE" ]]
     then
         CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION $GIT_EE_SD_REPO $GIT_EE_SD_PATH"
         runCommand
-        CMD="php -f $GIT_EE_SD_PATH/dev/tools/build-sample-data.php -- --ce-source=. --ee-source=$MAGENTO_EE_PATH"
+        CMD="${BIN_PHP} -f $GIT_EE_SD_PATH/dev/tools/build-sample-data.php -- --ce-source=. --ee-source=$MAGENTO_EE_PATH"
         runCommand
     fi
 
-    CMD="${BIN_MAGE} setup:upgrade"
+    CMD="${BIN_PHP} ${BIN_MAGE} setup:upgrade"
     runCommand
 }
 
@@ -1017,12 +1018,12 @@ function installB2B()
 {
     if [ "${SOURCE}" == 'git' ]
     then
-        CMD="${BIN_COMPOSER} config repositories.magento composer https://repo.magento.com/"
+        CMD="${BIN_PHP} ${BIN_COMPOSER} config repositories.magento composer https://repo.magento.com/"
         runCommand
     fi
-    CMD="${BIN_COMPOSER} require magento/extension-b2b"
+    CMD="${BIN_PHP} ${BIN_COMPOSER} require magento/extension-b2b"
     runCommand
-    CMD="${BIN_MAGE} setup:upgrade"
+    CMD="${BIN_PHP} ${BIN_MAGE} setup:upgrade"
     runCommand
 }
 
@@ -1040,7 +1041,7 @@ function linkEnterpriseEdition()
             printString "Use absolute or relative path to EE code base or [N] to skip it"
             exit 1
         fi
-        CMD="php ${EE_PATH}/dev/tools/build-ee.php --ce-source $(pwd) --ee-source ${EE_PATH}"
+        CMD="${BIN_PHP} ${EE_PATH}/dev/tools/build-ee.php --ce-source $(pwd) --ee-source ${EE_PATH}"
         runCommand
         CMD="cp ${EE_PATH}/composer.json $(pwd)/"
         runCommand
@@ -1051,7 +1052,7 @@ function linkEnterpriseEdition()
 
 function runComposerInstall()
 {
-    CMD="${BIN_COMPOSER} install"
+    CMD="${BIN_PHP} ${BIN_COMPOSER} install"
     runCommand
 }
 
@@ -1059,7 +1060,7 @@ function installMagento()
 {
     if [ "${SOURCE}" == 'git' ]
     then
-        CMD="${BIN_COMPOSER} config repositories.magento composer https://repo.magento.com/"
+        CMD="${BIN_PHP} ${BIN_COMPOSER} config repositories.magento composer https://repo.magento.com/"
         runCommand
         # Install Bundled Extensions for version 2.2.+
         if [[ $MAGENTO_VERSION =~ ^2\.[^01]\..* ]]
@@ -1075,13 +1076,13 @@ function installMagento()
     CMD="rm -rf var/generation/*"
     runCommand
 
-    CMD="${BIN_MAGE} --no-interaction setup:uninstall"
+    CMD="${BIN_PHP} ${BIN_MAGE} --no-interaction setup:uninstall"
     runCommand
 
     dropDB
     createNewDB
 
-    CMD="${BIN_MAGE} setup:install \
+    CMD="${BIN_PHP} ${BIN_MAGE} setup:install \
     --base-url=${BASE_URL} \
     --db-host=${DB_HOST} \
     --db-name=${DB_NAME} \
@@ -1125,10 +1126,10 @@ function composerInstall()
 {
     if [ "$INSTALL_EE" ]
     then
-        CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-enterprise-edition . ${MAGENTO_VERSION}"
+        CMD="${BIN_PHP} ${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-enterprise-edition . ${MAGENTO_VERSION}"
         runCommand
     else
-        CMD="${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-community-edition . ${MAGENTO_VERSION}"
+        CMD="${BIN_PHP} ${BIN_COMPOSER} create-project --repository-url=https://repo.magento.com/ magento/project-community-edition . ${MAGENTO_VERSION}"
         runCommand
     fi
 }
@@ -1283,7 +1284,7 @@ function addStep()
 
 function setProductionMode()
 {
-    CMD="${BIN_MAGE} deploy:mode:set production"
+    CMD="${BIN_PHP} ${BIN_MAGE} deploy:mode:set production"
     runCommand
 }
 
@@ -1358,6 +1359,7 @@ Options:
         installB2B --b2b)                - Example: $(basename "$0") --step installB2B --b2b
     --restore-table                      Restore only the specific table from DB dumps
     --debug                              Enable debug mode
+    --php                                Specify path to PHP CLI (php71 or /usr/bin/php71)
     _________________________________________________________________________________________________
     --ee-path (/path/to/ee)              (DEPRECATED use --ee flag) Path to Enterprise Edition.
 EOF
@@ -1448,6 +1450,11 @@ function processOptions()
                 ;;
             --debug)
               set -o xtrace;
+            ;;
+            --php)
+                checkArgumentHasValue "$1" "$2"
+                BIN_PHP=$2
+                shift
             ;;
         esac
         shift
