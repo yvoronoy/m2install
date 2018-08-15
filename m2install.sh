@@ -42,8 +42,10 @@ GIT_CE_REPO="git@github.com:magento/magento2.git"
 GIT_CE_SD_REPO="git@github.com:magento/magento2-sample-data.git"
 GIT_EE_REPO=
 GIT_EE_SD_REPO=
+GIT_B2B_REPO=
 GIT_CE_SD_PATH=magento2-sample-data
 GIT_EE_SD_PATH=magento2-sample-data-ee
+GIT_B2B_PATH=magento2b2b
 
 SOURCE=
 FORCE=
@@ -435,13 +437,13 @@ function printConfirmation()
     fi
     if [ "${INSTALL_EE}" ]
     then
-        printString "Magento EE will be installed"
+        printString "Magento EE will be installed."
     else
         printString "Magento EE will NOT be installed."
     fi
     if [ "${INSTALL_B2B}" ]
     then
-        printString "Magento B2B will be installed"
+        printString "Magento B2B will be installed."
     else
         printString "Magento B2B will NOT be installed."
     fi
@@ -1016,15 +1018,34 @@ function _installGitSampleData()
 
 function installB2B()
 {
+    if [ -z "$B2B_VERSION" ]
+    then
+        getB2Bversion
+    fi
+
     if [ "${SOURCE}" == 'git' ]
     then
-        CMD="${BIN_PHP} ${BIN_COMPOSER} config repositories.magento composer https://repo.magento.com/"
+        validateGitRepository "${GIT_B2B_REPO}" "${B2B_VERSION}"
+        CMD="${BIN_GIT} clone --branch ${B2B_VERSION} ${GIT_B2B_REPO} ${GIT_B2B_PATH}"
+        runCommand
+        CMD="${BIN_PHP} dev/tools/build-ee.php --ce-source $(pwd) --ee-source ${GIT_B2B_PATH}"
+        runCommand
+        CMD="rm -rf var/* generation/*"
+        runCommand
+    else
+        CMD="${BIN_PHP} ${BIN_COMPOSER} require magento/extension-b2b"
         runCommand
     fi
-    CMD="${BIN_PHP} ${BIN_COMPOSER} require magento/extension-b2b"
-    runCommand
     CMD="${BIN_PHP} ${BIN_MAGE} setup:upgrade"
     runCommand
+}
+
+function getB2Bversion()
+{
+    REAL_MAGENTO_VERSION=`${BIN_PHP} bin/magento --version`
+    B2B_VERSION_MAJOR=$(( `echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).*/\1/'`-2 ))
+    B2B_VERSION_MINOR=`echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).*/\2/'`
+    B2B_VERSION="1.${B2B_VERSION_MAJOR}.${B2B_VERSION_MINOR}"
 }
 
 function linkEnterpriseEdition()
@@ -1223,6 +1244,11 @@ function printGitConfirmation()
     printString "Git CE repository: ${GIT_CE_REPO}"
     printString "Git EE repository: ${GIT_EE_REPO}"
     printString "Git branch: ${MAGENTO_VERSION}"
+    if [[ ! -z $INSTALL_B2B ]]
+    then
+        printString "Git B2B repository: ${GIT_B2B_REPO}"
+        printString "Git B2B branch: ${B2B_VERSION}"
+    fi
 }
 
 function checkArgumentHasValue()
@@ -1397,6 +1423,13 @@ function processOptions()
             ;;
             --b2b)
                 INSTALL_B2B=1
+                if [[ "$2" =~ ^- ]]
+                then
+                    B2B_VERSION=
+                else
+                    B2B_VERSION="$2"
+                    shift
+                fi
             ;;
             -b|--git-branch)
                 # @DEPRECATED. Use -v or --version instead
