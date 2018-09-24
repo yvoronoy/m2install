@@ -633,19 +633,6 @@ function appConfigImport()
     fi
 }
 
-function configure_db()
-{
-    updateBaseUrl
-    clearBaseLinks
-    clearCookieDomain
-    clearSslFlag
-    clearCustomAdmin
-    replaceFastlyKey
-    enableBuiltinCache
-    resetImagePlaceholders
-    resetAdminPassword
-}
-
 function validateDeploymentFromDumps()
 {
     local files=(
@@ -685,52 +672,50 @@ function validateDeploymentFromDumps()
     fi
 }
 
-function updateBaseUrl()
+function configure_db()
 {
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = '${BASE_URL}' WHERE e.path IN ('web/secure/base_url', 'web/unsecure/base_url')"
-    mysqlQuery
+  setConfig 'web/secure/base_url' "${BASE_URL}";
+  setConfig 'web/unsecure/base_url' "${BASE_URL}";
+  deleteConfig 'web/unsecure/base_link_url';
+  deleteConfig 'web/secure/base_link_url';
+  deleteConfig 'web/unsecure/base_static_url';
+  deleteConfig 'web/unsecure/base_media_url';
+  deleteConfig 'web/secure/base_static_url';
+  deleteConfig 'web/secure/base_media_url';
+  deleteConfig "web/cookie/cookie_domain";
+  deleteConfig "web/secure/use_in_adminhtml";
+  deleteConfig "web/secure/use_in_frontend";
+  deleteConfig "admin/url/custom";
+  deleteConfig "admin/url/custom_path";
+  deleteConfig "admin/url/use_custom";
+  deleteConfig "admin/url/use_custom_path";
+  deleteConfig 'system/full_page_cache/fastly/fastly_api_key';
+  deleteConfig 'system/full_page_cache/caching_application';
+  deleteConfig 'catalog/placeholder/%' 'LIKE';
+
+  resetAdminPassword
 }
 
-function clearBaseLinks()
+function setConfig()
 {
-    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path IN ('web/unsecure/base_link_url', 'web/secure/base_link_url', 'web/unsecure/base_static_url', 'web/unsecure/base_media_url', 'web/secure/base_static_url', 'web/secure/base_media_url')";
-    mysqlQuery
+  local path="${1}";
+  local value="${2}";
+
+  SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data SET ${DB_NAME}.$(getTablePrefix)core_config_data.value = '${value}' WHERE path = '${path}'"
+  mysqlQuery
 }
 
-function clearCookieDomain()
+function deleteConfig()
 {
-    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path = 'web/cookie/cookie_domain'"
-    mysqlQuery
-}
+  local path="${1}";
+  local where="=";
+  if [ ! -z $2 ]
+  then
+    where="${2}";
+  fi
 
-function clearSslFlag()
-{
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = 0 WHERE e.path IN ('web/secure/use_in_adminhtm', 'web/secure/use_in_frontend')"
-    mysqlQuery
-}
-
-function clearCustomAdmin()
-{
-    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path = 'admin/url/custom'"
-    mysqlQuery
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data SET ${DB_NAME}.$(getTablePrefix)core_config_data.value = '0' WHERE path = 'admin/url/use_custom'"
-    mysqlQuery
-    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path = 'admin/url/custom_path'"
-    mysqlQuery
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data SET ${DB_NAME}.$(getTablePrefix)core_config_data.value = '0' WHERE path = 'admin/url/use_custom_path'"
-    mysqlQuery
-}
-
-function replaceFastlyKey()
-{
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = 'replaced_by_m2install' WHERE e.path = 'system/full_page_cache/fastly/fastly_api_key'"
-    mysqlQuery
-}
-
-function enableBuiltinCache()
-{
-    SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data AS e SET e.value = 1 WHERE e.path = 'system/full_page_cache/caching_application'"
-    mysqlQuery
+  SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path ${where} '${path}'";
+  mysqlQuery
 }
 
 function resetAdminPassword()
@@ -744,12 +729,6 @@ function resetAdminPassword()
         --admin-firstname='${ADMIN_FIRSTNAME}'
         --admin-lastname='${ADMIN_LASTNAME}'"
     runCommand
-}
-
-function resetImagePlaceholders()
-{
-    SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path LIKE 'catalog/placeholder/%'"
-    mysqlQuery
 }
 
 function overwriteOriginalFiles()
@@ -1545,6 +1524,31 @@ function magentoCustomStepsAction()
     prepareSteps
 }
 
+
+################################################################################
+# Tests
+################################################################################
+
+function assertEqual()
+{
+  local expected=${1:-}
+  local current=${2:-}
+  if [[ "$1" == "$2" ]]
+  then
+    echo -n "."
+    return 0;
+  else
+    echo "===> Tests are failed."
+    echo "Expected [${expected}] but current [${current}]"
+    exit 1;
+  fi
+}
+
+function runTests()
+{
+  echo "tests";
+}
+
 ################################################################################
 # Main
 ################################################################################
@@ -1554,6 +1558,8 @@ export LANG=C
 
 function main()
 {
+    [[ $1 == "--test" ]] && runTests
+
     loadConfigFile $(getConfigFiles)
     processOptions "$@"
     initQuietMode
