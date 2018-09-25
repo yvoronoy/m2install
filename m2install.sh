@@ -672,6 +672,28 @@ function validateDeploymentFromDumps()
     fi
 }
 
+function switchSearchEngineToDefaultEngine()
+{
+  local red=`tput setaf 1`
+  local green=`tput setaf 2`
+  local yellow=`tput setaf 3`
+  local default=`tput sgr0`
+  local engine=$(getConfig 'catalog/search/engine' "value");
+  [ "$engine" == 'mysql' ] && return 0;
+  [ ! "$engine" ] && return 0;
+
+  deleteConfig 'catalog/search/engine'
+  cat <<endmessage
+${yellow}
+####################################################################################
+Warning: A Search Engine has been switched from ${engine} to ${green}mysql${yellow}
+If you need see products on catalog you need rebuild catalog search index
+php bin/magento indexer:reindex catalogsearch_fulltext
+####################################################################################
+${default}
+endmessage
+}
+
 function configure_db()
 {
   setConfig 'web/secure/base_url' "${BASE_URL}";
@@ -694,6 +716,7 @@ function configure_db()
   deleteConfig 'catalog/placeholder/%' 'LIKE';
 
   resetAdminPassword
+  switchSearchEngineToDefaultEngine
 }
 
 function setConfig()
@@ -703,6 +726,17 @@ function setConfig()
 
   SQLQUERY="UPDATE ${DB_NAME}.$(getTablePrefix)core_config_data SET ${DB_NAME}.$(getTablePrefix)core_config_data.value = '${value}' WHERE path = '${path}'"
   mysqlQuery
+}
+
+function getConfig()
+{
+  local output=
+  local path="${1}";
+  local field="${2}";
+
+  SQLQUERY="SELECT ${field} FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path = '${path}'";
+  output=$(mysqlQuery)
+  echo "$output" | grep -v "$field"
 }
 
 function deleteConfig()
