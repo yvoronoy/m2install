@@ -854,6 +854,8 @@ function updateDbConnection($envConfig, $connectionDetails)
     if (empty($envConfig['db'])) {
         return $envConfig;
     }
+    unset($envConfig['db']['slave_connection']);
+
     foreach ($envConfig['db'] as $key => $connections) {
         if ($key != 'connection') {
             continue;
