@@ -1406,6 +1406,12 @@ Options:
 EOF
 }
 
+function uninstallAction()
+{
+  cleanupCurrentDirectory
+  dropDB
+}
+
 function processOptions()
 {
     while [[ $# -gt 0 ]]
@@ -1476,6 +1482,10 @@ function processOptions()
                 printUsage
                 exit;
             ;;
+            --uninstall)
+                uninstallAction
+                exit;
+            ;;
             --code-dump)
                 checkArgumentHasValue "$1" "$2"
                 setRequest codedump "$2"
@@ -1508,6 +1518,16 @@ function processOptions()
         shift
     done
 }
+
+function cleanupCurrentDirectory()
+{
+  if [ "$(ls -A)" ] && askConfirmation "Current directory is not empty. Do you want to clean current Directory (y/N)"
+  then
+    CMD="ls -A | xargs rm -rf"
+    runCommand
+  fi
+}
+
 ################################################################################
 # Action Controllers
 ################################################################################
@@ -1515,11 +1535,7 @@ function magentoInstallAction()
 {
     if [[ "${SOURCE}" ]]
     then
-        if [ "$(ls -A)" ] && askConfirmation "Current directory is not empty. Do you want to clean current Directory (y/N)"
-        then
-            CMD="ls -A | xargs rm -rf"
-            runCommand
-        fi
+        cleanupCurrentDirectory
         addStep "downloadSourceCode"
     fi
     addStep "linkEnterpriseEdition"
