@@ -679,16 +679,24 @@ function switchSearchEngineToDefaultEngine()
   local yellow=`tput setaf 3`
   local default=`tput sgr0`
   local engine=$(getConfig 'catalog/search/engine' "value");
-  [ "$engine" == 'mysql' ] && return 0;
-  [ ! "$engine" ] && return 0;
+  [ "$engine" == 'mysql' ] \
+    || [ -z "$engine" ] \
+    && [ ! `grep engine app/etc/config.php | grep elastic` ] \
+    && return 0;
+
+  [ -z "$engine" ] && engine=elasticsearch;
 
   deleteConfig 'catalog/search/engine'
+  local stepsToTake=" - Run php bin/magento indexer:reindex catalogsearch_fulltext"
+  [[ ! -z `grep engine app/etc/config.php | grep elastic` ]] \
+        && stepsToTake=" - Edit app/etc/config.php file and remove section engine => elasticsearch
+${stepsToTake}"
   cat <<endmessage
 ${yellow}
 ####################################################################################
 Warning: A Search Engine has been switched from ${engine} to ${green}mysql${yellow}
-If you need see products on catalog you need rebuild catalog search index
-php bin/magento indexer:reindex catalogsearch_fulltext
+If you need to see products on frontend follow the steps below:
+${stepsToTake}
 ####################################################################################
 ${default}
 endmessage
