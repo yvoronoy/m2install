@@ -1590,9 +1590,10 @@ function magentoCustomStepsAction()
 
 function generateWebsites()
 {
+  [ -z "$(getWebsites)" ] && echo "There is no additional websites" && return 0;
   prepareBaseURL
   [ ! -d websites ] && mkdir websites
-  [ -f websites/index.php ] && rm websites/index.php
+  [ ! -f websites/index.php ] && touch websites/index.php
   for websiteCode in $(getWebsites)
   do
     local websiteDir="websites/${websiteCode}"
@@ -1605,7 +1606,8 @@ function generateWebsites()
     updateWebsiteBaseUrls "${websiteCode}"
   done
   echo "Websites list: ${BASE_URL}websites/"
-  rm websites/index.php.tmp
+  [ -f websites/index.php.tmp ] && rm websites/index.php.tmp
+  php bin/magento cache:flush -q && echo "Flushing cache"
 }
 
 function symlinkMediaStaticDirectories()
@@ -1631,6 +1633,7 @@ function updateWebsiteIndexFile()
   sed -i "28 i ${codeLine}" "${websiteDir}/index.php"
   sed -i "29 i ${typeLine}" "${websiteDir}/index.php"
   sed -i "s/[\/][.][.][\/]/\/..\/..\//" "${websiteDir}/index.php"
+  sed -i "s/URL_PATH[ ][=][>][ ]['\"]\([a-z]\)/URL_PATH => 'websites\/global\/\1/g" "${websiteDir}/index.php"
 }
 
 function createFileStructure()
