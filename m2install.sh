@@ -1480,6 +1480,10 @@ function processOptions()
                 FORCE=1
                 USE_WIZARD=0
             ;;
+            --websites)
+              generateWebsites
+              exit 0;
+            ;;
             --quiet)
                 VERBOSE=0
             ;;
@@ -1583,6 +1587,84 @@ function magentoCustomStepsAction()
 {
     prepareSteps
 }
+
+function generateWebsites()
+{
+  [ -z "$(getWebsites)" ] && echo "There is no additional websites" && return 0;
+  prepareBaseURL
+  [ ! -d websites ] && mkdir websites
+  [ ! -f websites/index.php ] && touch websites/index.php
+  for websiteCode in $(getWebsites)
+  do
+    local websiteDir="websites/${websiteCode}"
+    createFileStructure "$websiteDir" && echo "Creating directory $websiteDir"
+    updateWebsiteIndexFile "$websiteCode"
+    symlinkMediaStaticDirectories "$websiteDir"
+
+    local baseUrl="${BASE_URL}${websiteDir}/"
+    generateWebsiteList "${websiteCode}" && echo "$baseUrl"
+    updateWebsiteBaseUrls "${websiteCode}"
+  done
+  echo "Websites list: ${BASE_URL}websites/"
+  [ -f websites/index.php.tmp ] && rm websites/index.php.tmp
+  php bin/magento cache:flush -q && echo "Flushing cache"
+}
+
+function symlinkMediaStaticDirectories()
+{
+  local websiteDir="$1"
+  [ ! -L "`pwd`/${websiteDir}/media" ] && ln -s `pwd`/pub/media "`pwd`/${websiteDir}/media"
+  [ ! -L "`pwd`/${websiteDir}/static" ] && ln -s `pwd`/pub/static "`pwd`/${websiteDir}/static"
+}
+
+function generateWebsiteList()
+{
+  local websiteCode="$1"
+  local websiteDir="websites/${websiteCode}";
+  echo "<li><a href=\"${websiteCode}\">${websiteDir}</a></li>" >> websites/index.php
+}
+
+function updateWebsiteIndexFile()
+{
+  local websiteCode="$1"
+  local websiteDir="websites/${websiteCode}";
+  local codeLine='$params[\\Magento\\Store\\Model\\StoreManager::PARAM_RUN_CODE] = '"'${websiteCode}';";
+  local typeLine='\$params[\\Magento\\Store\\Model\\StoreManager::PARAM_RUN_TYPE] = '"'website';";
+  sed -i "28 i ${codeLine}" "${websiteDir}/index.php"
+  sed -i "29 i ${typeLine}" "${websiteDir}/index.php"
+  sed -i "s/[\/][.][.][\/]/\/..\/..\//" "${websiteDir}/index.php"
+  sed -i "s/URL_PATH[ ][=][>][ ]['\"]\([a-z]\)/URL_PATH => 'websites\/global\/\1/g" "${websiteDir}/index.php"
+}
+
+function createFileStructure()
+{
+  local websiteDir="$1";
+  [ ! -d "${websiteDir}" ] && mkdir "${websiteDir}";
+  [ ! -f websites/index.php.tmp ] \
+    && curl -s -o "websites/index.php.tmp" https://raw.githubusercontent.com/magento/magento2/2.2/pub/index.php
+  cp websites/index.php.tmp "${websiteDir}/index.php"
+}
+
+function updateWebsiteBaseUrls()
+{
+  local websiteCode="$1"
+  local websiteDir="websites/${websiteCode}";
+    local baseUrl="${BASE_URL}${websiteDir}/"
+    SQLQUERY="INSERT INTO ${DB_NAME}.$(getTablePrefix)core_config_data (config_id, scope, scope_id, path, value)
+      SELECT NULL, 'website' AS scope, website_id, 'web/unsecure/base_url' AS path, '${baseUrl}' AS new_url
+      FROM ${DB_NAME}.$(getTablePrefix)store_website WHERE code = '${websiteCode}'
+      ON DUPLICATE KEY UPDATE value = '${baseUrl}'"
+    output="$(mysqlQuery)"
+}
+
+function getWebsites()
+{
+  local output=
+  SQLQUERY="SELECT code FROM ${DB_NAME}.$(getTablePrefix)store_website WHERE website_id <> 0 AND is_default = 0";
+  output="$(mysqlQuery)"
+  echo "$output" | tail -n+3
+}
+
 
 
 ################################################################################
