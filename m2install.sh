@@ -1633,7 +1633,7 @@ function updateWebsiteIndexFile()
   sed -i "28 i ${codeLine}" "${websiteDir}/index.php"
   sed -i "29 i ${typeLine}" "${websiteDir}/index.php"
   sed -i "s/[\/][.][.][\/]/\/..\/..\//" "${websiteDir}/index.php"
-  sed -i "s/URL_PATH[ ][=][>][ ]['\"]\([a-z]\)/URL_PATH => 'websites\/global\/\1/g" "${websiteDir}/index.php"
+  sed -i "s/URL_PATH[ ][=][>][ ]['\"]\([a-z]\)/URL_PATH => 'websites\/${websiteCode}\/\1/g" "${websiteDir}/index.php"
 }
 
 function createFileStructure()
