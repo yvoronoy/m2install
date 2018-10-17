@@ -1593,7 +1593,7 @@ function generateWebsites()
   [ -z "$(getWebsites)" ] && echo "There is no additional websites" && return 0;
   prepareBaseURL
   [ ! -d websites ] && mkdir websites
-  [ ! -f websites/index.php ] && touch websites/index.php
+  [ -f websites/index.php ] && rm websites/index.php
   for websiteCode in $(getWebsites)
   do
     local websiteDir="websites/${websiteCode}"
@@ -1620,8 +1620,8 @@ function symlinkMediaStaticDirectories()
 function generateWebsiteList()
 {
   local websiteCode="$1"
-  local websiteDir="websites/${websiteCode}";
-  echo "<li><a href=\"${websiteCode}\">${websiteDir}</a></li>" >> websites/index.php
+  local websiteDir="websites/${websiteCode}/";
+  echo "<li><a href=\"${websiteCode}/\">${websiteDir}</a> (Store ID: $(getWebsiteIdByCode ${websiteCode}))</li>" >> websites/index.php
 }
 
 function updateWebsiteIndexFile()
@@ -1661,6 +1661,15 @@ function getWebsites()
 {
   local output=
   SQLQUERY="SELECT code FROM ${DB_NAME}.$(getTablePrefix)store_website WHERE website_id <> 0 AND is_default = 0";
+  output="$(mysqlQuery)"
+  echo "$output" | tail -n+3
+}
+
+function getWebsiteIdByCode()
+{
+  local websiteCode="$1"
+  local output=
+  SQLQUERY="SELECT website_id FROM ${DB_NAME}.$(getTablePrefix)store_website WHERE code = '${websiteCode}'";
   output="$(mysqlQuery)"
   echo "$output" | tail -n+3
 }
