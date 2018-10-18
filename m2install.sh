@@ -681,7 +681,8 @@ function switchSearchEngineToDefaultEngine()
   local engine=$(getConfig 'catalog/search/engine' "value");
   [ "$engine" == 'mysql' ] \
     || [ -z "$engine" ] \
-    && [ ! `grep engine app/etc/config.php | grep elastic` ] \
+    && [ ! -z `grep engine app/etc/config.php | grep elastic` ] \
+    && [ ! -z `grep engine app/etc/env.php.merchant | grep elastic` ] \
     && return 0;
 
   [ -z "$engine" ] && engine=elasticsearch;
