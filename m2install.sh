@@ -1634,7 +1634,6 @@ function updateWebsiteIndexFile()
   sed -i "28 i ${codeLine}" "${websiteDir}/index.php"
   sed -i "29 i ${typeLine}" "${websiteDir}/index.php"
   sed -i "s/[\/][.][.][\/]/\/..\/..\//" "${websiteDir}/index.php"
-  sed -i "s/URL_PATH[ ][=][>][ ]['\"]\([a-z]\)/URL_PATH => 'websites\/${websiteCode}\/\1/g" "${websiteDir}/index.php"
 }
 
 function createFileStructure()
@@ -1652,7 +1651,7 @@ function updateWebsiteBaseUrls()
   local websiteDir="websites/${websiteCode}";
     local baseUrl="${BASE_URL}${websiteDir}/"
     SQLQUERY="INSERT INTO ${DB_NAME}.$(getTablePrefix)core_config_data (config_id, scope, scope_id, path, value)
-      SELECT NULL, 'website' AS scope, website_id, 'web/unsecure/base_url' AS path, '${baseUrl}' AS new_url
+      SELECT NULL, 'websites' AS scope, website_id, 'web/unsecure/base_url' AS path, '${baseUrl}' AS new_url
       FROM ${DB_NAME}.$(getTablePrefix)store_website WHERE code = '${websiteCode}'
       ON DUPLICATE KEY UPDATE value = '${baseUrl}'"
     output="$(mysqlQuery)"
