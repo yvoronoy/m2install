@@ -1600,22 +1600,20 @@ function generateWebsites()
     local websiteDir="websites/${websiteCode}"
     createFileStructure "$websiteDir" && echo "Creating directory $websiteDir"
     updateWebsiteIndexFile "$websiteCode"
-    symlinkMediaStaticDirectories "$websiteDir"
+    createSymlinks "$websiteDir"
 
     local baseUrl="${BASE_URL}${websiteDir}/"
     generateWebsiteList "${websiteCode}" && echo "$baseUrl"
     updateWebsiteBaseUrls "${websiteCode}"
   done
   echo "Websites list: ${BASE_URL}websites/"
-  [ -f websites/index.php.tmp ] && rm websites/index.php.tmp
   php bin/magento cache:flush -q && echo "Flushing cache"
 }
 
-function symlinkMediaStaticDirectories()
+function createSymlinks()
 {
   local websiteDir="$1"
-  [ ! -L "`pwd`/${websiteDir}/media" ] && ln -s `pwd`/pub/media "`pwd`/${websiteDir}/media"
-  [ ! -L "`pwd`/${websiteDir}/static" ] && ln -s `pwd`/pub/static "`pwd`/${websiteDir}/static"
+  [ ! -L "`pwd`/${websiteDir}/pub" ] && ln -s `pwd`/pub "`pwd`/${websiteDir}/pub"
 }
 
 function generateWebsiteList()
@@ -1629,20 +1627,18 @@ function updateWebsiteIndexFile()
 {
   local websiteCode="$1"
   local websiteDir="websites/${websiteCode}";
-  local codeLine='$params[\\Magento\\Store\\Model\\StoreManager::PARAM_RUN_CODE] = '"'${websiteCode}';";
-  local typeLine='\$params[\\Magento\\Store\\Model\\StoreManager::PARAM_RUN_TYPE] = '"'website';";
-  sed -i "28 i ${codeLine}" "${websiteDir}/index.php"
-  sed -i "29 i ${typeLine}" "${websiteDir}/index.php"
-  sed -i "s/[\/][.][.][\/]/\/..\/..\//" "${websiteDir}/index.php"
+  local codeLine='$_SERVER[\\Magento\\Store\\Model\\StoreManager::PARAM_RUN_CODE] = '"'${websiteCode}';";
+  local typeLine='$_SERVER[\\Magento\\Store\\Model\\StoreManager::PARAM_RUN_TYPE] = '"'website';";
+  sed -i "36 i ${codeLine}" "${websiteDir}/index.php"
+  sed -i "37 i ${typeLine}" "${websiteDir}/index.php"
+  sed -i "s/[\/]app[\/]bootstrap[.]php/\/..\/..\/app\/bootstrap.php/" "${websiteDir}/index.php"
 }
 
 function createFileStructure()
 {
   local websiteDir="$1";
   [ ! -d "${websiteDir}" ] && mkdir "${websiteDir}";
-  [ ! -f websites/index.php.tmp ] \
-    && curl -s -o "websites/index.php.tmp" https://raw.githubusercontent.com/magento/magento2/2.2/pub/index.php
-  cp websites/index.php.tmp "${websiteDir}/index.php"
+  cp -f index.php "${websiteDir}/index.php"
 }
 
 function updateWebsiteBaseUrls()
