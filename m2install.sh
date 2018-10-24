@@ -681,11 +681,12 @@ function switchSearchEngineToDefaultEngine()
   local engine=$(getConfig 'catalog/search/engine' "value");
   [ "$engine" == 'mysql' ] \
     || [ -z "$engine" ] \
-    && [ ! -z `grep engine app/etc/config.php | grep elastic` ] \
-    && [ ! -z `grep engine app/etc/env.php.merchant | grep elastic` ] \
+    && [ ! -z `grep -s engine app/etc/config.php | grep elastic` ] \
+    && [ ! -z `grep -s engine app/etc/env.php.merchant | grep elastic` ] \
+    && [ ! -z `grep -s engine app/etc/config.local.php.merchant | grep elastic` ] \
     && return 0;
 
-  [ -z "$engine" ] && engine=elasticsearch;
+  [ -z "$engine" ] || [ "$engine" == 'mysql' ] && engine=elasticsearch;
 
   deleteConfig 'catalog/search/engine'
   local stepsToTake=" - Run php bin/magento indexer:reindex catalogsearch_fulltext"
