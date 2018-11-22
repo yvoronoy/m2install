@@ -1166,6 +1166,11 @@ function downloadSourceCode()
     then
         gitClone
     fi
+
+    if [ "$SOURCE" == 'worktree' ]
+    then
+        gitWorktree
+    fi
 }
 
 function composerInstall()
@@ -1244,6 +1249,40 @@ function gitClone()
         CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION $GIT_EE_REPO $EE_PATH"
         runCommand
     fi
+}
+
+function gitWorktree()
+{
+  local currentDir=$(pwd);
+  local worktreeCEPath="$(getWorktreePath CE)"
+
+  validateGitRepository "${worktreeCEPath}" "$MAGENTO_VERSION"
+  cd "$worktreeCEPath"
+  CMD="git worktree add $currentDir $MAGENTO_VERSION"
+  runCommand
+
+  if [[ "$INSTALL_EE" ]]
+  then
+    cd "$currentDir"
+    local worktreeEEPath="$(getWorktreePath EE)"
+    validateGitRepository "${worktreeEEPath}" "$MAGENTO_VERSION"
+    cd "$worktreeEEPath"
+    CMD="git worktree add ${currentDir}/${EE_PATH} $MAGENTO_VERSION"
+    runCommand
+  fi
+  cd "$currentDir"
+}
+
+function getWorktreePath()
+{
+  local ee=${1:-CE}
+  local configName="CONFIG_GIT_WORKTREE_${ee}_PATH"
+
+  if [ -z ${!configName} ]
+  then
+    eval "read -p \"Git Worktree requires path to local GIT ${ee} repository: \" ${configName}"
+  fi
+  echo "${!configName:-../repo}";
 }
 
 function validateGitRepository()
