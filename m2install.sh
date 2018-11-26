@@ -1277,12 +1277,14 @@ function getWorktreePath()
 {
   local ee=${1:-CE}
   local configName="CONFIG_GIT_WORKTREE_${ee}_PATH"
+  local defaultValue="../repo"
+  [ "$ee" == "EE" ] && defaultValue="../repo/magento2ee"
 
   if [ -z ${!configName} ]
   then
-    eval "read -p \"Git Worktree requires path to local GIT ${ee} repository: \" ${configName}"
+    eval "read -p \"Git Worktree requires path to local GIT ${ee} repository (Default: ${defaultValue}): \" ${configName}"
   fi
-  echo "${!configName:-../repo}";
+  echo "${!configName:-${defaultValue}}";
 }
 
 function validateGitRepository()
