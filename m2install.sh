@@ -1613,7 +1613,6 @@ function magentoDeployDumpsAction()
     addStep "restore_db"
     addStep "configure_db"
     addStep "validateDeploymentFromDumps"
-    addStep "appConfigImport"
 }
 
 function restoreTableAction()
@@ -1773,6 +1772,7 @@ function main()
         magentoInstallAction;
     fi
     addStep "afterInstall"
+    addStep "appConfigImport"
     executeSteps "${STEPS[@]}"
 
     END_TIME=$(date +%s)
