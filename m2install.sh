@@ -708,6 +708,8 @@ function configure_db()
 {
   setConfig 'web/secure/base_url' "${BASE_URL}";
   setConfig 'web/unsecure/base_url' "${BASE_URL}";
+  setConfig 'google/analytics/active' '0';
+  setConfig 'google/adwords/active' '0';
   deleteConfig 'web/unsecure/base_link_url';
   deleteConfig 'web/secure/base_link_url';
   deleteConfig 'web/unsecure/base_static_url';
@@ -1024,14 +1026,14 @@ function _installSampleDataForBeta()
 
 function _installGitSampleData()
 {
-    CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION $GIT_CE_SD_REPO $GIT_CE_SD_PATH"
+    CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION --single-branch $GIT_CE_SD_REPO $GIT_CE_SD_PATH"
     runCommand
     CMD="${BIN_PHP} -f $GIT_CE_SD_PATH/dev/tools/build-sample-data.php -- --ce-source=."
     runCommand
 
     if [[ "$GIT_EE_SD_REPO" ]] && [[ "$INSTALL_EE" ]]
     then
-        CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION $GIT_EE_SD_REPO $GIT_EE_SD_PATH"
+        CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION --single-branch $GIT_EE_SD_REPO $GIT_EE_SD_PATH"
         runCommand
         CMD="${BIN_PHP} -f $GIT_EE_SD_PATH/dev/tools/build-sample-data.php -- --ce-source=. --ee-source=$MAGENTO_EE_PATH"
         runCommand
@@ -1051,7 +1053,7 @@ function installB2B()
     if [ "${SOURCE}" == 'git' ]
     then
         validateGitRepository "${GIT_B2B_REPO}" "${B2B_VERSION}"
-        CMD="${BIN_GIT} clone --branch ${B2B_VERSION} ${GIT_B2B_REPO} ${GIT_B2B_PATH}"
+        CMD="${BIN_GIT} clone --branch ${B2B_VERSION} --single-branch ${GIT_B2B_REPO} ${GIT_B2B_PATH}"
         runCommand
         CMD="${BIN_PHP} dev/tools/build-ee.php --ce-source $(pwd) --ee-source ${GIT_B2B_PATH}"
         runCommand
@@ -1241,12 +1243,12 @@ function gitClone()
     validateGitRepository "${GIT_CE_REPO}" "${MAGENTO_VERSION}"
     validateGitRepository "${GIT_EE_REPO}" "${MAGENTO_VERSION}"
 
-    CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION $GIT_CE_REPO ."
+    CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION --single-branch $GIT_CE_REPO ."
     runCommand
 
     if [[ "$GIT_EE_REPO" ]] && [[ "$INSTALL_EE" ]]
     then
-        CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION $GIT_EE_REPO $EE_PATH"
+        CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION --single-branch $GIT_EE_REPO $EE_PATH"
         runCommand
     fi
 }
