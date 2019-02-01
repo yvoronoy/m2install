@@ -708,6 +708,8 @@ function configure_db()
 {
   setConfig 'web/secure/base_url' "${BASE_URL}";
   setConfig 'web/unsecure/base_url' "${BASE_URL}";
+  setConfig 'google/analytics/active' '0';
+  setConfig 'google/adwords/active' '0';
   deleteConfig 'web/unsecure/base_link_url';
   deleteConfig 'web/secure/base_link_url';
   deleteConfig 'web/unsecure/base_static_url';
