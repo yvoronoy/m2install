@@ -1061,7 +1061,7 @@ function installB2B()
         CMD="rm -rf var/* generation/*"
         runCommand
     else
-        CMD="${BIN_PHP} ${BIN_COMPOSER} require magento/extension-b2b"
+        CMD="${BIN_PHP} ${BIN_COMPOSER} require magento/extension-b2b=${B2B_VERSION}"
         runCommand
     fi
     CMD="${BIN_PHP} ${BIN_MAGE} setup:upgrade"
