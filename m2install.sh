@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# @copyright Copyright (c) 2015-2017 by Yaroslav Voronoy (y.voronoy@gmail.com)
+# @copyright Copyright (c) 2015-2019 by Yaroslav Voronoy (y.voronoy@gmail.com)
 # @license   http://www.gnu.org/licenses/
 
 VERBOSE=1
