@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# @copyright Copyright (c) 2015-2017 by Yaroslav Voronoy (y.voronoy@gmail.com)
+# @copyright Copyright (c) 2015-2019 by Yaroslav Voronoy (y.voronoy@gmail.com)
 # @license   http://www.gnu.org/licenses/
 
 VERBOSE=1
@@ -1061,7 +1061,7 @@ function installB2B()
         CMD="rm -rf var/* generation/*"
         runCommand
     else
-        CMD="${BIN_PHP} ${BIN_COMPOSER} require magento/extension-b2b"
+        CMD="${BIN_PHP} ${BIN_COMPOSER} require magento/extension-b2b=${B2B_VERSION}"
         runCommand
     fi
     CMD="${BIN_PHP} ${BIN_MAGE} setup:upgrade"
