@@ -87,6 +87,21 @@ function getScriptDirectory()
     echo "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
     return 0;
 }
+function getScriptDir()
+{
+  local source=
+  local dir=
+  local source="${BASH_SOURCE[0]}"
+  while [ -h "$source" ]; do # resolve $SOURCE until the file is no longer a symlink
+    local dir="$( cd -P "$( dirname "$source" )" && pwd )"
+    source="$(readlink "$source")"
+    [[ $source != /* ]] && source="$dir/$source" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+  done
+  dir="$( cd -P "$( dirname "$source" )" && pwd )"
+
+  echo "$dir";
+  return 0;
+}
 
 function checkDependencies()
 {
@@ -482,8 +497,8 @@ function getConfigFiles()
         do x=$(dirname "$x");\
             find "$x" -maxdepth 1 -name "${CONFIG_NAME}";\
         done) | sed '1!G;h;$!d')
-    configPaths=("${configPaths[@]}" "${recursiveconfigs[@]}" "./$(basename ${CONFIG_NAME})");
-    echo "${configPaths[@]}"
+    configPaths=("${configPaths[@]}" "${recursiveconfigs[@]}" "./$(basename ${CONFIG_NAME})" "$(getScriptDir)/master.conf");
+    echo "${configPaths[@]} "
     return 0;
 }
 
