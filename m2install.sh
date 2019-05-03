@@ -637,6 +637,8 @@ function configure_files()
     overwriteOriginalFiles
     CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
     runCommand
+    CMD="${BIN_PHP} ${BIN_COMPOSER} dump-autoload"
+    runCommand
 }
 
 function appConfigImport()
