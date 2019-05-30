@@ -271,12 +271,7 @@ function generateDBName()
     if [ -z "$DB_NAME" ]
     then
         prepareBasePath
-        if [ "$BASE_PATH" ]
-        then
-            DB_NAME=${DB_USER}_${BASE_PATH}
-        else
-            DB_NAME=${DB_USER}_${CURRENT_DIR_NAME}
-        fi
+        DB_NAME=${DB_USER}_${CURRENT_DIR_NAME}
     fi
 
     DB_NAME=$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(php -r "print strtolower('$DB_NAME');"));
