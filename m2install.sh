@@ -275,7 +275,7 @@ function generateDBName()
         DB_NAME=${DB_USER}_${CURRENT_DIR_NAME}
     fi
 
-    DB_NAME=$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(php -r "print strtolower('$DB_NAME');"));
+    DB_NAME=$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(${BIN_PHP} -r "print strtolower('$DB_NAME');"));
 }
 
 function prepareBasePath()
@@ -723,6 +723,9 @@ function configure_db()
   setConfig 'web/unsecure/base_url' "${BASE_URL}";
   setConfig 'google/analytics/active' '0';
   setConfig 'google/adwords/active' '0';
+  setConfig 'msp_securitysuite_twofactorauth/general/enabled' '0';
+  setConfig 'msp_securitysuite_recaptcha/backend/enabled' '0';
+  setConfig 'msp_securitysuite_recaptcha/frontend/enabled' '0';
   setConfig 'admin/startup/menu_item_id' 'Magento_Backend::system_store';
   deleteConfig 'web/unsecure/base_link_url';
   deleteConfig 'web/secure/base_link_url';
@@ -945,7 +948,7 @@ echo $data;
 EOF
 );
 
- echo "$deployConfigurator" | php > app/etc/env.php.generated
+ echo "$deployConfigurator" | ${BIN_PHP} > app/etc/env.php.generated
  mv app/etc/env.php.generated app/etc/env.php
 }
 
@@ -1664,7 +1667,7 @@ function generateWebsites()
     updateWebsiteBaseUrls "${websiteCode}"
   done
   echo "Websites list: ${BASE_URL}websites/"
-  php bin/magento cache:flush -q && echo "Flushing cache"
+  ${BIN_PHP} bin/magento cache:flush -q && echo "Flushing cache"
 }
 
 function createSymlinks()
