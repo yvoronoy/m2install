@@ -18,6 +18,7 @@
 # @copyright Copyright (c) 2015-2019 by Yaroslav Voronoy (y.voronoy@gmail.com)
 # @license   http://www.gnu.org/licenses/
 
+GLOBAL_ARGS="$@"
 VERBOSE=1
 CURRENT_DIR_NAME=$(basename "$(pwd)")
 STEPS=
