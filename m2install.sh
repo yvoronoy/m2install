@@ -853,6 +853,16 @@ function updateMagentoEnvFile()
         CMD="cp app/etc/env.php app/etc/env.php.merchant"
         runCommand
     fi
+    if [ -f app/etc/env.support.backup ] && [ ! -f app/etc/env.php ]
+    then
+        CMD="cp app/etc/env.support.backup app/etc/env.php"
+        runCommand
+    fi
+    if [ ! -f app/etc/env.php ]
+    then
+        CMD="echo '<?php return array();' > app/etc/env.php"
+        runCommand
+    fi
     local deployConfigurator=$(cat << EOF
 <?php
 
@@ -924,10 +934,6 @@ function removeNonDefaultConfiguration($envConfig)
 
     return $envConfig;
 }
-ob_start();
-require 'vendor/autoload.php';
-ob_end_clean();
-$formatter = new Magento\Framework\App\DeploymentConfig\Writer\PhpFormatter();
 $envConfig = require 'app/etc/env.php';
 $envConfig = removeNonDefaultConfiguration($envConfig);
 $envConfig = updateSessionConfiguration($envConfig, 'files');
@@ -943,13 +949,11 @@ $envConfig = updateDbConnection($envConfig, array(
 ));
 $envConfig = updateBackendFrontName($envConfig, $frontName);
 $envConfig = updateMode($envConfig, 'default');
-$data = $formatter->format($envConfig);
-echo $data;
+echo "<?php\nreturn " . var_export($envConfig, true) . "\n;";
 EOF
 );
 
- echo "$deployConfigurator" | ${BIN_PHP} > app/etc/env.php.generated
- mv app/etc/env.php.generated app/etc/env.php
+ echo "$deployConfigurator" | ${BIN_PHP} > app/etc/env.php
 }
 
 function deployStaticContent()
