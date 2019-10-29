@@ -860,7 +860,7 @@ function updateMagentoEnvFile()
     fi
     if [ ! -f app/etc/env.php ]
     then
-        CMD="echo '<?php return array();' > app/etc/env.php"
+        CMD="echo -e \"<?php\nreturn array('install'=>array('date'=>'$(date)'),'db'=>array('connection'=>array('default'=>array())));\n\" > app/etc/env.php"
         runCommand
     fi
     local deployConfigurator=$(cat << EOF
@@ -890,9 +890,6 @@ function updateBackendFrontName($envConfig, $frontName)
 
 function updateDbConnection($envConfig, $connectionDetails)
 {
-    if (empty($envConfig['db'])) {
-        return $envConfig;
-    }
     unset($envConfig['db']['slave_connection']);
 
     foreach ($envConfig['db'] as $key => $connections) {
@@ -953,7 +950,8 @@ echo "<?php\nreturn " . var_export($envConfig, true) . "\n;";
 EOF
 );
 
- echo "$deployConfigurator" | ${BIN_PHP} > app/etc/env.php
+ echo "$deployConfigurator" | ${BIN_PHP} > app/etc/env.php.generated
+ mv app/etc/env.php.generated app/etc/env.php
 }
 
 function deployStaticContent()
