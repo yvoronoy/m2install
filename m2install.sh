@@ -631,10 +631,35 @@ function configure_files()
     runCommand
     updateMagentoEnvFile
     overwriteOriginalFiles
-    CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
+    #CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
+    CMD="chmod -R 775 ."
     runCommand
     CMD="${BIN_PHP} ${BIN_COMPOSER} dump-autoload"
     runCommand
+
+    patchDumps
+}
+
+function patchDumps()
+{
+  patch -p1 <<'EOF'
+diff --git a/vendor/magento/module-backend/Block/Dashboard/Orders/Grid.php b/vendor/magento/module-backend/Block/Dashboard/Orders/Grid.php
+index 5027978..9df3c24 100644
+--- a/vendor/magento/module-backend/Block/Dashboard/Orders/Grid.php
++++ b/vendor/magento/module-backend/Block/Dashboard/Orders/Grid.php
+@@ -92,6 +92,11 @@ class Grid extends \Magento\Backend\Block\Dashboard\Grid
+     protected function _afterLoadCollection()
+     {
+         foreach ($this->getCollection() as $item) {
++            // patched by m2install.
++            // To revert patch remove next lines from 95 to 99
++            if (is_null($item->getBillingAddress())) {
++                return $this;
++            }
+             $item->getCustomer() ?: $item->setCustomer($item->getBillingAddress()->getName());
+         }
+         return $this;
+EOF
 }
 
 function appConfigImport()
