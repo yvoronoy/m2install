@@ -678,12 +678,8 @@ function updateEnvFileRemote()
 <?php
 
 \$dbName = '${REMOTE_DB}';
-\$remoteDBHost = '${REMOTE_DB_HOST}';
 \$dbPassword = '${REMOTE_DB_PASSWORD}';
 \$localPort = '${LOCAL_PORT}';
-\$remoteKey = '${REMOTE_KEY}';
-\$remoteHost = '${REMOTE_HOST}';
-
 
 EOF
 );
@@ -709,11 +705,6 @@ $envConfig = require 'app/etc/env.php';
 $db = explode("_", $dbName);
 $envConfig = updateDbConnection($envConfig, array(
     'host' => "127.0.0.1:$localPort",
-    'ssh' => true,
-    'sshdbhost' => $remoteDBHost,
-    'sshhost' => "$remoteHost",
-    'sshkey' => "$remoteKey",
-    'localport' => $localPort,
     'dbname' => $dbName,
     'username' => $db[0],
     'password' => "$dbPassword",
@@ -733,55 +724,37 @@ EOF
 
 function patchRemote()
 {
-    local patchBody=$(cat << 'EOF'
-
-+//ADDED FROM M2INSTALL
-+$env = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\App\DeploymentConfig::class);
-+if ($env->get('db/connection/default/ssh')) {
-EOF
-);
-patchBody+="
-+    \$_ENV['CONFIG__DEFAULT__WEB__UNSECURE__BASE_URL'] = '${HTTP_HOST}';
-+    \$_ENV['CONFIG__DEFAULT__WEB__SECURE__BASE_URL'] = '${HTTP_HOST}';
+    local patchBody+="
++
++//patched by m2install.
++\$_ENV['CONFIG__DEFAULT__WEB__UNSECURE__BASE_URL'] = '${HTTP_HOST}';
++\$_ENV['CONFIG__DEFAULT__WEB__SECURE__BASE_URL'] = '${HTTP_HOST}';
++\$dbHostPort = '${REMOTE_DB_HOST}';
++\$sshHost = '${REMOTE_HOST}';
++\$sshKey = '${REMOTE_KEY}' ? '-i ${REMOTE_KEY}' : '';
++\$localPort = '${LOCAL_PORT}';
 ";
-patchBody+=$(cat << 'EOF'
-+    $user = $env->get('db/connection/default/username');
-+    $dbHostPort = $env->get('db/connection/default/sshdbhost');
-+    $sshHost = $env->get('db/connection/default/sshhost');
-+    $sshKey = $env->get('db/connection/default/sshkey');
-+    $localPort = $env->get('db/connection/default/localport');
-+    $command = "ssh $sshKey -o StrictHostKeyChecking=no -fN -L $localPort:$dbHostPort $sshHost";
+    patchBody+=$(cat << 'EOF'
++$command = "ssh $sshKey -o StrictHostKeyChecking=no -fN -L $localPort:$dbHostPort $sshHost";
++exec("ps aux | grep -v ' grep' | grep '$command' | tr -s ' ' | cut -d ' ' -f 2", $pids);
++if (count($pids) === 0) {
++    shell_exec($command);
 +    exec("ps aux | grep -v ' grep' | grep '$command' | tr -s ' ' | cut -d ' ' -f 2", $pids);
-+    if (count($pids) === 0) {
-+        shell_exec($command);
-+        exec("ps aux | grep -v ' grep' | grep '$command' | tr -s ' ' | cut -d ' ' -f 2", $pids);
-+        file_put_contents('kill_tunnel.sh', PHP_EOL . "kill " . implode(" ", $pids));
-+    }
++    file_put_contents('kill_tunnel.sh', PHP_EOL . "kill " . implode(" ", $pids));
 +}
- $bootstrap->run($app);
 EOF
 );
     local patchForSSH=$(cat << 'EOF'
-diff --git a/index.php b/index.php
-index 9ac7f6f..3d9c5ab
---- a/index.php
-+++ b/index.php
-@@ -36,4 +36,22 @@ HTML;
- $bootstrap = \Magento\Framework\App\Bootstrap::create(BP, $_SERVER);
- /** @var \Magento\Framework\App\Http $app */
- $app = $bootstrap->createApplication(\Magento\Framework\App\Http::class);
+diff --git a/app/bootstrap.php b/app/bootstrap.php
+index 4974acd..9c4e162
+--- a/app/bootstrap.php
++++ b/app/bootstrap.php
+@@ -75,3 +75,18 @@ date_default_timezone_set('UTC');
+ /*  For data consistency between displaying (printing) and serialization a float number */
+ ini_set('precision', 14);
+ ini_set('serialize_precision', 14);
 EOF
 );
-    patchForSSH+="$patchBody"
-    patchForSSH+='
-diff --git a/pub/index.php b/pub/index.php
-index 612e190..2f45f85
---- a/pub/index.php
-+++ b/pub/index.php
-@@ -37,4 +37,22 @@ $params[Bootstrap::INIT_PARAM_FILESYSTEM_DIR_PATHS] = array_replace_recursive(
- $bootstrap = \Magento\Framework\App\Bootstrap::create(BP, $params);
- /** @var \Magento\Framework\App\Http $app */
- $app = $bootstrap->createApplication(\Magento\Framework\App\Http::class);';
     patchForSSH+="$patchBody"
 
     echo "$patchForSSH" > "my.patch"
