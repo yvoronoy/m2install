@@ -67,6 +67,12 @@ ADMIN_EMAIL="admin@test.com"
 TIMEZONE="America/Chicago"
 LANGUAGE="en_US"
 CURRENCY="USD"
+REMOTE_DB=
+REMOTE_DB_HOST=""
+REMOTE_DB_PASSWORD=""
+REMOTE_HOST=""
+REMOTE_KEY=""
+LOCAL_PORT=""
 
 BUNDLED_EXTENSION=(
     amzn/amazon-pay-and-login-magento-2-module
@@ -80,7 +86,7 @@ BUNDLED_EXTENSION=(
 
 function printVersion()
 {
-    printString "1.0.2"
+    printString "1.0.3"
 }
 
 function getScriptDirectory()
@@ -361,6 +367,11 @@ function foundSupportBackupFiles()
         return 1;
     fi
 
+    if [[ "$REMOTE_DB" ]]
+    then
+        return 0;
+    fi
+
     if [ -z getDbDumpFilename ]
     then
         return 1;
@@ -436,6 +447,15 @@ function printConfirmation()
     printString "TIMEZONE: ${TIMEZONE}"
     printString "LANGUAGE: ${LANGUAGE}"
     printString "CURRENCY: ${CURRENCY}"
+    if [[ "$REMOTE_DB" ]]
+    then
+        printString "REMOTE DB HOST: ${REMOTE_DB_HOST}"
+        printString "REMOTE HOST: ${REMOTE_HOST}"
+        printString "REMOTE KEY: ${REMOTE_KEY}"
+        printString "LOCAL PORT: ${LOCAL_PORT}"
+        printString "REMOTE DB: ${REMOTE_DB}"
+        printString "REMOTE DB PASSWORD: ${REMOTE_DB_PASSWORD}"
+    fi
     if foundSupportBackupFiles
     then
         return;
@@ -553,6 +573,12 @@ ADMIN_EMAIL=$ADMIN_EMAIL
 TIMEZONE=$TIMEZONE
 LANGUAGE=$LANGUAGE
 CURRENCY=$CURRENCY
+REMOTE_DB_HOST=$REMOTE_DB_HOST
+REMOTE_HOST=$REMOTE_HOST
+REMOTE_KEY=$REMOTE_KEY
+LOCAL_PORT=$LOCAL_PORT
+REMOTE_DB=$REMOTE_DB
+REMOTE_DB_PASSWORD=$REMOTE_DB_PASSWORD
 EOF
 )
 
@@ -638,6 +664,129 @@ function configure_files()
     runCommand
 
     patchDumps
+}
+
+function add_remote()
+{
+    updateEnvFileRemote
+    patchRemote
+}
+
+function updateEnvFileRemote()
+{
+    local deployConfigurator=$(cat << EOF
+<?php
+
+\$dbName = '${REMOTE_DB}';
+\$remoteDBHost = '${REMOTE_DB_HOST}';
+\$dbPassword = '${REMOTE_DB_PASSWORD}';
+\$localPort = '${LOCAL_PORT}';
+\$remoteKey = '${REMOTE_KEY}';
+\$remoteHost = '${REMOTE_HOST}';
+
+
+EOF
+);
+    deployConfigurator+=$(cat << 'EOF'
+
+function updateDbConnection($envConfig, $connectionDetails)
+{
+    unset($envConfig['db']['slave_connection']);
+
+    foreach ($envConfig['db'] as $key => $connections) {
+        if ($key != 'connection') {
+            continue;
+        }
+        foreach ($connections as $connectionName => $connectionParams) {
+            $envConfig['db'][$key][$connectionName] = $connectionDetails;
+        }
+    }
+
+    return $envConfig;
+}
+
+$envConfig = require 'app/etc/env.php';
+$db = explode("_", $dbName);
+$envConfig = updateDbConnection($envConfig, array(
+    'host' => "127.0.0.1:$localPort",
+    'ssh' => true,
+    'sshdbhost' => $remoteDBHost,
+    'sshhost' => "$remoteHost",
+    'sshkey' => "$remoteKey",
+    'localport' => $localPort,
+    'dbname' => $dbName,
+    'username' => $db[0],
+    'password' => "$dbPassword",
+    'model' => 'mysql4',
+    'engine' => 'innodb',
+    'initStatements' => 'SET NAMES utf8;',
+    'active' => '1'
+));
+
+echo "<?php\nreturn " . var_export($envConfig, true) . "\n;";
+EOF
+);
+
+ echo "$deployConfigurator" | ${BIN_PHP} > app/etc/env.php.generated
+ mv app/etc/env.php.generated app/etc/env.php
+}
+
+function patchRemote()
+{
+    local patchBody=$(cat << 'EOF'
+
++//ADDED FROM M2INSTALL
++$env = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\App\DeploymentConfig::class);
++if ($env->get('db/connection/default/ssh')) {
+EOF
+);
+patchBody+="
++    \$_ENV['CONFIG__DEFAULT__WEB__UNSECURE__BASE_URL'] = '${HTTP_HOST}';
++    \$_ENV['CONFIG__DEFAULT__WEB__SECURE__BASE_URL'] = '${HTTP_HOST}';
+";
+patchBody+=$(cat << 'EOF'
++    $user = $env->get('db/connection/default/username');
++    $dbHostPort = $env->get('db/connection/default/sshdbhost');
++    $sshHost = $env->get('db/connection/default/sshhost');
++    $sshKey = $env->get('db/connection/default/sshkey');
++    $localPort = $env->get('db/connection/default/localport');
++    $command = "ssh $sshKey -o StrictHostKeyChecking=no -fN -L $localPort:$dbHostPort $sshHost";
++    exec("ps aux | grep -v ' grep' | grep '$command' | tr -s ' ' | cut -d ' ' -f 2", $pids);
++    if (count($pids) === 0) {
++        shell_exec($command);
++        exec("ps aux | grep -v ' grep' | grep '$command' | tr -s ' ' | cut -d ' ' -f 2", $pids);
++        file_put_contents('kill_tunnel.sh', PHP_EOL . "kill " . implode(" ", $pids));
++    }
++}
+ $bootstrap->run($app);
+EOF
+);
+    local patchForSSH=$(cat << 'EOF'
+diff --git a/index.php b/index.php
+index 9ac7f6f..3d9c5ab
+--- a/index.php
++++ b/index.php
+@@ -36,4 +36,22 @@ HTML;
+ $bootstrap = \Magento\Framework\App\Bootstrap::create(BP, $_SERVER);
+ /** @var \Magento\Framework\App\Http $app */
+ $app = $bootstrap->createApplication(\Magento\Framework\App\Http::class);
+EOF
+);
+    patchForSSH+="$patchBody"
+    patchForSSH+='
+diff --git a/pub/index.php b/pub/index.php
+index 612e190..2f45f85
+--- a/pub/index.php
++++ b/pub/index.php
+@@ -37,4 +37,22 @@ $params[Bootstrap::INIT_PARAM_FILESYSTEM_DIR_PATHS] = array_replace_recursive(
+ $bootstrap = \Magento\Framework\App\Bootstrap::create(BP, $params);
+ /** @var \Magento\Framework\App\Http $app */
+ $app = $bootstrap->createApplication(\Magento\Framework\App\Http::class);';
+    patchForSSH+="$patchBody"
+
+    echo "$patchForSSH" > "my.patch"
+
+    patch -p1 <<< "$patchForSSH"
 }
 
 function patchDumps()
@@ -1387,7 +1536,7 @@ function isInputNegative()
 function validateStep()
 {
     local _step=$1;
-    local _steps="restore_db restore_code configure_db configure_files configure installB2B"
+    local _steps="restore_db restore_code configure_db configure_files configure installB2B add_remote"
     if echo "$_steps" | grep -q "$_step"
     then
         if type -t "$_step" &>/dev/null
@@ -1498,6 +1647,7 @@ Options:
     --restore-table                      Restore only the specific table from DB dumps
     --debug                              Enable debug mode
     --php                                Specify path to PHP CLI (php71 or /usr/bin/php71)
+    --remote-db                          Remote database name
     _________________________________________________________________________________________________
     --ee-path (/path/to/ee)              (DEPRECATED use --ee flag) Path to Enterprise Edition.
 EOF
@@ -1615,6 +1765,11 @@ function processOptions()
                 BIN_PHP=$2
                 shift
             ;;
+            --remote-db)
+                checkArgumentHasValue "$1" "$2"
+                REMOTE_DB=$2
+                shift
+            ;;
         esac
         shift
     done
@@ -1656,9 +1811,14 @@ function magentoDeployDumpsAction()
 {
     addStep "restore_code"
     addStep "configure_files"
-    addStep "restore_db"
-    addStep "configure_db"
-    addStep "validateDeploymentFromDumps"
+    if [[ "$REMOTE_DB" ]]
+    then
+        addStep "add_remote"
+    else
+        addStep "restore_db"
+        addStep "configure_db"
+        addStep "validateDeploymentFromDumps"
+    fi
 }
 
 function restoreTableAction()
@@ -1818,7 +1978,10 @@ function main()
         magentoInstallAction;
     fi
     addStep "afterInstall"
-    addStep "appConfigImport"
+    if [ -z "$REMOTE_DB" ]
+    then
+        addStep "appConfigImport"
+    fi
     executeSteps "${STEPS[@]}"
 
     END_TIME=$(date +%s)
