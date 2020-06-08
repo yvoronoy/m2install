@@ -735,7 +735,7 @@ function patchRemote()
 +\$localPort = '${LOCAL_PORT}';
 ";
     patchBody+=$(cat << 'EOF'
-+$command = "ssh $sshKey -o StrictHostKeyChecking=no -fN -L $localPort:$dbHostPort $sshHost";
++$command = "ssh $sshKey -o StrictHostKeyChecking=no -4f -L $localPort:$dbHostPort $sshHost >> /dev/null";
 +exec("ps aux | grep -v ' grep' | grep '$command' | tr -s ' ' | cut -d ' ' -f 2", $pids);
 +if (count($pids) === 0) {
 +    shell_exec($command);
