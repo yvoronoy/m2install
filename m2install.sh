@@ -672,12 +672,19 @@ function add_remote()
     patchRemote
 }
 
+function getRemoteDBUser()
+{
+    local user=(${REMOTE_DB//_/ })
+    echo ${user[0]} ;
+}
+
 function updateEnvFileRemote()
 {
     local deployConfigurator=$(cat << EOF
 <?php
 
 \$dbName = '${REMOTE_DB}';
+\$dbUser = '$(getRemoteDBUser)';
 \$dbPassword = '${REMOTE_DB_PASSWORD}';
 \$localPort = '${LOCAL_PORT}';
 
@@ -702,11 +709,10 @@ function updateDbConnection($envConfig, $connectionDetails)
 }
 
 $envConfig = require 'app/etc/env.php';
-$db = explode("_", $dbName);
 $envConfig = updateDbConnection($envConfig, array(
     'host' => "127.0.0.1:$localPort",
     'dbname' => $dbName,
-    'username' => $db[0],
+    'username' => $dbUser,
     'password' => "$dbPassword",
     'model' => 'mysql4',
     'engine' => 'innodb',
@@ -722,44 +728,46 @@ EOF
  mv app/etc/env.php.generated app/etc/env.php
 }
 
+function addToBootstrap()
+{
+    echo "$1" >> app/bootstrap.php;
+}
+
 function patchRemote()
 {
-    local patchBody+="
-+
-+//patched by m2install.
-+\$_ENV['CONFIG__DEFAULT__WEB__UNSECURE__BASE_URL'] = '${HTTP_HOST}';
-+\$_ENV['CONFIG__DEFAULT__WEB__SECURE__BASE_URL'] = '${HTTP_HOST}';
-+\$dbHostPort = '${REMOTE_DB_HOST}';
-+\$sshHost = '${REMOTE_HOST}';
-+\$sshKey = '${REMOTE_KEY}' ? '-i ${REMOTE_KEY}' : '';
-+\$localPort = '${LOCAL_PORT}';
-";
-    patchBody+=$(cat << 'EOF'
-+$command = "ssh $sshKey -o StrictHostKeyChecking=no -4fN -L $localPort:$dbHostPort $sshHost >> /dev/null";
-+exec("ps aux | grep -v ' grep' | grep '$command' | tr -s ' ' | cut -d ' ' -f 2", $pids);
-+if (count($pids) === 0) {
-+    shell_exec($command);
-+    exec("ps aux | grep -v ' grep' | grep '$command' | tr -s ' ' | cut -d ' ' -f 2", $pids);
-+    file_put_contents('kill_tunnel.sh', PHP_EOL . "kill " . implode(" ", $pids));
-+}
-EOF
-);
-    local patchForSSH=$(cat << 'EOF'
-diff --git a/app/bootstrap.php b/app/bootstrap.php
-index 4974acd..9c4e162
---- a/app/bootstrap.php
-+++ b/app/bootstrap.php
-@@ -75,3 +75,18 @@ date_default_timezone_set('UTC');
- /*  For data consistency between displaying (printing) and serialization a float number */
- ini_set('precision', 14);
- ini_set('serialize_precision', 14);
-EOF
-);
-    patchForSSH+="$patchBody"
+  local sshKey=''
+  if [[ "$REMOTE_KEY" ]]
+  then
+    sshKey="-i ${REMOTE_KEY}"
+  fi
+  addToBootstrap "//patched by m2install."
 
-    echo "$patchForSSH" > "my.patch"
+  local ssh_command="ssh ${sshKey} -o StrictHostKeyChecking=no -4fN -L ${LOCAL_PORT}:${REMOTE_DB_HOST} ${REMOTE_HOST}"
 
-    patch -p1 <<< "$patchForSSH"
+  if ! pgrep -f -x "${ssh_command}" > /dev/null
+  then
+    echo "Start tunnel"
+     eval $ssh_command >> /dev/null
+  fi
+  SQLQUERY="SELECT code FROM ${REMOTE_DB}.$(getTablePrefix)store WHERE code != 'admin';";
+
+  local stores=$(mysql -h127.0.0.1 -N -u$(getRemoteDBUser) -P${LOCAL_PORT} --execute="${SQLQUERY}")
+  echo "$stores" | while IFS= read -r line ;
+  do
+    addToBootstrap "\$_ENV['CONFIG__STORES__${line}__WEB__SECURE__BASE_URL'] = '${BASE_URL}';"
+    addToBootstrap "\$_ENV['CONFIG__STORES__${line}__WEB__UNSECURE__BASE_URL'] = '${BASE_URL}';"
+  done
+  addToBootstrap "\$_ENV['CONFIG__DEFAULT__WEB__UNSECURE__BASE_URL'] = '${BASE_URL}';"
+  addToBootstrap "\$_ENV['CONFIG__DEFAULT__WEB__SECURE__BASE_URL'] = '${BASE_URL}';"
+
+  addToBootstrap "\$command = '$ssh_command';"
+  addToBootstrap 'exec("ps aux | grep -v \" grep\" | grep \"$command\" | tr -s \" \" | cut -d \" \" -f 2", $pids);'
+  addToBootstrap 'if (count($pids) === 0) {'
+  addToBootstrap '    shell_exec($command . " >> /dev/null");';
+  addToBootstrap '    exec("ps aux | grep -v \" grep\" | grep \"$command\" | tr -s \" \" | cut -d \" \" -f 2", $pids);'
+  addToBootstrap '}'
+  addToBootstrap 'file_put_contents("kill_tunnel.sh", PHP_EOL . "kill " . implode(" ", $pids));'
+  addToBootstrap ""
 }
 
 function patchDumps()
