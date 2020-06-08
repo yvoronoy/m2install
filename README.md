@@ -159,7 +159,7 @@ LOCAL_PORT=33060
 ```
 As a result you will get:
 ```
-ssh -i /Users/path/to/ssh_key -o StrictHostKeyChecking=no -fN -L 33060:mysql-host:3306 user@ssh.domain
+ssh -i /Users/path/to/ssh_key -o StrictHostKeyChecking=no -4fN -L 33060:mysql-host:3306 user@ssh.domain >> /dev/null
 ```
 All created ssh tunnels pids located in file kill_tunnel.sh in Magento root folder (or pub)
 
