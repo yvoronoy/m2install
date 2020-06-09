@@ -1580,6 +1580,11 @@ function executePostDeployScript()
     return 0;
 }
 
+function warmCache()
+{
+    echo "Cache warm up ${BASE_URL}. Response code: $(curl -s -l -I ${BASE_URL} | head -n 1 | awk '{print $2}')"
+}
+
 function afterInstall()
 {
     if [[ "$MAGE_MODE" == "production" ]]
@@ -1589,6 +1594,7 @@ function afterInstall()
     executePostDeployScript "$(getScriptDirectory)/post-deploy"
     executePostDeployScript "$HOME/post-deploy"
     setFilesystemPermission
+    warmCache
 }
 
 function executeSteps()
