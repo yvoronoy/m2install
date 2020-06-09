@@ -738,11 +738,11 @@ function patchRemote()
   local sshKey=''
   if [[ "$REMOTE_KEY" ]]
   then
-    sshKey="-i ${REMOTE_KEY}"
+    sshKey="-i ${REMOTE_KEY} "
   fi
   addToBootstrap "//patched by m2install."
 
-  local ssh_command="ssh ${sshKey} -o ConnectTimeout=10 -o StrictHostKeyChecking=no -4fN -L ${LOCAL_PORT}:${REMOTE_DB_HOST} ${REMOTE_HOST}"
+  local ssh_command="ssh ${sshKey}-o ConnectTimeout=10 -o StrictHostKeyChecking=no -4fN -L ${LOCAL_PORT}:${REMOTE_DB_HOST} ${REMOTE_HOST}"
 
   if ! pgrep -f -x "${ssh_command}" > /dev/null
   then
