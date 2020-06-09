@@ -742,7 +742,7 @@ function patchRemote()
   fi
   addToBootstrap "//patched by m2install."
 
-  local ssh_command="ssh ${sshKey} -o StrictHostKeyChecking=no -4fN -L ${LOCAL_PORT}:${REMOTE_DB_HOST} ${REMOTE_HOST}"
+  local ssh_command="ssh ${sshKey} -o ConnectTimeout=10 -o StrictHostKeyChecking=no -4fN -L ${LOCAL_PORT}:${REMOTE_DB_HOST} ${REMOTE_HOST}"
 
   if ! pgrep -f -x "${ssh_command}" > /dev/null
   then
@@ -763,7 +763,10 @@ function patchRemote()
   addToBootstrap "\$command = '$ssh_command';"
   addToBootstrap 'exec("ps aux | grep -v \" grep\" | grep \"$command\" | tr -s \" \" | cut -d \" \" -f 2", $pids);'
   addToBootstrap 'if (count($pids) === 0) {'
-  addToBootstrap '    shell_exec($command . " >> /dev/null");';
+  addToBootstrap '    exec($command . " >> /dev/null", $output, $exitCode);';
+  addToBootstrap '    if ($exitCode > 0) {'
+  addToBootstrap '        throw new \Exception("Remote Host ${REMOTE_HOST} is unavailable, check your network settings or VPN connection");'
+  addToBootstrap '    }'
   addToBootstrap '    exec("ps aux | grep -v \" grep\" | grep \"$command\" | tr -s \" \" | cut -d \" \" -f 2", $pids);'
   addToBootstrap '}'
   addToBootstrap 'file_put_contents("kill_tunnel.sh", PHP_EOL . "kill " . implode(" ", $pids));'
