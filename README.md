@@ -148,4 +148,29 @@ you can override config file which is placed in your home directory.
 ~/www/m2/ga/magento2ee/.m2install.conf
 ```
 
+## How to use ssh tunnels for remote DB connection
+Make sure that you have correct parameters in .m2install.conf file
+Parameters example:
+```
+REMOTE_DB_HOST=mysql-host:3306
+REMOTE_HOST=user@ssh.domain
+REMOTE_KEY=/Users/path/to/ssh_key
+LOCAL_PORT=33060
+```
+As a result you will get:
+```
+ssh -i /Users/path/to/ssh_key -o StrictHostKeyChecking=no -4fN -L 33060:mysql-host:3306 user@ssh.domain >> /dev/null
+```
+All created ssh tunnels pids located in file kill_tunnel.sh in Magento root folder (or pub)
 
+To run you will need only code dump file (Example code.tar.gz).
+
+```
+m2install.sh --remote-db database_name
+```
+Make attention that in --remote-db database_name first part before "_" is database user name
+
+Make attention that in bootstrap added SECURE and UNSECURE BASE_URL to prevent DB modification
+```
+$_ENV['CONFIG__DEFAULT__WEB__UNSECURE__BASE_URL'] = 'http://magento.local/';
+```
