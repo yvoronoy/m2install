@@ -80,7 +80,7 @@ BUNDLED_EXTENSION=(
 
 function printVersion()
 {
-    printString "1.0.2"
+    printString "1.0.3"
 }
 
 function getScriptDirectory()
@@ -768,6 +768,11 @@ function configure_db()
   deleteConfig 'system/full_page_cache/fastly/fastly_api_key';
   deleteConfig 'system/full_page_cache/caching_application';
   deleteConfig 'catalog/placeholder/%' 'LIKE';
+  deleteConfig 'algoliasearch_credentials/credentials/application_id';
+  deleteConfig 'algoliasearch_credentials/credentials/search_only_api_key';
+  deleteConfig 'algoliasearch_credentials/credentials/api_key';
+  deleteConfig 'algoliasearch_credentials/credentials/enable_backend';
+  deleteConfig 'algoliasearch_credentials/credentials/enable_frontend';
 
   resetAdminPassword
   switchSearchEngineToDefaultEngine
