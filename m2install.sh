@@ -67,6 +67,12 @@ ADMIN_EMAIL="admin@test.com"
 TIMEZONE="America/Chicago"
 LANGUAGE="en_US"
 CURRENCY="USD"
+REMOTE_DB=
+REMOTE_DB_HOST=""
+REMOTE_DB_PASSWORD=""
+REMOTE_HOST=""
+REMOTE_KEY=""
+LOCAL_PORT=""
 
 BUNDLED_EXTENSION=(
     amzn/amazon-pay-and-login-magento-2-module
@@ -80,7 +86,7 @@ BUNDLED_EXTENSION=(
 
 function printVersion()
 {
-    printString "1.0.2"
+    printString "1.0.3"
 }
 
 function getScriptDirectory()
@@ -361,6 +367,11 @@ function foundSupportBackupFiles()
         return 1;
     fi
 
+    if [[ "$REMOTE_DB" ]]
+    then
+        return 0;
+    fi
+
     if [ -z getDbDumpFilename ]
     then
         return 1;
@@ -436,6 +447,15 @@ function printConfirmation()
     printString "TIMEZONE: ${TIMEZONE}"
     printString "LANGUAGE: ${LANGUAGE}"
     printString "CURRENCY: ${CURRENCY}"
+    if [[ "$REMOTE_DB" ]]
+    then
+        printString "REMOTE DB HOST: ${REMOTE_DB_HOST}"
+        printString "REMOTE HOST: ${REMOTE_HOST}"
+        printString "REMOTE KEY: ${REMOTE_KEY}"
+        printString "LOCAL PORT: ${LOCAL_PORT}"
+        printString "REMOTE DB: ${REMOTE_DB}"
+        printString "REMOTE DB PASSWORD: ${REMOTE_DB_PASSWORD}"
+    fi
     if foundSupportBackupFiles
     then
         return;
@@ -553,6 +573,12 @@ ADMIN_EMAIL=$ADMIN_EMAIL
 TIMEZONE=$TIMEZONE
 LANGUAGE=$LANGUAGE
 CURRENCY=$CURRENCY
+REMOTE_DB_HOST=$REMOTE_DB_HOST
+REMOTE_HOST=$REMOTE_HOST
+REMOTE_KEY=$REMOTE_KEY
+LOCAL_PORT=$LOCAL_PORT
+REMOTE_DB=$REMOTE_DB
+REMOTE_DB_PASSWORD=$REMOTE_DB_PASSWORD
 EOF
 )
 
@@ -638,6 +664,113 @@ function configure_files()
     runCommand
 
     patchDumps
+}
+
+function add_remote()
+{
+    updateEnvFileRemote
+    patchRemote
+}
+
+function getRemoteDBUser()
+{
+    local user=(${REMOTE_DB//_/ })
+    echo ${user[0]} ;
+}
+
+function updateEnvFileRemote()
+{
+    local deployConfigurator=$(cat << EOF
+<?php
+
+\$dbName = '${REMOTE_DB}';
+\$dbUser = '$(getRemoteDBUser)';
+\$dbPassword = '${REMOTE_DB_PASSWORD}';
+\$localPort = '${LOCAL_PORT}';
+
+EOF
+);
+    deployConfigurator+=$(cat << 'EOF'
+
+function updateDbConnection($envConfig, $connectionDetails)
+{
+    unset($envConfig['db']['slave_connection']);
+
+    foreach ($envConfig['db'] as $key => $connections) {
+        if ($key != 'connection') {
+            continue;
+        }
+        foreach ($connections as $connectionName => $connectionParams) {
+            $envConfig['db'][$key][$connectionName] = $connectionDetails;
+        }
+    }
+
+    return $envConfig;
+}
+
+$envConfig = require 'app/etc/env.php';
+$envConfig = updateDbConnection($envConfig, array(
+    'host' => "127.0.0.1:$localPort",
+    'dbname' => $dbName,
+    'username' => $dbUser,
+    'password' => "$dbPassword",
+    'model' => 'mysql4',
+    'engine' => 'innodb',
+    'initStatements' => 'SET NAMES utf8;',
+    'active' => '1'
+));
+
+echo "<?php\nreturn " . var_export($envConfig, true) . "\n;";
+EOF
+);
+
+ echo "$deployConfigurator" | ${BIN_PHP} > app/etc/env.php.generated
+ mv app/etc/env.php.generated app/etc/env.php
+}
+
+function addToBootstrap()
+{
+    echo "$1" >> app/bootstrap.php;
+}
+
+function patchRemote()
+{
+  local sshKey=''
+  if [[ "$REMOTE_KEY" ]]
+  then
+    sshKey="-i ${REMOTE_KEY} "
+  fi
+  addToBootstrap "//patched by m2install."
+
+  local ssh_command="ssh ${sshKey}-o ConnectTimeout=10 -o StrictHostKeyChecking=no -4fN -L ${LOCAL_PORT}:${REMOTE_DB_HOST} ${REMOTE_HOST}"
+
+  if ! pgrep -f -x "${ssh_command}" > /dev/null
+  then
+    echo "Start tunnel"
+     eval $ssh_command >> /dev/null
+  fi
+  SQLQUERY="SELECT code FROM ${REMOTE_DB}.$(getTablePrefix)store WHERE code != 'admin';";
+
+  local stores=$(mysql -h127.0.0.1 -N -u$(getRemoteDBUser) -P${LOCAL_PORT} --execute="${SQLQUERY}")
+  echo "$stores" | while IFS= read -r line ;
+  do
+    addToBootstrap "\$_ENV['CONFIG__STORES__${line}__WEB__SECURE__BASE_URL'] = '${BASE_URL}';"
+    addToBootstrap "\$_ENV['CONFIG__STORES__${line}__WEB__UNSECURE__BASE_URL'] = '${BASE_URL}';"
+  done
+  addToBootstrap "\$_ENV['CONFIG__DEFAULT__WEB__UNSECURE__BASE_URL'] = '${BASE_URL}';"
+  addToBootstrap "\$_ENV['CONFIG__DEFAULT__WEB__SECURE__BASE_URL'] = '${BASE_URL}';"
+
+  addToBootstrap "\$command = '$ssh_command';"
+  addToBootstrap 'exec("ps aux | grep -v \" grep\" | grep \"$command\" | tr -s \" \" | cut -d \" \" -f 2", $pids);'
+  addToBootstrap 'if (count($pids) === 0) {'
+  addToBootstrap '    exec($command . " >> /dev/null", $output, $exitCode);';
+  addToBootstrap '    if ($exitCode > 0) {'
+  addToBootstrap '        throw new \Exception("Remote Host ${REMOTE_HOST} is unavailable, check your network settings or VPN connection");'
+  addToBootstrap '    }'
+  addToBootstrap '    exec("ps aux | grep -v \" grep\" | grep \"$command\" | tr -s \" \" | cut -d \" \" -f 2", $pids);'
+  addToBootstrap '}'
+  addToBootstrap 'file_put_contents("kill_tunnel.sh", PHP_EOL . "kill " . implode(" ", $pids));'
+  addToBootstrap ""
 }
 
 function patchDumps()
@@ -768,6 +901,11 @@ function configure_db()
   deleteConfig 'system/full_page_cache/fastly/fastly_api_key';
   deleteConfig 'system/full_page_cache/caching_application';
   deleteConfig 'catalog/placeholder/%' 'LIKE';
+  deleteConfig 'algoliasearch_credentials/credentials/application_id';
+  deleteConfig 'algoliasearch_credentials/credentials/search_only_api_key';
+  deleteConfig 'algoliasearch_credentials/credentials/api_key';
+  deleteConfig 'algoliasearch_credentials/credentials/enable_backend';
+  deleteConfig 'algoliasearch_credentials/credentials/enable_frontend';
 
   resetAdminPassword
   switchSearchEngineToDefaultEngine
@@ -1387,7 +1525,7 @@ function isInputNegative()
 function validateStep()
 {
     local _step=$1;
-    local _steps="restore_db restore_code configure_db configure_files configure installB2B"
+    local _steps="restore_db restore_code configure_db configure_files configure installB2B add_remote"
     if echo "$_steps" | grep -q "$_step"
     then
         if type -t "$_step" &>/dev/null
@@ -1450,6 +1588,11 @@ function executePostDeployScript()
     return 0;
 }
 
+function warmCache()
+{
+    echo "Cache warm up ${BASE_URL}. Response code: $(curl -s -l -I ${BASE_URL} | head -n 1 | awk '{print $2}')"
+}
+
 function afterInstall()
 {
     if [[ "$MAGE_MODE" == "production" ]]
@@ -1459,6 +1602,7 @@ function afterInstall()
     executePostDeployScript "$(getScriptDirectory)/post-deploy"
     executePostDeployScript "$HOME/post-deploy"
     setFilesystemPermission
+    warmCache
 }
 
 function executeSteps()
@@ -1498,6 +1642,7 @@ Options:
     --restore-table                      Restore only the specific table from DB dumps
     --debug                              Enable debug mode
     --php                                Specify path to PHP CLI (php71 or /usr/bin/php71)
+    --remote-db                          Remote database name
     _________________________________________________________________________________________________
     --ee-path (/path/to/ee)              (DEPRECATED use --ee flag) Path to Enterprise Edition.
 EOF
@@ -1615,6 +1760,11 @@ function processOptions()
                 BIN_PHP=$2
                 shift
             ;;
+            --remote-db)
+                checkArgumentHasValue "$1" "$2"
+                REMOTE_DB=$2
+                shift
+            ;;
         esac
         shift
     done
@@ -1656,9 +1806,14 @@ function magentoDeployDumpsAction()
 {
     addStep "restore_code"
     addStep "configure_files"
-    addStep "restore_db"
-    addStep "configure_db"
-    addStep "validateDeploymentFromDumps"
+    if [[ "$REMOTE_DB" ]]
+    then
+        addStep "add_remote"
+    else
+        addStep "restore_db"
+        addStep "configure_db"
+        addStep "validateDeploymentFromDumps"
+    fi
 }
 
 function restoreTableAction()
@@ -1818,7 +1973,10 @@ function main()
         magentoInstallAction;
     fi
     addStep "afterInstall"
-    addStep "appConfigImport"
+    if [ -z "$REMOTE_DB" ]
+    then
+        addStep "appConfigImport"
+    fi
     executeSteps "${STEPS[@]}"
 
     END_TIME=$(date +%s)
