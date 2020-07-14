@@ -86,7 +86,7 @@ BUNDLED_EXTENSION=(
 
 function printVersion()
 {
-    printString "1.0.3"
+    printString "1.0.4"
 }
 
 function getScriptDirectory()
@@ -906,6 +906,13 @@ function configure_db()
   deleteConfig 'algoliasearch_credentials/credentials/api_key';
   deleteConfig 'algoliasearch_credentials/credentials/enable_backend';
   deleteConfig 'algoliasearch_credentials/credentials/enable_frontend';
+  deleteConfig 'services_connector/services_connector_integration/production_api_key';
+  deleteConfig 'services_connector/services_connector_integration/sandbox_api_key';
+  deleteConfig 'services_connector/services_id/project_name';
+  deleteConfig 'services_connector/services_id/environment_name';
+  deleteConfig 'services_connector/services_id/environment';
+  deleteConfig 'services_connector/services_id/project_id';
+  deleteConfig 'services_connector/services_id/environment_id';
 
   resetAdminPassword
   switchSearchEngineToDefaultEngine
