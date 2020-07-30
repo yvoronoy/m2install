@@ -884,6 +884,7 @@ function configure_db()
   setConfig 'msp_securitysuite_twofactorauth/general/enabled' '0';
   setConfig 'msp_securitysuite_recaptcha/backend/enabled' '0';
   setConfig 'msp_securitysuite_recaptcha/frontend/enabled' '0';
+  setConfig 'admin/security/session_lifetime' '31536000';
   setConfig 'admin/startup/menu_item_id' 'Magento_Backend::system_store';
   deleteConfig 'web/unsecure/base_link_url';
   deleteConfig 'web/secure/base_link_url';
