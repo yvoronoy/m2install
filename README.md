@@ -61,6 +61,8 @@ Options:
     --restore-table                      Restore only the specific table from DB dumps
     --debug                              Enable debug mode
     --php                                Specify path to PHP CLI (php71 or /usr/bin/php71)
+    --es-host, --elasticsearch-host      Set the Elasticsearch host
+    --es-port, --elasticsearch-port      Set the Elasticsearch port
     _________________________________________________________________________________________________
     --ee-path (/path/to/ee)              (DEPRECATED use --ee flag) Path to Enterprise Edition.
 ```
