@@ -1249,7 +1249,7 @@ function installB2B()
         CMD="rm -rf var/* generation/*"
         runCommand
     else
-        CMD="${BIN_PHP} ${BIN_COMPOSER} require magento/extension-b2b=${B2B_VERSION}"
+        CMD="${BIN_PHP} ${BIN_COMPOSER} require magento/extension-b2b"
         runCommand
     fi
     CMD="${BIN_PHP} ${BIN_MAGE} setup:upgrade"
@@ -1259,8 +1259,16 @@ function installB2B()
 function getB2Bversion()
 {
     REAL_MAGENTO_VERSION=`${BIN_PHP} bin/magento --version`
-    B2B_VERSION_MAJOR=$(( `echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).*/\1/'`-2 ))
-    B2B_VERSION_MINOR=`echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).*/\2/'`
+    MAGENTO_MAJOR_VERSION=`echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).*/\1/'`
+    MAGENTO_MINOR_VERSION=`echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).*/\2/'`
+    if [ $MAGENTO_MAJOR_VERSION -ge 4 ] && [ $MAGENTO_MINOR_VERSION -ge 1 ]
+    then
+        B2B_VERSION_MAJOR=$(( `echo "${MAGENTO_MAJOR_VERSION}"` -1 ))
+        B2B_VERSION_MINOR=$(( `echo "${MAGENTO_MINOR_VERSION}"` -1 ))
+    else
+        B2B_VERSION_MAJOR=$(( `echo "${MAGENTO_MAJOR_VERSION}"` -2 ))
+        B2B_VERSION_MINOR=$MAGENTO_MINOR_VERSION
+    fi
     B2B_VERSION="1.${B2B_VERSION_MAJOR}.${B2B_VERSION_MINOR}"
 }
 
