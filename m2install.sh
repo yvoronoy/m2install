@@ -29,6 +29,10 @@ DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=
 
+
+ELASTICSEARCH_HOST=
+ELASTICSEARCH_PORT=
+
 MAGENTO_VERSION=2.2
 
 DB_NAME=
@@ -478,6 +482,22 @@ function printConfirmation()
     else
         printString "Magento B2B will NOT be installed."
     fi
+    if [[ "$ELASTICSEARCH_HOST" ]]
+    then  
+        printString " "
+        printString "========================= Checking Elasticsearch ========================="
+        printString "ELASTICSEARCH HOST: ${ELASTICSEARCH_HOST}"
+        printString "ELASTICSEARCH PORT: ${ELASTICSEARCH_PORT}"
+        curl ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT} | grep 'You Know, for Search'
+        tagline=$?
+        if [ 0 = $tagline ]
+            then
+                printString "========================= Elasticsearch Found ========================="
+            else
+                printString " =========================> ELASTICSEARCH NOT FOUND!!! <========================= "
+        fi
+        printString " "
+    fi
 }
 
 function showWizard()
@@ -579,6 +599,8 @@ REMOTE_KEY=$REMOTE_KEY
 LOCAL_PORT=$LOCAL_PORT
 REMOTE_DB=$REMOTE_DB
 REMOTE_DB_PASSWORD=$REMOTE_DB_PASSWORD
+ELASTICSEARCH_HOST=$ELASTICSEARCH_HOST
+ELASTICSEARCH_PORT=$ELASTICSEARCH_PORT
 EOF
 )
 
@@ -884,6 +906,7 @@ function configure_db()
   setConfig 'msp_securitysuite_twofactorauth/general/enabled' '0';
   setConfig 'msp_securitysuite_recaptcha/backend/enabled' '0';
   setConfig 'msp_securitysuite_recaptcha/frontend/enabled' '0';
+  setConfig 'admin/security/session_lifetime' '31536000';
   setConfig 'admin/startup/menu_item_id' 'Magento_Backend::system_store';
   deleteConfig 'web/unsecure/base_link_url';
   deleteConfig 'web/secure/base_link_url';
@@ -1345,6 +1368,9 @@ function installMagento()
     if [ "${DB_PASSWORD}" ]; then
         CMD="${CMD} --db-password=${DB_PASSWORD}"
     fi
+    if [ "${ELASTICSEARCH_HOST}" ]; then
+        CMD="${CMD} --elasticsearch-host=${ELASTICSEARCH_HOST} --elasticsearch-port=${ELASTICSEARCH_PORT}"
+    fi
     runCommand
 }
 
@@ -1658,6 +1684,8 @@ Options:
     --debug                              Enable debug mode
     --php                                Specify path to PHP CLI (php71 or /usr/bin/php71)
     --remote-db                          Remote database name
+    --es-host, --elasticsearch-host      Set the Elasticsearch host
+    --es-port, --elasticsearch-port      Set the Elasticsearch port
     _________________________________________________________________________________________________
     --ee-path (/path/to/ee)              (DEPRECATED use --ee flag) Path to Enterprise Edition.
 EOF
@@ -1778,6 +1806,16 @@ function processOptions()
             --remote-db)
                 checkArgumentHasValue "$1" "$2"
                 REMOTE_DB=$2
+                shift
+            ;;
+            --es-host|--elasticsearch-host)
+                checkArgumentHasValue "$1" "$2"
+                ELASTICSEARCH_HOST=$2
+                shift
+            ;;
+            --es-port|--elasticsearch-port)
+                checkArgumentHasValue "$1" "$2"
+                ELASTICSEARCH_PORT=$2
                 shift
             ;;
         esac
