@@ -51,6 +51,7 @@ GIT_B2B_REPO=
 GIT_CE_SD_PATH=magento2-sample-data
 GIT_EE_SD_PATH=magento2-sample-data-ee
 GIT_B2B_PATH=magento2b2b
+GIT_DIR=.git/
 
 SOURCE=
 FORCE=
@@ -293,11 +294,32 @@ function prepareBasePath()
     BASE_PATH=$(echo "${BASE_PATH}" | sed "s/^\///g" | sed "s/\/$//g" );
 }
 
+function checkForDevelopBranch()
+{
+    if [ "$(ls -A ./)" ] && [ -d "$GIT_DIR" ]
+    then
+        CMD="${BIN_GIT} rev-parse --abbrev-ref HEAD --quiet"
+        runCommand | grep '2.4-develop'
+        echo "--------------------------------------------------"
+        if [ 0 = $? ]
+            then
+                GIT_CURRENT_BRANCH="2.4-develop"
+        fi
+    fi
+}
+
 function prepareBaseURL()
 {
     prepareBasePath
     HTTP_HOST=$(echo ${HTTP_HOST}/ | sed "s/\/\/$/\//g" );
-    BASE_URL=${HTTP_HOST}${BASE_PATH}/
+    checkForDevelopBranch
+
+    if [ "${MAGENTO_VERSION}" == '2.4-develop' ]  || [ "$GIT_CURRENT_BRANCH" == "2.4-develop" ]
+    then
+        BASE_URL=${HTTP_HOST}${BASE_PATH}/pub/
+    else
+        BASE_URL=${HTTP_HOST}${BASE_PATH}/
+    fi
     BASE_URL=$(echo "$BASE_URL" | sed "s/\/\/$/\//g" );
 }
 
