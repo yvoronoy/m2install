@@ -51,7 +51,6 @@ GIT_B2B_REPO=
 GIT_CE_SD_PATH=magento2-sample-data
 GIT_EE_SD_PATH=magento2-sample-data-ee
 GIT_B2B_PATH=magento2b2b
-GIT_DIR=.git/
 
 SOURCE=
 FORCE=
@@ -294,31 +293,28 @@ function prepareBasePath()
     BASE_PATH=$(echo "${BASE_PATH}" | sed "s/^\///g" | sed "s/\/$//g" );
 }
 
-function checkForDevelopBranch()
+function checkIfBasedOnDevelopBranch()
 {
-    if [ "$(ls -A ./)" ] && [ -d "$GIT_DIR" ]
+    if ( [ "$(ls -A ./)" ] && [ -d ".git" ] )
     then
-        CMD="${BIN_GIT} rev-parse --abbrev-ref HEAD --quiet"
-        runCommand | grep '2.4-develop'
-        echo "--------------------------------------------------"
+        ${BIN_GIT} rev-parse --abbrev-ref HEAD | grep '2.4-develop'
         if [ 0 = $? ]
-            then
-                GIT_CURRENT_BRANCH="2.4-develop"
+        then
+            return 0
         fi
     fi
+    return 1
 }
 
 function prepareBaseURL()
 {
     prepareBasePath
     HTTP_HOST=$(echo ${HTTP_HOST}/ | sed "s/\/\/$/\//g" );
-    checkForDevelopBranch
 
-    if [ "${MAGENTO_VERSION}" == '2.4-develop' ]  || [ "$GIT_CURRENT_BRANCH" == "2.4-develop" ]
+    BASE_URL=${HTTP_HOST}${BASE_PATH}/
+    if ( [ "$SOURCE" == 'git' ] && [ "${MAGENTO_VERSION}" == '2.4-develop' ] ) || checkIfBasedOnDevelopBranch
     then
         BASE_URL=${HTTP_HOST}${BASE_PATH}/pub/
-    else
-        BASE_URL=${HTTP_HOST}${BASE_PATH}/
     fi
     BASE_URL=$(echo "$BASE_URL" | sed "s/\/\/$/\//g" );
 }
