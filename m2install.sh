@@ -312,7 +312,7 @@ function prepareBaseURL()
     HTTP_HOST=$(echo ${HTTP_HOST}/ | sed "s/\/\/$/\//g" );
 
     BASE_URL=${HTTP_HOST}${BASE_PATH}/
-    if ( [ "$SOURCE" == 'git' ] && [ "${MAGENTO_VERSION}" == '2.4-develop' ] ) || checkIfBasedOnDevelopBranch
+    if [ "$SOURCE" == 'git' ] && [ "${MAGENTO_VERSION}" == '2.4-develop' ] || checkIfBasedOnDevelopBranch
     then
         BASE_URL=${HTTP_HOST}${BASE_PATH}/pub/
     fi
