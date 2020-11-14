@@ -293,11 +293,29 @@ function prepareBasePath()
     BASE_PATH=$(echo "${BASE_PATH}" | sed "s/^\///g" | sed "s/\/$//g" );
 }
 
+function checkIfBasedOnDevelopBranch()
+{
+    if [ "$(ls -A ./)" ] && [ -d ".git" ]
+    then
+        ${BIN_GIT} rev-parse --abbrev-ref HEAD | grep '2.4-develop'
+        if [ 0 = $? ]
+        then
+            return 0
+        fi
+    fi
+    return 1
+}
+
 function prepareBaseURL()
 {
     prepareBasePath
     HTTP_HOST=$(echo ${HTTP_HOST}/ | sed "s/\/\/$/\//g" );
+
     BASE_URL=${HTTP_HOST}${BASE_PATH}/
+    if [ "$SOURCE" == 'git' ] && [ "${MAGENTO_VERSION}" == '2.4-develop' ] || checkIfBasedOnDevelopBranch
+    then
+        BASE_URL=${HTTP_HOST}${BASE_PATH}/pub/
+    fi
     BASE_URL=$(echo "$BASE_URL" | sed "s/\/\/$/\//g" );
 }
 
