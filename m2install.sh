@@ -295,7 +295,7 @@ function prepareBasePath()
 
 function checkIfBasedOnDevelopBranch()
 {
-    if ( [ "$(ls -A ./)" ] && [ -d ".git" ] )
+    if [ "$(ls -A ./)" ] && [ -d ".git" ]
     then
         ${BIN_GIT} rev-parse --abbrev-ref HEAD | grep '2.4-develop'
         if [ 0 = $? ]
