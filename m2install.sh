@@ -1704,6 +1704,7 @@ Options:
     --remote-db                          Remote database name
     --es-host, --elasticsearch-host      Set the Elasticsearch host
     --es-port, --elasticsearch-port      Set the Elasticsearch port
+    --uninstall                          Delete database and application from the current folder
     _________________________________________________________________________________________________
     --ee-path (/path/to/ee)              (DEPRECATED use --ee flag) Path to Enterprise Edition.
 EOF
