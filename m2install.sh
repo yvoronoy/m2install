@@ -1661,6 +1661,10 @@ function afterInstall()
     executePostDeployScript "$(getScriptDirectory)/post-deploy"
     executePostDeployScript "$HOME/post-deploy"
     setFilesystemPermission
+    if [ -z "$REMOTE_DB" ]
+    then
+        addStep "appConfigImport"
+    fi
     warmCache
 }
 
@@ -2045,10 +2049,6 @@ function main()
         magentoInstallAction;
     fi
     addStep "afterInstall"
-    if [ -z "$REMOTE_DB" ]
-    then
-        addStep "appConfigImport"
-    fi
     executeSteps "${STEPS[@]}"
 
     END_TIME=$(date +%s)
