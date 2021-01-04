@@ -1482,7 +1482,7 @@ function showWizzardGit()
 function gitClone()
 {
     validateGitRepository "${GIT_CE_REPO}" "${MAGENTO_VERSION}"
-    if [[ "$INSTALL_EE" ]] && validateGitRepository "${GIT_EE_REPO}" "${MAGENTO_VERSION}"
+    validateGitRepository "${GIT_EE_REPO}" "${MAGENTO_VERSION}"
 
     CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION --single-branch $GIT_CE_REPO ."
     runCommand
