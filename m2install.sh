@@ -1387,7 +1387,7 @@ function installMagento()
         CMD="${CMD} --db-password=${DB_PASSWORD}"
     fi
     if [ "${ELASTICSEARCH_HOST}" ]; then
-        CMD="${CMD} --elasticsearch-host=${ELASTICSEARCH_HOST} --elasticsearch-port=${ELASTICSEARCH_PORT}"
+        CMD="${CMD} --elasticsearch-host=${ELASTICSEARCH_HOST} --elasticsearch-port=${ELASTICSEARCH_PORT} --elasticsearch-index-prefix=${DB_NAME}"
     fi
     runCommand
 }
