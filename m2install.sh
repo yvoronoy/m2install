@@ -869,6 +869,7 @@ function validateDeploymentFromDumps()
 
 function switchSearchEngineToDefaultEngine()
 {
+  validateElasticSearchRequired "$(parseMagentoVersion)" && return 0;
   local red=`tput setaf 1`
   local green=`tput setaf 2`
   local yellow=`tput setaf 3`
@@ -1832,6 +1833,13 @@ function processOptions()
 
 function cleanupCurrentDirectory()
 {
+  local currentDirectory="$(pwd)"
+  local homeDirectory="$(cd ~; pwd)"
+  if [[ "$currentDirectory" == "$homeDirectory" ]]
+  then
+    printError "Current Directory is home ($currentDirectory)"
+    exit 1;
+  fi
   if [ "$(ls -A)" ] && askConfirmation "Current directory is not empty. Do you want to clean current Directory (y/N)"
   then
     CMD="ls -A | xargs rm -rf"
@@ -1840,7 +1848,9 @@ function cleanupCurrentDirectory()
 }
 function validateElasticSearchRequired()
 {
-  local esRequired=$(php -r "echo (version_compare('$MAGENTO_VERSION', '2.4') >= 0) ? 'REQUIRED' : 'NO';")
+  local mageVersion="$MAGENTO_VERSION"
+  [[ "$1" ]] && mageVersion="$1"
+  local esRequired=$(php -r "echo (version_compare('$mageVersion', '2.4') >= 0) ? 'REQUIRED' : 'NO';")
   [[ "$esRequired" == "REQUIRED" ]] && return 0;
   return 1;
 
@@ -1994,6 +2004,18 @@ function getWebsiteIdByCode()
   echo "$output" | tail -n+3
 }
 
+function parseMagentoVersion()
+{
+  local valueToParse=""
+  if [ "$1" ]
+  then
+    valueToParse="$1"
+  else
+    valueToParse="$(${BIN_PHP} bin/magento -V)"
+  fi
+  echo "$valueToParse" | grep -oh "[0-9\.-]*p*[0-9]*" | head -n1
+}
+
 
 
 ################################################################################
@@ -2018,7 +2040,47 @@ function assertEqual()
 function runTests()
 {
   echo "tests";
+  testMagentoVersionIsRequiredElasticSearch
+  testParseMagentoVersion
+  echo ""
+  echo "Tests completed"
+  exit 0;
 }
+
+function testMagentoVersionIsRequiredElasticSearch()
+{
+  validateElasticSearchRequired "2.4.1"
+  local result="$?"
+  assertEqual "0" "$result"
+
+  validateElasticSearchRequired "2.3.1"
+  local result="$?"
+  assertEqual "1" "$result"
+
+  validateElasticSearchRequired "2.1.1-p2"
+  local result="$?"
+  assertEqual "1" "$result"
+
+  validateElasticSearchRequired "2.4.1-p2"
+  local result="$?"
+  assertEqual "0" "$result"
+}
+
+function testParseMagentoVersion()
+{
+  local result=$(parseMagentoVersion "Magento CLI 2.3.4")
+  assertEqual "2.3.4" "$result"
+
+  local result=$(parseMagentoVersion "Magento CLI 2.4.4")
+  assertEqual "2.4.4" "$result"
+
+  local result=$(parseMagentoVersion "Magento CLI 2.4.4-p1")
+  assertEqual "2.4.4-p1" "$result"
+
+  local result=$(parseMagentoVersion "Magento CLI 2.2.4-p10")
+  assertEqual "2.2.4-p10" "$result"
+}
+
 
 ################################################################################
 # Main
@@ -2029,7 +2091,11 @@ export LANG=C
 
 function main()
 {
-    [[ $1 == "--test" ]] && runTests
+    if [[ $1 == "--test" ]]
+    then
+      runTests;
+      exit 0;
+    fi
 
     loadConfigFile $(getConfigFiles)
     processOptions "$@"

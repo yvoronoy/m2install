@@ -39,7 +39,7 @@ function assertContains()
   then
     printPassedMsg "$message"
   else 
-    printFailedMsg "$message" "$findText" ""
+    printFailedMsg "$message" "$findText" "$text"
     exit 1;
   fi
 }
@@ -72,6 +72,7 @@ function printFailedMsg()
   local actual=$3
   echo "[${message}] ===> Failed"
   echo "Expected [${expected}] but current [${actual}]"
+  touch /tmp/failed.lock
   exit 1;
 }
 
@@ -86,6 +87,7 @@ then
     mkdir ${SANDBOX_PATH}
 fi
 cd ${SANDBOX_PATH}
+[ -f /tmp/failed.lock ] && rm /tmp/failed.lock
 
-trap '$BIN_M2INSTALL -f --quiet --uninstall; rm -rf -- "$SANDBOX_PATH"; echo "$SANDBOX_PATH" is deleted.' EXIT
+trap '[ -f /tmp/failed.lock ] && exit; $BIN_M2INSTALL -f --quiet --uninstall; rm -rf -- "$SANDBOX_PATH"; echo "$SANDBOX_PATH" is deleted.' EXIT
 
