@@ -326,8 +326,8 @@ function initQuietMode()
         return;
     fi
 
-    BIN_MAGE="${BIN_PHP} ${BIN_MAGE} --quiet"
-    BIN_COMPOSER="${BIN_PHP} ${BIN_COMPOSER} --quiet"
+    BIN_MAGE="${BIN_MAGE} --quiet"
+    BIN_COMPOSER="${BIN_COMPOSER} --quiet"
     BIN_GIT="${BIN_GIT} --quiet"
 
     FORCE=1
@@ -499,22 +499,6 @@ function printConfirmation()
         printString "Magento B2B will be installed."
     else
         printString "Magento B2B will NOT be installed."
-    fi
-    if [[ "$ELASTICSEARCH_HOST" ]]
-    then  
-        printString " "
-        printString "========================= Checking Elasticsearch ========================="
-        printString "ELASTICSEARCH HOST: ${ELASTICSEARCH_HOST}"
-        printString "ELASTICSEARCH PORT: ${ELASTICSEARCH_PORT}"
-        curl ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT} | grep 'You Know, for Search'
-        tagline=$?
-        if [ 0 = $tagline ]
-            then
-                printString "========================= Elasticsearch Found ========================="
-            else
-                printString " =========================> ELASTICSEARCH NOT FOUND!!! <========================= "
-        fi
-        printString " "
     fi
 }
 
@@ -907,7 +891,7 @@ ${stepsToTake}"
   cat <<endmessage
 ${yellow}
 ####################################################################################
-Warning: A Search Engine has been switched from ${engine} to ${green}mysql${yellow}
+Warning: A Search Engine has been switched from ${engine} to mysql
 If you need to see products on frontend follow the steps below:
 ${stepsToTake}
 ####################################################################################
@@ -1649,7 +1633,7 @@ function executePostDeployScript()
 
 function warmCache()
 {
-    echo "Cache warm up ${BASE_URL}. Response code: $(curl -s -l -I ${BASE_URL} | head -n 1 | awk '{print $2}')"
+    printString "Cache warm up ${BASE_URL}. Response code: $(curl -s -l -I ${BASE_URL} | head -n 1 | awk '{print $2}')"
 }
 
 function afterInstall()
@@ -1854,12 +1838,34 @@ function cleanupCurrentDirectory()
     runCommand
   fi
 }
+function validateElasticSearchRequired()
+{
+  local esRequired=$(php -r "echo (version_compare('$MAGENTO_VERSION', '2.4') >= 0) ? 'REQUIRED' : 'NO';")
+  [[ "$esRequired" == "REQUIRED" ]] && return 0;
+  return 1;
+
+}
+
+function validateElasticSearchIsAvailable()
+{
+  [[ ! "$ELASTICSEARCH_HOST" ]] && ELASTICSEARCH_HOST="localhost"
+  [[ ! "$ELASTICSEARCH_PORT" ]] && ELASTICSEARCH_PORT="9200"
+  if curl -s -XGET ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT} | grep -q "number"; then
+    printString "ElasticSearch is available on ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}."
+    return 0;
+  fi
+  printError "ElasticSearch is required for version 2.4.x.";
+  printError "ElasticSearch is not available on ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}."
+  printError "Use parameters to specify Elasticsearch --es-host <HOST> --es-port <PORT>"
+  exit 1;
+}
 
 ################################################################################
 # Action Controllers
 ################################################################################
 function magentoInstallAction()
 {
+    validateElasticSearchRequired && validateElasticSearchIsAvailable
     if [[ "${SOURCE}" ]]
     then
         cleanupCurrentDirectory

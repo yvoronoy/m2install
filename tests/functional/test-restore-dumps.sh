@@ -1,15 +1,27 @@
 #!/usr/bin/env bash
 source tests/functional.sh
-bin/magento setup:backup --code --db
-ls -A | grep -v var | xargs rm -rf
-cp var/backups/* ./
-rm -rf var
 
-${BIN_M2INSTALL} -f --quiet
+OUTPUT=$(${BIN_M2INSTALL} --force --source composer -v 2.3.6 2>error.log)
+
+php bin/magento config:set system/backup/functionality_enabled 1
+
+php bin/magento setup:backup --code --db
+
+
+mkdir dumps
+cp var/backups/* dumps/
+php bin/magento --no-interaction setup:uninstall
+ls -A | grep -v dumps | xargs rm -rf
+cp dumps/* ./
+rm -rf dumps
+
+RESTORE_OUTPUT=$(${BIN_M2INSTALL} -f --quiet 2>error.log)
 
 assertEqual $(ls app/etc/env.php.merchant) app/etc/env.php.merchant "Original file env.php.merchant has been created"
 
 CURRENT="$(php bin/magento -V --no-ansi)";
-EXPECTED="Magento CLI version 2.1.6";
+EXPECTED="Magento CLI 2.3.6";
 assertEqual "$EXPECTED" "$CURRENT" "Version should match"
+
+assertContains "$RESTORE_OUTPUT" "Warning: A Search Engine has been switched from elasticsearch to mysql"
 
