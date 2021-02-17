@@ -15,3 +15,6 @@ assertNotContains "$([ -f error.log ] && cat error.log)" "ElasticSearch is requi
 assertContains "$OUTPUT" "ElasticSearch is available on magento2elastic7:9207." "ElasticSearch is available magento2elastic7:9207"
 assertContains "$OUTPUT" "Response code: 200" "Response Code Must be 200"
 
+assertContains "$OUTPUT" "Magento_TwoFactorAuth is being disabled" "Magento_TwoFactorAuth is being disabled"
+assertNotContains "$OUTPUT" "MarkShust_DisableTwoFactorAuth is being disabled" "MarkShust_DisableTwoFactorAuth MUST be empty output"
+

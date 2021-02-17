@@ -1641,6 +1641,7 @@ function warmCache()
 
 function afterInstall()
 {
+    disableTwoFactorAuthModules
     if [[ "$MAGE_MODE" == "production" ]]
     then
         setProductionMode
@@ -1653,6 +1654,13 @@ function afterInstall()
         addStep "appConfigImport"
     fi
     warmCache
+}
+
+function disableTwoFactorAuthModules()
+{
+  $BIN_PHP $BIN_MAGE module:status Magento_TwoFactorAuth | grep -q 'Module is enabled' && echo "Magento_TwoFactorAuth is being disabled"
+  $BIN_PHP $BIN_MAGE module:status MarkShust_DisableTwoFactorAuth | grep -q 'Module is enabled' && echo "MarkShust_DisableTwoFactorAuth is being disabled"
+  $BIN_PHP $BIN_MAGE module:status WolfSellers_EnableDisableTfa | grep -q 'Module is enabled' && echo "WolfSellers_EnableDisableTfa is being disabled"
 }
 
 function executeSteps()
