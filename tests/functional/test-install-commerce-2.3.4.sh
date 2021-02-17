@@ -11,5 +11,6 @@ echo "$OUTPUT" > $artifactFile
 echo "Artifacts: $artifactFile"
 
 assertEqual "$EXPECTED" "$CURRENT" "Version should match"
+assertEqual "$(php bin/magento config:show web/unsecure/base_url)" "http://${CURRENT_DIR_NAME}.127.0.0.1.xip.io/"
 assertContains "$OUTPUT" "Response code: 200" "Response Code Must be 200"
 

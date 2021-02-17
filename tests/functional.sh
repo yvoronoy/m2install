@@ -87,6 +87,7 @@ then
     mkdir ${SANDBOX_PATH}
 fi
 cd ${SANDBOX_PATH}
+CURRENT_DIR_NAME=$(basename "$(pwd)")
 [ -f /tmp/failed.lock ] && rm /tmp/failed.lock
 
 trap '[ -f /tmp/failed.lock ] && exit; $BIN_M2INSTALL -f --quiet --uninstall; rm -rf -- "$SANDBOX_PATH"; echo "$SANDBOX_PATH" is deleted.' EXIT
