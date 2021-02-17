@@ -311,10 +311,11 @@ function prepareBaseURL()
     prepareBasePath
     HTTP_HOST=$(echo ${HTTP_HOST}/ | sed "s/\/\/$/\//g" );
 
-    BASE_URL=${HTTP_HOST}${BASE_PATH}/
-    if [ "$SOURCE" == 'git' ] && [ "${MAGENTO_VERSION}" == '2.4-develop' ] || checkIfBasedOnDevelopBranch
+    BASE_URL="${HTTP_HOST}${BASE_PATH}/"
+    BASE_URL=$(echo ${BASE_URL} | sed "s/\/\/$/\//g" )
+    if [ "$SOURCE" == 'git' ] && [ "${MAGENTO_VERSION}" == '2.4-develop' ] || checkIfBasedOnDevelopBranch || versionIsHigherThan "$MAGENTO_VERSION" "2.4.2"
     then
-        BASE_URL=${HTTP_HOST}${BASE_PATH}/pub/
+        BASE_URL="${BASE_URL}pub/"
     fi
     BASE_URL=$(echo "$BASE_URL" | sed "s/\/\/$/\//g" );
 }
@@ -326,8 +327,8 @@ function initQuietMode()
         return;
     fi
 
-    BIN_MAGE="${BIN_PHP} ${BIN_MAGE} --quiet"
-    BIN_COMPOSER="${BIN_PHP} ${BIN_COMPOSER} --quiet"
+    BIN_MAGE="${BIN_MAGE} --quiet"
+    BIN_COMPOSER="${BIN_COMPOSER} --quiet"
     BIN_GIT="${BIN_GIT} --quiet"
 
     FORCE=1
@@ -499,22 +500,6 @@ function printConfirmation()
         printString "Magento B2B will be installed."
     else
         printString "Magento B2B will NOT be installed."
-    fi
-    if [[ "$ELASTICSEARCH_HOST" ]]
-    then  
-        printString " "
-        printString "========================= Checking Elasticsearch ========================="
-        printString "ELASTICSEARCH HOST: ${ELASTICSEARCH_HOST}"
-        printString "ELASTICSEARCH PORT: ${ELASTICSEARCH_PORT}"
-        curl ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT} | grep 'You Know, for Search'
-        tagline=$?
-        if [ 0 = $tagline ]
-            then
-                printString "========================= Elasticsearch Found ========================="
-            else
-                printString " =========================> ELASTICSEARCH NOT FOUND!!! <========================= "
-        fi
-        printString " "
     fi
 }
 
@@ -885,6 +870,8 @@ function validateDeploymentFromDumps()
 
 function switchSearchEngineToDefaultEngine()
 {
+ versionIsHigherThan "$(parseMagentoVersion)" && return 0;
+
   local red=`tput setaf 1`
   local green=`tput setaf 2`
   local yellow=`tput setaf 3`
@@ -907,7 +894,7 @@ ${stepsToTake}"
   cat <<endmessage
 ${yellow}
 ####################################################################################
-Warning: A Search Engine has been switched from ${engine} to ${green}mysql${yellow}
+Warning: A Search Engine has been switched from ${engine} to mysql
 If you need to see products on frontend follow the steps below:
 ${stepsToTake}
 ####################################################################################
@@ -1649,7 +1636,7 @@ function executePostDeployScript()
 
 function warmCache()
 {
-    echo "Cache warm up ${BASE_URL}. Response code: $(curl -s -l -I ${BASE_URL} | head -n 1 | awk '{print $2}')"
+  printString "Cache warm up ${BASE_URL}. Response code: $(curl --insecure --location --write-out '%{http_code}' --silent --output /dev/null $BASE_URL)"
 }
 
 function afterInstall()
@@ -1848,11 +1835,43 @@ function processOptions()
 
 function cleanupCurrentDirectory()
 {
+  local currentDirectory="$(pwd)"
+  local homeDirectory="$(cd ~; pwd)"
+  if [[ "$currentDirectory" == "$homeDirectory" ]]
+  then
+    printError "Current Directory is home ($currentDirectory)"
+    exit 1;
+  fi
   if [ "$(ls -A)" ] && askConfirmation "Current directory is not empty. Do you want to clean current Directory (y/N)"
   then
     CMD="ls -A | xargs rm -rf"
     runCommand
   fi
+}
+function versionIsHigherThan()
+{
+  local defaultVersion="2.4"
+  local mageVersion="$MAGENTO_VERSION"
+  [[ "$1" ]] && mageVersion="$1"
+  [[ "$2" ]] && defaultVersion="$2"
+  local esRequired=$(php -r "echo (version_compare('$mageVersion', '$defaultVersion') >= 0) ? 'REQUIRED' : 'NO';")
+  [[ "$esRequired" == "REQUIRED" ]] && return 0;
+  return 1;
+
+}
+
+function validateElasticSearchIsAvailable()
+{
+  [[ ! "$ELASTICSEARCH_HOST" ]] && ELASTICSEARCH_HOST="localhost"
+  [[ ! "$ELASTICSEARCH_PORT" ]] && ELASTICSEARCH_PORT="9200"
+  if curl -s -XGET ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT} | grep -q "number"; then
+    printString "ElasticSearch is available on ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}."
+    return 0;
+  fi
+  printError "ElasticSearch is required for version 2.4.x.";
+  printError "ElasticSearch is not available on ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}."
+  printError "Use parameters to specify Elasticsearch --es-host <HOST> --es-port <PORT>"
+  exit 1;
 }
 
 ################################################################################
@@ -1860,6 +1879,7 @@ function cleanupCurrentDirectory()
 ################################################################################
 function magentoInstallAction()
 {
+    versionIsHigherThan && validateElasticSearchIsAvailable
     if [[ "${SOURCE}" ]]
     then
         cleanupCurrentDirectory
@@ -1988,6 +2008,18 @@ function getWebsiteIdByCode()
   echo "$output" | tail -n+3
 }
 
+function parseMagentoVersion()
+{
+  local valueToParse=""
+  if [ "$1" ]
+  then
+    valueToParse="$1"
+  else
+    valueToParse="$(${BIN_PHP} bin/magento -V)"
+  fi
+  echo "$valueToParse" | grep -oh "[0-9\.-]*p*[0-9]*" | head -n1
+}
+
 
 
 ################################################################################
@@ -2012,7 +2044,59 @@ function assertEqual()
 function runTests()
 {
   echo "tests";
+  testMagentoVersionIsRequiredElasticSearch
+  testParseMagentoVersion
+  echo ""
+  echo "Tests completed"
+  exit 0;
 }
+
+function testMagentoVersionIsRequiredElasticSearch()
+{
+  versionIsHigherThan "2.4.1"
+  local result="$?"
+  assertEqual "0" "$result"
+
+  versionIsHigherThan "2.3.1"
+  local result="$?"
+  assertEqual "1" "$result"
+
+  versionIsHigherThan "2.1.1-p2"
+  local result="$?"
+  assertEqual "1" "$result"
+
+  versionIsHigherThan "2.4.1-p2"
+  local result="$?"
+  assertEqual "0" "$result"
+
+  versionIsHigherThan "2.4.2" "2.4.2"
+  local result="$?"
+  assertEqual "0" "$result"
+
+  versionIsHigherThan "2.4.3" "2.4.2"
+  local result="$?"
+  assertEqual "0" "$result"
+
+  versionIsHigherThan "2.4.1" "2.4.2"
+  local result="$?"
+  assertEqual "1" "$result"
+}
+
+function testParseMagentoVersion()
+{
+  local result=$(parseMagentoVersion "Magento CLI 2.3.4")
+  assertEqual "2.3.4" "$result"
+
+  local result=$(parseMagentoVersion "Magento CLI 2.4.4")
+  assertEqual "2.4.4" "$result"
+
+  local result=$(parseMagentoVersion "Magento CLI 2.4.4-p1")
+  assertEqual "2.4.4-p1" "$result"
+
+  local result=$(parseMagentoVersion "Magento CLI 2.2.4-p10")
+  assertEqual "2.2.4-p10" "$result"
+}
+
 
 ################################################################################
 # Main
@@ -2023,7 +2107,11 @@ export LANG=C
 
 function main()
 {
-    [[ $1 == "--test" ]] && runTests
+    if [[ $1 == "--test" ]]
+    then
+      runTests;
+      exit 0;
+    fi
 
     loadConfigFile $(getConfigFiles)
     processOptions "$@"
