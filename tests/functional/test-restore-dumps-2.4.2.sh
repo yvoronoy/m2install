@@ -7,7 +7,6 @@ php bin/magento config:set system/backup/functionality_enabled 1
 
 php bin/magento setup:backup --code --db
 
-
 mkdir dumps
 cp var/backups/* dumps/
 php bin/magento --no-interaction setup:uninstall
@@ -23,5 +22,7 @@ CURRENT="$(php bin/magento -V --no-ansi)";
 EXPECTED="Magento CLI 2.4.2";
 assertEqual "$EXPECTED" "$CURRENT" "Version should match"
 
-assertNotContains "$RESTORE_OUTPUT" "Warning: A Search Engine has been switched from elasticsearch to mysql"
+assertNotContains "$RESTORE_OUTPUT" "Warning: A Search Engine has been switched from elasticsearch to mysql" "Magento 2.4.x should not switch search engine from ES to MySQL"
+
+assertEqual "$(php bin/magento config:show web/unsecure/base_url)" "http://${CURRENT_DIR_NAME}.127.0.0.1.xip.io/pub/" "Base URL for 2.4.2 and higher must include /pub/"
 

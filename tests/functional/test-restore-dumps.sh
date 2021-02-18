@@ -15,7 +15,7 @@ ls -A | grep -v dumps | xargs rm -rf
 cp dumps/* ./
 rm -rf dumps
 
-RESTORE_OUTPUT=$(${BIN_M2INSTALL} -f --quiet 2>error.log)
+RESTORE_OUTPUT=$(${BIN_M2INSTALL} -f 2>error.log)
 
 assertEqual $(ls app/etc/env.php.merchant) app/etc/env.php.merchant "Original file env.php.merchant has been created"
 
@@ -24,4 +24,5 @@ EXPECTED="Magento CLI 2.3.6";
 assertEqual "$EXPECTED" "$CURRENT" "Version should match"
 
 assertContains "$RESTORE_OUTPUT" "Warning: A Search Engine has been switched from elasticsearch to mysql"
+assertContains "$RESTORE_OUTPUT" "http://${CURRENT_DIR_NAME}.127.0.0.1.xip.io/admin" "Test Base URL to admin"
 

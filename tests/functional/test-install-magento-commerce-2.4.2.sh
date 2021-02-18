@@ -13,7 +13,7 @@ assertContains "$([ -f error.log ] && cat error.log)" "ElasticSearch is not avai
 OUTPUT=$(${BIN_M2INSTALL} --force --source composer -v 2.4.2 --ee --es-host magento2elastic7 --es-port 9207 2>error.log)
 assertNotContains "$([ -f error.log ] && cat error.log)" "ElasticSearch is required for version 2.4.x." "No Error ES is required"
 assertContains "$OUTPUT" "ElasticSearch is available on magento2elastic7:9207." "ElasticSearch is available magento2elastic7:9207"
-assertContains "$OUTPUT" "Response code: 200" "Response Code Must be 200"
+assertContains "$OUTPUT" "Response code: [0,2]00" "Response Code Must be 200"
 
 assertContains "$OUTPUT" "Magento_TwoFactorAuth is being disabled" "Magento_TwoFactorAuth is being disabled"
 assertNotContains "$OUTPUT" "MarkShust_DisableTwoFactorAuth is being disabled" "MarkShust_DisableTwoFactorAuth MUST be empty output"
