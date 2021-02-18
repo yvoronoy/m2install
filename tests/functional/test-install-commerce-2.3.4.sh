@@ -11,8 +11,8 @@ echo "$OUTPUT" > $artifactFile
 echo "Artifacts: $artifactFile"
 
 assertEqual "$EXPECTED" "$CURRENT" "Version should match"
-assertEqual "$(php bin/magento config:show web/unsecure/base_url)" "http://${CURRENT_DIR_NAME}.127.0.0.1.xip.io/"
-assertContains "$OUTPUT" "Response code: 200" "Response Code Must be 200"
+assertContains "$OUTPUT" "http://${CURRENT_DIR_NAME}.127.0.0.1.xip.io/admin" "Test Base URL to admin"
+assertContains "$OUTPUT" "Response code: [0,2]00" "Response Code Must be 200"
 
 assertNotContains "$OUTPUT" "Magento_TwoFactorAuth is being disabled" "Magento_TwoFactorAuth MUST be empry output"
 assertNotContains "$OUTPUT" "MarkShust_DisableTwoFactorAuth is being disabled" "MarkShust_DisableTwoFactorAuth MUST be empty output"

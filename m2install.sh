@@ -313,11 +313,41 @@ function prepareBaseURL()
 
     BASE_URL="${HTTP_HOST}${BASE_PATH}/"
     BASE_URL=$(echo ${BASE_URL} | sed "s/\/\/$/\//g" )
-    if [ "$SOURCE" == 'git' ] && [ "${MAGENTO_VERSION}" == '2.4-develop' ] || checkIfBasedOnDevelopBranch || versionIsHigherThan "$MAGENTO_VERSION" "2.4.2"
+    if isPubRequired
     then
         BASE_URL="${BASE_URL}pub/"
     fi
     BASE_URL=$(echo "$BASE_URL" | sed "s/\/\/$/\//g" );
+}
+
+function isPubRequired()
+{
+  if [ "$SOURCE" == 'git' ] && [ "${MAGENTO_VERSION}" == '2.4-develop' ]
+  then
+    return 0
+  fi
+
+  if checkIfBasedOnDevelopBranch
+  then
+    return 0
+  fi
+
+  if versionIsHigherThan "$MAGENTO_VERSION" "2.4.2"
+  then
+    return 0
+  fi
+
+  if foundSupportBackupFiles
+  then
+
+  if ! tar -tf $(getCodeDumpFilename) | grep '^index.php'
+    then
+      return 0
+    fi
+  fi
+
+  #return false/failure
+  return 255
 }
 
 function initQuietMode()
