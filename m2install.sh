@@ -57,7 +57,7 @@ FORCE=
 MAGE_MODE=dev
 
 BIN_PHP=php
-BIN_MAGE="-d memory_limit=2G bin/magento"
+BIN_MAGE="-d memory_limit=4G bin/magento"
 BIN_COMPOSER=$(command -v composer)
 BIN_MYSQL="mysql"
 BIN_GIT="git"
@@ -708,13 +708,16 @@ function restore_code()
 
 function configure_files()
 {
+
     CMD="find -L ./pub -type l -delete"
+    runCommand
+    #CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
+    CMD="chmod -R a-st ."
+    runCommand
+    CMD="chmod -R 775 ."
     runCommand
     updateMagentoEnvFile
     overwriteOriginalFiles
-    #CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
-    CMD="chmod -R 775 ."
-    runCommand
     CMD="${BIN_PHP} ${BIN_COMPOSER} dump-autoload"
     runCommand
 
