@@ -1663,7 +1663,7 @@ function afterInstall()
     setFilesystemPermission
     if [ -z "$REMOTE_DB" ]
     then
-        addStep "appConfigImport"
+        appConfigImport
     fi
     warmCache
 }
