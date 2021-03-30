@@ -87,6 +87,7 @@ BUNDLED_EXTENSION=(
     temando/module-shipping-m2
     vertex/module-tax
 )
+M2INSTALL_CSV_LOG=${M2INSTALL_CSV_LOG:-}
 
 function printVersion()
 {
@@ -98,6 +99,27 @@ function getScriptDirectory()
     echo "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
     return 0;
 }
+
+function getCsvLogFile()
+{
+  local path="$(getScriptDir)/m2install.csv"
+  [[ "$M2INSTALL_CSV_LOG" ]] && path="$M2INSTALL_CSV_LOG"
+  echo "$path"
+  return 0;
+}
+
+function writeCsvMetricRow()
+{
+  local csvFile="$(getCsvLogFile)"
+  if [ ! -f "$csvFile" ]
+  then
+    echo "datetime, home_response_code, home_url, admin_response_code, admin_url" >> "$csvFile"
+  fi
+  echo "$@" >> $csvFile
+  return 0
+}
+
+# Get Script Directory with resolving symlink
 function getScriptDir()
 {
   local source=
@@ -1669,7 +1691,13 @@ function executePostDeployScript()
 
 function warmCache()
 {
-  printString "Cache warm up ${BASE_URL}. Response code: $(curl --insecure --location --write-out '%{http_code}' --silent --output /dev/null $BASE_URL)"
+  local home_url=${BASE_URL}
+  local home_response_code="$(curl --insecure --location --write-out '%{http_code}' --silent --output /dev/null $home_url)"
+  local admin_url="${BASE_URL}${BACKEND_FRONTNAME}"
+  local admin_response_code="$(curl --insecure --location --write-out '%{http_code}' --silent --output /dev/null $admin_url)"
+  printString "Cache warm up ${home_url}. Response code: $home_response_code"
+  printString "Cache warm up ${admin_url}. Response code: $admin_response_code"
+  writeCsvMetricRow "$(date '+%Y-%m-%d %H:%M:%S'), $home_response_code, $home_url, $admin_response_code, $admin_url"
 }
 
 function afterInstall()
