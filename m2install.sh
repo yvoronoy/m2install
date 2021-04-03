@@ -2219,6 +2219,5 @@ function main()
     printString "${BASE_URL}${BACKEND_FRONTNAME}"
     printString "User: ${ADMIN_NAME}"
     printString "Pass: ${ADMIN_PASSWORD}"
-    promptSaveConfig
 }
 main "${@}"
