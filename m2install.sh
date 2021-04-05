@@ -113,7 +113,7 @@ function writeCsvMetricRow()
   local csvFile="$(getCsvLogFile)"
   if [ ! -f "$csvFile" ]
   then
-    echo "datetime, mode, home_response_code, home_url, admin_response_code, admin_url" >> "$csvFile"
+    echo "datetime, mode, home_response_code, home_url, admin_response_code, admin_url, duration" >> "$csvFile"
   fi
   echo "$@" >> $csvFile
   return 0
@@ -1697,9 +1697,13 @@ function warmCache()
   then
     mode=restore
   fi
+
+  END_TIME=$(date +%s)
+  SUMMARY_TIME=$((((END_TIME - START_TIME)) / 60));
   printString "Cache warm up ${home_url}. Response code: $home_response_code"
   printString "Cache warm up ${admin_url}. Response code: $admin_response_code"
-  writeCsvMetricRow "$(date '+%Y-%m-%d %H:%M:%S'), $mode, $home_response_code, $home_url, $admin_response_code, $admin_url"
+  printString "$(basename "$0") took $SUMMARY_TIME minutes to complete install/deploy process"
+  writeCsvMetricRow "$(date '+%Y-%m-%d %H:%M:%S'), $mode, $home_response_code, $home_url, $admin_response_code, $admin_url, $SUMMARY_TIME"
 }
 
 function afterInstall()
@@ -2209,10 +2213,6 @@ function main()
     fi
     addStep "afterInstall"
     executeSteps "${STEPS[@]}"
-
-    END_TIME=$(date +%s)
-    SUMMARY_TIME=$((((END_TIME - START_TIME)) / 60));
-    printString "$(basename "$0") took $SUMMARY_TIME minutes to complete install/deploy process"
 
     printLine
     printString "${BASE_URL}"
