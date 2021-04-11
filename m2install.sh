@@ -267,7 +267,7 @@ function extract()
      if [ -f "$EXTRACT_FILENAME" ] ; then
          case $EXTRACT_FILENAME in
              *.tar.*|*.t*z*)
-                CMD="tar $(getStripComponentsValue ${EXTRACT_FILENAME}) -xf ${EXTRACT_FILENAME}"
+                CMD="tar $(getStripComponentsValue ${EXTRACT_FILENAME}) -xf ${EXTRACT_FILENAME} $1"
              ;;
              *.gz)              CMD="gunzip $EXTRACT_FILENAME" ;;
              *.zip)             CMD="unzip -qu -x $EXTRACT_FILENAME" ;;
@@ -876,7 +876,7 @@ function appConfigImport()
 {
     if ${BIN_PHP} bin/magento | grep -q app:config:import
     then
-        CMD="${BIN_PHP} bin/magento app:config:import -n"
+        CMD="$BIN_PHP $BIN_MAGE app:config:import -n"
         runCommand
     fi
 }
@@ -920,9 +920,21 @@ function validateDeploymentFromDumps()
     fi
 }
 
+function updateElasticSearchConfiguration()
+{
+  local currentSearchEngine="$($BIN_PHP bin/magento config:show catalog/search/engine)"
+  [[ ! "$currentSearchEngine" ]] && currentSearchEngine=$(getRecommendedSearchEngineForVersion)
+
+  printString "Updating ElasticSearch Configuration $(getESConfigHost $currentSearchEngine):$(getESConfigPort $currentSearchEngine)"
+  $BIN_PHP $BIN_MAGE config:set "catalog/search/${currentSearchEngine}_server_hostname" $(getESConfigHost $currentSearchEngine)
+  $BIN_PHP $BIN_MAGE config:set "catalog/search/${currentSearchEngine}_server_port" $(getESConfigPort $currentSearchEngine)
+  $BIN_PHP $BIN_MAGE config:set "catalog/search/${currentSearchEngine}_index_prefix" $DB_NAME
+  return 0
+}
+
 function switchSearchEngineToDefaultEngine()
 {
- versionIsHigherThan "$(parseMagentoVersion)" && return 0;
+  isElasticSearchRequired && updateElasticSearchConfiguration && return 0;
 
   local red=`tput setaf 1`
   local green=`tput setaf 2`
@@ -1425,11 +1437,111 @@ function installMagento()
     if [ "${DB_PASSWORD}" ]; then
         CMD="${CMD} --db-password=${DB_PASSWORD}"
     fi
-    if [ "${ELASTICSEARCH_HOST}" ]; then
-        CMD="${CMD} --elasticsearch-host=${ELASTICSEARCH_HOST} --elasticsearch-port=${ELASTICSEARCH_PORT} --elasticsearch-index-prefix=${DB_NAME}"
+    if isElasticSearchRequired && isElasticSearchConfigIsAvailable
+    then
+	    local searchEngine="$(getRecommendedSearchEngineForVersion)"
+	    CMD="${CMD} --search-engine=$searchEngine --elasticsearch-host=$(getESConfigHost $searchEngine) --elasticsearch-port=$(getESConfigPort $searchEngine) --elasticsearch-index-prefix=${DB_NAME}"
     fi
     runCommand
 }
+
+function isElasticSearchRequired()
+{
+  versionIsHigherThan "$(getMagentoVersion)" "2.4" && return 0
+  return 255
+}
+
+function isElasticSearchConfigIsAvailable()
+{
+  [[ "$ELASTICSEARCH_HOST" ]] && [[ "$ELASTICSEARCH_PORT" ]] && return 0
+  local searchEngine="$1"
+  if [[ ! "$searchEngine" ]]
+  then
+    searchEngine="$(getRecommendedSearchEngineForVersion)"
+  fi
+  local eshost=$(getESConfigHost "$searchEngine")
+  local esport=$(getESConfigPort "$searchEngine")
+  [[ "$eshost" ]] && [[ "$esport" ]] && return 0
+  return 255
+}
+
+function getRecommendedSearchEngineForVersion()
+{
+    local searchEngine=elasticsearch
+    local currentMagentoVersion="$(getMagentoVersion)"
+    #https://devdocs.magento.com/guides/v2.4/install-gde/system-requirements.html
+    versionIsHigherThan "$(getMagentoVersion)" "2.3.0" && searchEngine="elasticsearch"
+    versionIsHigherThan "$(getMagentoVersion)" "2.3.1" && searchEngine="elasticsearch5"
+    versionIsHigherThan "$(getMagentoVersion)" "2.3.5" && searchEngine="elasticsearch7"
+    echo "$searchEngine"
+    return 0
+}
+
+function getESConfigHost()
+{
+  [[ "$ELASTICSEARCH_HOST" ]] && { echo "$ELASTICSEARCH_HOST"; return 0; }
+  case "$1" in
+    elasticsearch7)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH7_HOST"
+      return 0
+      ;;
+    elasticsearch6)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH6_HOST"
+      return 0
+      ;;
+    elasticsearch5)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH5_HOST"
+      return 0
+      ;;
+    elasticsearch)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH2_HOST"
+      return 0
+      ;;
+  esac
+}
+
+function getESConfigPort()
+{
+  [[ "$ELASTICSEARCH_PORT" ]] && { echo "$ELASTICSEARCH_PORT"; return 0; }
+  case "$1" in
+    elasticsearch7)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH7_PORT"
+      return 0
+      ;;
+    elasticsearch6)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH6_PORT"
+      return 0
+      ;;
+    elasticsearch5)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH5_PORT"
+      return 0
+      ;;
+    elasticsearch)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH2_PORT"
+      return 0
+      ;;
+  esac
+}
+
+function getMagentoVersion()
+{
+  local version=
+  [[ "$SOURCE" ]] && { version="$MAGENTO_VERSION"; echo "$version"; return 0; }
+  [[ -f bin/magento ]] && { echo "$(parseMagentoVersion)"; return 0; }
+
+  if [[ ! -f composer.lock ]] && foundSupportBackupFiles
+  then
+    EXTRACT_FILENAME="$(getCodeDumpFilename)"
+    extract "composer.lock"
+  fi
+
+  [[ -f composer.lock ]] && version=$(parseMagentoVersion "$(grep '\"name\": \"magento/product-community\|enterprise-edition\"' composer.lock -A1 | tail -n1)")
+  [[ "$version" ]] && { echo "$version"; return 0; }
+
+  echo "$MAGENTO_VERSION"
+  return 0
+}
+
 
 function downloadSourceCode()
 {
@@ -1937,6 +2049,8 @@ function versionIsHigherThan()
 
 function validateElasticSearchIsAvailable()
 {
+  [[ ! "$ELASTICSEARCH_HOST" ]] && ELASTICSEARCH_HOST="$(getESConfigHost $(getRecommendedSearchEngineForVersion))"
+  [[ ! "$ELASTICSEARCH_PORT" ]] && ELASTICSEARCH_PORT="$(getESConfigPort $(getRecommendedSearchEngineForVersion))"
   [[ ! "$ELASTICSEARCH_HOST" ]] && ELASTICSEARCH_HOST="localhost"
   [[ ! "$ELASTICSEARCH_PORT" ]] && ELASTICSEARCH_PORT="9200"
   if curl -s -XGET ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT} | grep -q "number"; then
@@ -1954,7 +2068,7 @@ function validateElasticSearchIsAvailable()
 ################################################################################
 function magentoInstallAction()
 {
-    versionIsHigherThan && validateElasticSearchIsAvailable
+    isElasticSearchRequired && validateElasticSearchIsAvailable
     if [[ "${SOURCE}" ]]
     then
         cleanupCurrentDirectory
@@ -2195,7 +2309,6 @@ function main()
     printString "Configuration loaded from: $(getConfigFiles)"
     checkDependencies
     showWizard
-
     START_TIME=$(date +%s)
     if [[ "${STEPS[@]}" ]]
     then

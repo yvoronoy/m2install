@@ -1,6 +1,24 @@
 #!/usr/bin/env bash
 source tests/functional.sh
 
+CURRENT_DIR_NAME=$(basename "$(pwd)")
+
+BP="dev/test-$$"
+mkdir -p "$BP"
+cd "$BP"
+CONFIG_BP_VALUE="BASE_PATH=$BP"
+echo "$CONFIG_BP_VALUE" > ../.m2install.conf
+echo "HTTP_HOST=http://$CURRENT_DIR_NAME.127.0.0.1.xip.io/" >> ../.m2install.conf
+
+echo 'SEARCH_ENGINE_ELASTICSEARCH7_HOST=' >> ../.m2install.conf
+echo 'SEARCH_ENGINE_ELASTICSEARCH7_PORT=' >> ../.m2install.conf
+echo 'SEARCH_ENGINE_ELASTICSEARCH6_HOST=' >> ../.m2install.conf
+echo 'SEARCH_ENGINE_ELASTICSEARCH6_PORT=' >> ../.m2install.conf
+echo 'SEARCH_ENGINE_ELASTICSEARCH5_HOST=' >> ../.m2install.conf
+echo 'SEARCH_ENGINE_ELASTICSEARCH5_PORT=' >> ../.m2install.conf
+echo 'SEARCH_ENGINE_ELASTICSEARCH2_HOST=' >> ../.m2install.conf
+echo 'SEARCH_ENGINE_ELASTICSEARCH2_PORT=' >> ../.m2install.conf
+
 OUTPUT=$(${BIN_M2INSTALL} --force --source composer -v 2.4.2 --ee 2>error.log)
 
 assertContains "$([ -f error.log ] && cat error.log)" "ElasticSearch is required for version 2.4.x." "ES is required"
