@@ -60,7 +60,7 @@ cp dumps/* ./
 rm -rf dumps
 RESTORE_OUTPUT=$(${BIN_M2INSTALL} -f --quiet 2>error.log)
 
-assertNotContains "$RESTORE_OUTPUT" "Warning: A Search Engine has been switched from elasticsearch to mysql" "Magento 2.4.x should not switch search engine from ES to MySQL"
+assertNotContains "$RESTORE_OUTPUT" "Warning: A Search Engine has been switched from" "Magento 2.4.x should not switch search engine from ES to MySQL"
 searchEngine="$(php bin/magento config:show catalog/search/engine)"
 searchHost="$(php bin/magento config:show catalog/search/elasticsearch6_server_hostname)"
 searchPort="$(php bin/magento config:show catalog/search/elasticsearch6_server_port)"

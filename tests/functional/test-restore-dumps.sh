@@ -23,6 +23,6 @@ CURRENT="$(php bin/magento -V --no-ansi)";
 EXPECTED="Magento CLI 2.3.6";
 assertEqual "$EXPECTED" "$CURRENT" "Version should match"
 
-assertContains "$RESTORE_OUTPUT" "Warning: A Search Engine has been switched from elasticsearch to mysql"
+assertNotContains "$RESTORE_OUTPUT" "Warning: A Search Engine has been switched from elasticsearch to mysql"
 assertContains "$RESTORE_OUTPUT" "http://${CURRENT_DIR_NAME}.127.0.0.1.xip.io/admin" "Test Base URL to admin"
 

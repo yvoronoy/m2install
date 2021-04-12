@@ -72,7 +72,7 @@ function printFailedMsg()
   local actual=$3
   echo "[${message}] ===> Failed"
   echo "Expected [${expected}] but current [${actual}]"
-  #touch /tmp/failed.lock
+  touch /tmp/failed.lock
   exit 1;
 }
 

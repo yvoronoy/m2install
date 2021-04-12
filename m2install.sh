@@ -57,7 +57,7 @@ FORCE=
 MAGE_MODE=dev
 
 BIN_PHP=php
-BIN_MAGE="-d memory_limit=2G bin/magento"
+BIN_MAGE="-d memory_limit=4G bin/magento"
 BIN_COMPOSER=$(command -v composer)
 BIN_MYSQL="mysql"
 BIN_GIT="git"
@@ -886,10 +886,13 @@ function validateDeploymentFromDumps()
     local files=(
       'composer.json'
       'composer.lock'
-      'index.php'
       'pub/index.php'
       'pub/static.php'
     );
+    if ! isPubRequired
+    then
+      files+=('index.php')
+    fi
     local directories=("app" "bin" "dev" "lib" "pub/errors" "setup" "vendor");
     missingDirectories=();
     for dir in "${directories[@]}"
@@ -926,9 +929,10 @@ function updateElasticSearchConfiguration()
   [[ ! "$currentSearchEngine" ]] && currentSearchEngine=$(getRecommendedSearchEngineForVersion)
 
   printString "Updating ElasticSearch Configuration $(getESConfigHost $currentSearchEngine):$(getESConfigPort $currentSearchEngine)"
-  $BIN_PHP $BIN_MAGE config:set "catalog/search/${currentSearchEngine}_server_hostname" $(getESConfigHost $currentSearchEngine)
-  $BIN_PHP $BIN_MAGE config:set "catalog/search/${currentSearchEngine}_server_port" $(getESConfigPort $currentSearchEngine)
-  $BIN_PHP $BIN_MAGE config:set "catalog/search/${currentSearchEngine}_index_prefix" $DB_NAME
+  $BIN_PHP $BIN_MAGE --quiet config:set "catalog/search/${currentSearchEngine}_server_hostname" $(getESConfigHost $currentSearchEngine)
+  $BIN_PHP $BIN_MAGE --quiet config:set "catalog/search/${currentSearchEngine}_server_port" $(getESConfigPort $currentSearchEngine)
+  $BIN_PHP $BIN_MAGE --quiet config:set "catalog/search/${currentSearchEngine}_index_prefix" $DB_NAME
+  printString "To see products on storefront run: $BIN_PHP bin/magento indexer:reindex catalogsearch_fulltext"
   return 0
 }
 
@@ -941,20 +945,16 @@ function switchSearchEngineToDefaultEngine()
   local yellow=`tput setaf 3`
   local default=`tput sgr0`
   local engine=$(getConfig 'catalog/search/engine' "value");
-  [ "$engine" == 'mysql' ] \
-    || [ -z "$engine" ] \
-    && [ ! -z "$(grep -s engine app/etc/config.php | grep elastic)" ] \
-    && [ ! -z "$(grep -s engine app/etc/env.php.merchant | grep elastic)" ] \
-    && [ ! -z "$(grep -s engine app/etc/config.local.php.merchant | grep elastic)" ] \
-    && return 0;
+  local stepsToTake=
+  [[ "$engine" == "mysql" ]] && return 0
+  [[ ! "$engine" ]] && return 0
 
-  [ -z "$engine" ] || [ "$engine" == 'mysql' ] && engine=elasticsearch;
+  if [[ "$engine" ]]
+  then
+    setConfig 'catalog/search/engine' "mysql"
+    local stepsToTake=" - Run php bin/magento indexer:reindex catalogsearch_fulltext"
+  fi
 
-  deleteConfig 'catalog/search/engine'
-  local stepsToTake=" - Run php bin/magento indexer:reindex catalogsearch_fulltext"
-  [[ ! -z `grep engine app/etc/config.php | grep elastic` ]] \
-        && stepsToTake=" - Edit app/etc/config.php file and remove section engine => elasticsearch
-${stepsToTake}"
   cat <<endmessage
 ${yellow}
 ####################################################################################
