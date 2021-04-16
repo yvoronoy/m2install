@@ -38,19 +38,13 @@ rm -rf var
 
 ##################################
 OUTPUT=$(${BIN_M2INSTALL} --code-dump code.tar.gz --force --quiet 2>&1);
-missingDirectories=$(echo "${OUTPUT}" | grep -o "The following directories are missing: lib");
-missingFiles=$(echo "${OUTPUT}" | grep -o "The following files are missing: pub/index.php");
-helpMessageHowToFix=$(echo "${OUTPUT}" | grep -o "Download missing files and directories from vanilla magento");
-assertTrue "$missingDirectories" "Should be error, because directories are missing";
-assertTrue "$missingFiles" "Should be error, because files are missing";
-assertTrue "$helpMessageHowToFix" "Should be help message";
+assertContains "$OUTPUT" "The following directories are missing: lib" "Should be error, because directories are missing";
+assertContains "$OUTPUT" "The following files are missing: pub/index.php" "Should be error, because files are missing";
+assertContains "$OUTPUT" "Download missing files and directories from vanilla magento" "Should be help message";
 
 ########################################
 rm -rf setup dev lib pub/index.php
 OUTPUT=$(${BIN_M2INSTALL} --code-dump code2.tar.gz --force --quiet 2>&1);
-missingDirectories=$(echo "${OUTPUT}" | grep -o "The following directories are missing: dev lib");
-missingFiles=$(echo "${OUTPUT}" | grep -o "The following files are missing: pub/index.php");
-helpMessageHowToFix=$(echo "${OUTPUT}" | grep -o "Download missing files and directories from vanilla magento");
-assertTrue "$missingDirectories" "Should be error, because directories are missing";
-assertTrue "$missingFiles" "Should be error, because files are missing";
-assertTrue "$helpMessageHowToFix" "Should be help message";
+assertContains "$OUTPUT" "The following directories are missing: dev lib" "Should be error, because directories are missing";
+assertContains "$OUTPUT" "Download missing files and directories from vanilla magento" "Should be help message";
+

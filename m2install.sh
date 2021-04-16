@@ -437,6 +437,7 @@ function getDbDumpFilename()
 
 function foundSupportBackupFiles()
 {
+
     if [ -z getCodeDumpFilename ]
     then
         return 1;
@@ -457,7 +458,20 @@ function foundSupportBackupFiles()
         return 1;
     fi
 
+    validateDatabaseDumpArchive
     return 0;
+}
+
+function validateDatabaseDumpArchive()
+{
+  local minSizeLimit=2
+  local dbDumpFilenamePath="$(getDbDumpFilename)" 
+  local codeDumpFilenamePath="$(getCodeDumpFilename)" 
+  local dbDumpFileSize="$(wc -c ${dbDumpFilenamePath} | awk '{print $1}')"
+  local codeDumpFileSize="$(wc -c ${codeDumpFilenamePath} | awk '{print $1}')"
+  [ "$dbDumpFileSize" -lt "$minSizeLimit" ] && { printError "MySQL DB Dump is corrupt. For on-prem, please request a new MySQL Dump from the merchant and ensure it is created using the mysqldump utility and not bin/magento support:db:backup. For Magento-Cloud, please regenerate a new MySQL Dump by using the ZD Dump Widget / cloud-teleport.";  exit 255; }
+
+  [ "$codeDumpFileSize" -lt "$minSizeLimit" ] && { printError "Code Dump is corrupt. For on-prem, please request a new Code Dump from the merchant. For Magento-Cloud, please regenerate a new MySQL Dump by using the ZD Dump Widget / cloud-teleport."; exit 255; }
 }
 
 function wizard()
@@ -717,6 +731,32 @@ function restore_db()
         | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password'
         | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --force $DB_NAME";
     runCommand
+
+    validateDatabaseDumpDataExists
+}
+
+function validateDatabaseDumpDataExists()
+{
+  local isError=
+  if [ -z "$(getAllTables 'store')" ]
+  then
+    printError "The store table is not found"
+    isError="1"
+  fi
+
+  if [ -z "$(getAllStores)" ]
+  then
+    printError "The store table missing data"
+    isError="1"
+  fi
+
+  if [ -z "$(getAllWebsites)" ]
+  then
+    printError "The store_website table missing data"
+    isError="1"
+  fi
+
+  [[ "$isError" ]] && { printError "MySQL DB Dump is corrupt. For on-prem, please request a new MySQL Dump from the merchant and ensure it is created using the mysqldump utility and not bin/magento support:db:backup. For Magento-Cloud, please regenerate a new MySQL Dump by using the ZD Dump Widget / cloud-teleport." "Missing data DB Dump"; exit 255; }
 }
 
 function restore_code()
@@ -929,9 +969,9 @@ function updateElasticSearchConfiguration()
   [[ ! "$currentSearchEngine" ]] && currentSearchEngine=$(getRecommendedSearchEngineForVersion)
 
   printString "Updating ElasticSearch Configuration $(getESConfigHost $currentSearchEngine):$(getESConfigPort $currentSearchEngine)"
-  $BIN_PHP $BIN_MAGE --quiet config:set "catalog/search/${currentSearchEngine}_server_hostname" $(getESConfigHost $currentSearchEngine)
-  $BIN_PHP $BIN_MAGE --quiet config:set "catalog/search/${currentSearchEngine}_server_port" $(getESConfigPort $currentSearchEngine)
-  $BIN_PHP $BIN_MAGE --quiet config:set "catalog/search/${currentSearchEngine}_index_prefix" $DB_NAME
+  $BIN_PHP bin/magento --quiet config:set "catalog/search/${currentSearchEngine}_server_hostname" $(getESConfigHost $currentSearchEngine)
+  $BIN_PHP bin/magento --quiet config:set "catalog/search/${currentSearchEngine}_server_port" $(getESConfigPort $currentSearchEngine)
+  $BIN_PHP bin/magento --quiet config:set "catalog/search/${currentSearchEngine}_index_prefix" $DB_NAME
   printString "To see products on storefront run: $BIN_PHP bin/magento indexer:reindex catalogsearch_fulltext"
   return 0
 }
@@ -968,6 +1008,7 @@ endmessage
 
 function configure_db()
 {
+  printString "Updating Database Configuration"
   setConfig 'web/secure/base_url' "${BASE_URL}";
   setConfig 'web/unsecure/base_url' "${BASE_URL}";
   setConfig 'google/analytics/active' '0';
@@ -2186,6 +2227,29 @@ function getWebsites()
   SQLQUERY="SELECT code FROM ${DB_NAME}.$(getTablePrefix)store_website WHERE website_id <> 0 AND is_default = 0";
   output="$(mysqlQuery)"
   echo "$output" | tail -n+3
+}
+
+function getAllWebsites()
+{
+  local output=
+  SQLQUERY="SELECT code FROM ${DB_NAME}.$(getTablePrefix)store_website";
+  output="$(mysqlQuery)"
+  echo "$output" | tail -n+3
+}
+function getAllStores()
+{
+  local output=
+  SQLQUERY="SELECT code FROM ${DB_NAME}.$(getTablePrefix)store";
+  output="$(mysqlQuery)"
+  echo "$output" | tail -n+3
+}
+
+function getAllTables()
+{
+  local output=
+  SQLQUERY="SHOW TABLES FROM $DB_NAME LIKE '$1'"
+  output="$(mysqlQuery)"
+  echo "$output" | tail -n+2
 }
 
 function getWebsiteIdByCode()

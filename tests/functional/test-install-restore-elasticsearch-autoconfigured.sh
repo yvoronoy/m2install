@@ -58,7 +58,11 @@ php bin/magento --no-interaction setup:uninstall
 ls -A | grep -v dumps | xargs rm -rf
 cp dumps/* ./
 rm -rf dumps
-RESTORE_OUTPUT=$(${BIN_M2INSTALL} -f --quiet 2>error.log)
+RESTORE_OUTPUT="$(${BIN_M2INSTALL} -f --quiet 2>error.log)"
+
+artifactFile="$(mktemp /tmp/ci-artifacts.XXXXXXXXX)"
+echo "$RESTORE_OUTPUT" > $artifactFile
+echo "Artifacts: $artifactFile"
 
 assertNotContains "$RESTORE_OUTPUT" "Warning: A Search Engine has been switched from" "Magento 2.4.x should not switch search engine from ES to MySQL"
 searchEngine="$(php bin/magento config:show catalog/search/engine)"
