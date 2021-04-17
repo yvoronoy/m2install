@@ -2,3 +2,4 @@
 /vendor/
 post-deploy
 m2install.csv
+error.csv

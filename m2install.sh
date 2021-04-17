@@ -108,14 +108,32 @@ function getCsvLogFile()
   return 0;
 }
 
+function getErrorLogFile()
+{
+  local path="$(getScriptDir)/error.csv"
+  echo "$path"
+  return 0;
+}
+
 function writeCsvMetricRow()
 {
   local csvFile="$(getCsvLogFile)"
   if [ ! -f "$csvFile" ]
   then
-    echo "datetime, mode, home_response_code, home_url, admin_response_code, admin_url, duration, user" >> "$csvFile"
+    echo "datetime, mode, home_response_code, home_url, admin_response_code, admin_url, duration, user, dir, script, args" >> "$csvFile"
   fi
   echo "$@" >> $csvFile
+  return 0
+}
+
+function writeCsvErrorRow()
+{
+  local errorLogFile="$(getErrorLogFile)"
+  if [ ! -f "$errorLogFile" ]
+  then
+    echo "datetime, error_code, user, dir, script, arguments" >> "$errorLogFile"
+  fi
+  echo "$(date '+%Y-%m-%d %H:%M:%S'), $1, $(whoami), $(pwd), $BASH_SOURCE, \"$GLOBAL_ARGS\"" >> $errorLogFile
   return 0
 }
 
@@ -469,10 +487,18 @@ function validateDatabaseDumpArchive()
   local codeDumpFilenamePath="$(getCodeDumpFilename)" 
   local dbDumpFileSize="$(wc -c ${dbDumpFilenamePath} | awk '{print $1}')"
   local codeDumpFileSize="$(wc -c ${codeDumpFilenamePath} | awk '{print $1}')"
-  [ "$dbDumpFileSize" -lt "$minSizeLimit" ] && { printError "MySQL DB Dump is corrupt. For on-prem, please request a new MySQL Dump from the merchant and ensure it is created using the mysqldump utility and not bin/magento support:db:backup. For Magento-Cloud, please regenerate a new MySQL Dump by using the ZD Dump Widget / cloud-teleport.";  exit 255; }
+  [ "$dbDumpFileSize" -lt "$minSizeLimit" ] && { printErrorAndExit 255 "MySQL DB Dump is corrupt. For on-prem, please request a new MySQL Dump from the merchant and ensure it is created using the mysqldump utility and not bin/magento support:db:backup. For Magento-Cloud, please regenerate a new MySQL Dump by using the ZD Dump Widget / cloud-teleport."; }
 
-  [ "$codeDumpFileSize" -lt "$minSizeLimit" ] && { printError "Code Dump is corrupt. For on-prem, please request a new Code Dump from the merchant. For Magento-Cloud, please regenerate a new MySQL Dump by using the ZD Dump Widget / cloud-teleport."; exit 255; }
+  [ "$codeDumpFileSize" -lt "$minSizeLimit" ] && { printErrorAndExit 256 "Code Dump is corrupt. For on-prem, please request a new Code Dump from the merchant. For Magento-Cloud, please regenerate a new MySQL Dump by using the ZD Dump Widget / cloud-teleport."; }
 }
+
+function printErrorAndExit()
+{
+  printError $2
+  writeCsvErrorRow "$1"
+  exit $1
+}
+
 
 function wizard()
 {
@@ -756,7 +782,7 @@ function validateDatabaseDumpDataExists()
     isError="1"
   fi
 
-  [[ "$isError" ]] && { printError "MySQL DB Dump is corrupt. For on-prem, please request a new MySQL Dump from the merchant and ensure it is created using the mysqldump utility and not bin/magento support:db:backup. For Magento-Cloud, please regenerate a new MySQL Dump by using the ZD Dump Widget / cloud-teleport." "Missing data DB Dump"; exit 255; }
+  [[ "$isError" ]] && { printErrorAndExit 257 "MySQL DB Dump is corrupt. For on-prem, please request a new MySQL Dump from the merchant and ensure it is created using the mysqldump utility and not bin/magento support:db:backup. For Magento-Cloud, please regenerate a new MySQL Dump by using the ZD Dump Widget / cloud-teleport." "Missing data DB Dump"; }
 }
 
 function restore_code()
@@ -1847,6 +1873,8 @@ function warmCache()
   local admin_response_code="$(curl --insecure --location --write-out '%{http_code}' --silent --output /dev/null $admin_url)"
   local mode=install
   local currentUser="$(whoami)"
+  local dir="$(pwd)"
+  local currentScript="$BASH_SOURCE"
   if foundSupportBackupFiles
   then
     mode=restore
@@ -1857,7 +1885,7 @@ function warmCache()
   printString "Cache warm up ${home_url}. Response code: $home_response_code"
   printString "Cache warm up ${admin_url}. Response code: $admin_response_code"
   printString "$(basename "$0") took $SUMMARY_TIME minutes to complete install/deploy process"
-  writeCsvMetricRow "$(date '+%Y-%m-%d %H:%M:%S'), $mode, $home_response_code, $home_url, $admin_response_code, $admin_url, $SUMMARY_TIME, $currentUser"
+  writeCsvMetricRow "$(date '+%Y-%m-%d %H:%M:%S'), $mode, $home_response_code, $home_url, $admin_response_code, $admin_url, $SUMMARY_TIME, $currentUser, $dir, $currentScript, \"$GLOBAL_ARGS\""
 }
 
 function afterInstall()
@@ -2101,8 +2129,7 @@ function validateElasticSearchIsAvailable()
   fi
   printError "ElasticSearch is required for version 2.4.x.";
   printError "ElasticSearch is not available on ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}."
-  printError "Use parameters to specify Elasticsearch --es-host <HOST> --es-port <PORT>"
-  exit 1;
+  printErrorAndExit 300 "Use parameters to specify Elasticsearch --es-host <HOST> --es-port <PORT>"
 }
 
 ################################################################################
