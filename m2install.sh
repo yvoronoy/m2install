@@ -113,7 +113,7 @@ function writeCsvMetricRow()
   local csvFile="$(getCsvLogFile)"
   if [ ! -f "$csvFile" ]
   then
-    echo "datetime, mode, home_response_code, home_url, admin_response_code, admin_url, duration" >> "$csvFile"
+    echo "datetime, mode, home_response_code, home_url, admin_response_code, admin_url, duration, user" >> "$csvFile"
   fi
   echo "$@" >> $csvFile
   return 0
@@ -1846,6 +1846,7 @@ function warmCache()
   local admin_url="${BASE_URL}${BACKEND_FRONTNAME}"
   local admin_response_code="$(curl --insecure --location --write-out '%{http_code}' --silent --output /dev/null $admin_url)"
   local mode=install
+  local currentUser="$(whoami)"
   if foundSupportBackupFiles
   then
     mode=restore
@@ -1856,7 +1857,7 @@ function warmCache()
   printString "Cache warm up ${home_url}. Response code: $home_response_code"
   printString "Cache warm up ${admin_url}. Response code: $admin_response_code"
   printString "$(basename "$0") took $SUMMARY_TIME minutes to complete install/deploy process"
-  writeCsvMetricRow "$(date '+%Y-%m-%d %H:%M:%S'), $mode, $home_response_code, $home_url, $admin_response_code, $admin_url, $SUMMARY_TIME"
+  writeCsvMetricRow "$(date '+%Y-%m-%d %H:%M:%S'), $mode, $home_response_code, $home_url, $admin_response_code, $admin_url, $SUMMARY_TIME, $currentUser"
 }
 
 function afterInstall()
