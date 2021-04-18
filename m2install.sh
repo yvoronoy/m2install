@@ -57,7 +57,7 @@ FORCE=
 MAGE_MODE=dev
 
 BIN_PHP=php
-BIN_MAGE="-d memory_limit=2G bin/magento"
+BIN_MAGE="-d memory_limit=4G bin/magento"
 BIN_COMPOSER=$(command -v composer)
 BIN_MYSQL="mysql"
 BIN_GIT="git"
@@ -104,6 +104,15 @@ function getCsvLogFile()
 {
   local path="$(getScriptDir)/m2install.csv"
   [[ "$M2INSTALL_CSV_LOG" ]] && path="$M2INSTALL_CSV_LOG"
+  touch "$csvFile" 2>/dev/null || csvFile=/tmp/m2install.csv
+  echo "$path"
+  return 0;
+}
+
+function getErrorLogFile()
+{
+  local path="$(getScriptDir)/error.csv"
+  touch "$errorLogFile" 2>/dev/null || errorLogFile=/tmp/m2install.error.log
   echo "$path"
   return 0;
 }
@@ -111,11 +120,16 @@ function getCsvLogFile()
 function writeCsvMetricRow()
 {
   local csvFile="$(getCsvLogFile)"
-  if [ ! -f "$csvFile" ]
-  then
-    echo "datetime, mode, home_response_code, home_url, admin_response_code, admin_url, duration" >> "$csvFile"
-  fi
+  [ -s "$csvFile" ] || echo "datetime, mode, home_response_code, home_url, admin_response_code, admin_url, duration, user, dir, script, args" >> "$csvFile"
   echo "$@" >> $csvFile
+  return 0
+}
+
+function writeCsvErrorRow()
+{
+  local errorLogFile="$(getErrorLogFile)"
+  [ -s "$errorLogFile" ] || echo "datetime, error_code, user, dir, script, arguments" >> "$errorLogFile"
+  echo "$(date '+%Y-%m-%d %H:%M:%S'), $1, $(whoami), $(pwd), $BASH_SOURCE, \"$GLOBAL_ARGS\"" >> $errorLogFile
   return 0
 }
 
@@ -267,7 +281,7 @@ function extract()
      if [ -f "$EXTRACT_FILENAME" ] ; then
          case $EXTRACT_FILENAME in
              *.tar.*|*.t*z*)
-                CMD="tar $(getStripComponentsValue ${EXTRACT_FILENAME}) -xf ${EXTRACT_FILENAME}"
+                CMD="tar $(getStripComponentsValue ${EXTRACT_FILENAME}) -xf ${EXTRACT_FILENAME} $1"
              ;;
              *.gz)              CMD="gunzip $EXTRACT_FILENAME" ;;
              *.zip)             CMD="unzip -qu -x $EXTRACT_FILENAME" ;;
@@ -437,6 +451,7 @@ function getDbDumpFilename()
 
 function foundSupportBackupFiles()
 {
+
     if [ -z getCodeDumpFilename ]
     then
         return 1;
@@ -457,8 +472,29 @@ function foundSupportBackupFiles()
         return 1;
     fi
 
+    validateDatabaseDumpArchive
     return 0;
 }
+
+function validateDatabaseDumpArchive()
+{
+  local minSizeLimit=2
+  local dbDumpFilenamePath="$(getDbDumpFilename)" 
+  local codeDumpFilenamePath="$(getCodeDumpFilename)" 
+  local dbDumpFileSize="$(wc -c ${dbDumpFilenamePath} | awk '{print $1}')"
+  local codeDumpFileSize="$(wc -c ${codeDumpFilenamePath} | awk '{print $1}')"
+  [ "$dbDumpFileSize" -lt "$minSizeLimit" ] && { printErrorAndExit 255 "MySQL DB Dump is corrupt. For on-prem, please request a new MySQL Dump from the merchant and ensure it is created using the mysqldump utility and not bin/magento support:db:backup. For Magento-Cloud, please regenerate a new MySQL Dump by using the ZD Dump Widget / cloud-teleport."; }
+
+  [ "$codeDumpFileSize" -lt "$minSizeLimit" ] && { printErrorAndExit 256 "Code Dump is corrupt. For on-prem, please request a new Code Dump from the merchant. For Magento-Cloud, please regenerate a new MySQL Dump by using the ZD Dump Widget / cloud-teleport."; }
+}
+
+function printErrorAndExit()
+{
+  printError $2
+  writeCsvErrorRow "$1"
+  exit $1
+}
+
 
 function wizard()
 {
@@ -717,6 +753,32 @@ function restore_db()
         | grep -v 'mysqldump: Couldn.t find table' | grep -v 'Warning: Using a password'
         | ${BIN_MYSQL} -h${DB_HOST} -u${DB_USER} --password=\"${DB_PASSWORD}\" --force $DB_NAME";
     runCommand
+
+    validateDatabaseDumpDataExists
+}
+
+function validateDatabaseDumpDataExists()
+{
+  local isError=
+  if [ -z "$(getAllTables 'store')" ]
+  then
+    printError "The store table is not found"
+    isError="1"
+  fi
+
+  if [ -z "$(getAllStores)" ]
+  then
+    printError "The store table missing data"
+    isError="1"
+  fi
+
+  if [ -z "$(getAllWebsites)" ]
+  then
+    printError "The store_website table missing data"
+    isError="1"
+  fi
+
+  [[ "$isError" ]] && { printErrorAndExit 257 "MySQL DB Dump is corrupt. For on-prem, please request a new MySQL Dump from the merchant and ensure it is created using the mysqldump utility and not bin/magento support:db:backup. For Magento-Cloud, please regenerate a new MySQL Dump by using the ZD Dump Widget / cloud-teleport." "Missing data DB Dump"; }
 }
 
 function restore_code()
@@ -876,7 +938,7 @@ function appConfigImport()
 {
     if ${BIN_PHP} bin/magento | grep -q app:config:import
     then
-        CMD="${BIN_PHP} bin/magento app:config:import -n"
+        CMD="$BIN_PHP $BIN_MAGE app:config:import -n"
         runCommand
     fi
 }
@@ -886,10 +948,13 @@ function validateDeploymentFromDumps()
     local files=(
       'composer.json'
       'composer.lock'
-      'index.php'
       'pub/index.php'
       'pub/static.php'
     );
+    if ! isPubRequired
+    then
+      files+=('index.php')
+    fi
     local directories=("app" "bin" "dev" "lib" "pub/errors" "setup" "vendor");
     missingDirectories=();
     for dir in "${directories[@]}"
@@ -920,29 +985,38 @@ function validateDeploymentFromDumps()
     fi
 }
 
+function updateElasticSearchConfiguration()
+{
+  local currentSearchEngine="$($BIN_PHP bin/magento config:show catalog/search/engine)"
+  [[ ! "$currentSearchEngine" ]] && currentSearchEngine=$(getRecommendedSearchEngineForVersion)
+
+  printString "Updating ElasticSearch Configuration $(getESConfigHost $currentSearchEngine):$(getESConfigPort $currentSearchEngine)"
+  $BIN_PHP bin/magento --quiet config:set "catalog/search/${currentSearchEngine}_server_hostname" $(getESConfigHost $currentSearchEngine)
+  $BIN_PHP bin/magento --quiet config:set "catalog/search/${currentSearchEngine}_server_port" $(getESConfigPort $currentSearchEngine)
+  $BIN_PHP bin/magento --quiet config:set "catalog/search/${currentSearchEngine}_index_prefix" $DB_NAME
+  printString "To see products on storefront run: $BIN_PHP bin/magento indexer:reindex catalogsearch_fulltext"
+  return 0
+}
+
 function switchSearchEngineToDefaultEngine()
 {
- versionIsHigherThan "$(parseMagentoVersion)" && return 0;
+  isElasticSearchRequired && updateElasticSearchConfiguration && return 0;
 
   local red=`tput setaf 1`
   local green=`tput setaf 2`
   local yellow=`tput setaf 3`
   local default=`tput sgr0`
   local engine=$(getConfig 'catalog/search/engine' "value");
-  [ "$engine" == 'mysql' ] \
-    || [ -z "$engine" ] \
-    && [ ! -z "$(grep -s engine app/etc/config.php | grep elastic)" ] \
-    && [ ! -z "$(grep -s engine app/etc/env.php.merchant | grep elastic)" ] \
-    && [ ! -z "$(grep -s engine app/etc/config.local.php.merchant | grep elastic)" ] \
-    && return 0;
+  local stepsToTake=
+  [[ "$engine" == "mysql" ]] && return 0
+  [[ ! "$engine" ]] && return 0
 
-  [ -z "$engine" ] || [ "$engine" == 'mysql' ] && engine=elasticsearch;
+  if [[ "$engine" ]]
+  then
+    setConfig 'catalog/search/engine' "mysql"
+    local stepsToTake=" - Run php bin/magento indexer:reindex catalogsearch_fulltext"
+  fi
 
-  deleteConfig 'catalog/search/engine'
-  local stepsToTake=" - Run php bin/magento indexer:reindex catalogsearch_fulltext"
-  [[ ! -z `grep engine app/etc/config.php | grep elastic` ]] \
-        && stepsToTake=" - Edit app/etc/config.php file and remove section engine => elasticsearch
-${stepsToTake}"
   cat <<endmessage
 ${yellow}
 ####################################################################################
@@ -956,6 +1030,7 @@ endmessage
 
 function configure_db()
 {
+  printString "Updating Database Configuration"
   setConfig 'web/secure/base_url' "${BASE_URL}";
   setConfig 'web/unsecure/base_url' "${BASE_URL}";
   setConfig 'google/analytics/active' '0';
@@ -1425,11 +1500,111 @@ function installMagento()
     if [ "${DB_PASSWORD}" ]; then
         CMD="${CMD} --db-password=${DB_PASSWORD}"
     fi
-    if [ "${ELASTICSEARCH_HOST}" ]; then
-        CMD="${CMD} --elasticsearch-host=${ELASTICSEARCH_HOST} --elasticsearch-port=${ELASTICSEARCH_PORT} --elasticsearch-index-prefix=${DB_NAME}"
+    if isElasticSearchRequired && isElasticSearchConfigIsAvailable
+    then
+	    local searchEngine="$(getRecommendedSearchEngineForVersion)"
+	    CMD="${CMD} --search-engine=$searchEngine --elasticsearch-host=$(getESConfigHost $searchEngine) --elasticsearch-port=$(getESConfigPort $searchEngine) --elasticsearch-index-prefix=${DB_NAME}"
     fi
     runCommand
 }
+
+function isElasticSearchRequired()
+{
+  versionIsHigherThan "$(getMagentoVersion)" "2.4" && return 0
+  return 255
+}
+
+function isElasticSearchConfigIsAvailable()
+{
+  [[ "$ELASTICSEARCH_HOST" ]] && [[ "$ELASTICSEARCH_PORT" ]] && return 0
+  local searchEngine="$1"
+  if [[ ! "$searchEngine" ]]
+  then
+    searchEngine="$(getRecommendedSearchEngineForVersion)"
+  fi
+  local eshost=$(getESConfigHost "$searchEngine")
+  local esport=$(getESConfigPort "$searchEngine")
+  [[ "$eshost" ]] && [[ "$esport" ]] && return 0
+  return 255
+}
+
+function getRecommendedSearchEngineForVersion()
+{
+    local searchEngine=elasticsearch
+    local currentMagentoVersion="$(getMagentoVersion)"
+    #https://devdocs.magento.com/guides/v2.4/install-gde/system-requirements.html
+    versionIsHigherThan "$(getMagentoVersion)" "2.3.0" && searchEngine="elasticsearch"
+    versionIsHigherThan "$(getMagentoVersion)" "2.3.1" && searchEngine="elasticsearch5"
+    versionIsHigherThan "$(getMagentoVersion)" "2.3.5" && searchEngine="elasticsearch7"
+    echo "$searchEngine"
+    return 0
+}
+
+function getESConfigHost()
+{
+  [[ "$ELASTICSEARCH_HOST" ]] && { echo "$ELASTICSEARCH_HOST"; return 0; }
+  case "$1" in
+    elasticsearch7)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH7_HOST"
+      return 0
+      ;;
+    elasticsearch6)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH6_HOST"
+      return 0
+      ;;
+    elasticsearch5)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH5_HOST"
+      return 0
+      ;;
+    elasticsearch)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH2_HOST"
+      return 0
+      ;;
+  esac
+}
+
+function getESConfigPort()
+{
+  [[ "$ELASTICSEARCH_PORT" ]] && { echo "$ELASTICSEARCH_PORT"; return 0; }
+  case "$1" in
+    elasticsearch7)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH7_PORT"
+      return 0
+      ;;
+    elasticsearch6)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH6_PORT"
+      return 0
+      ;;
+    elasticsearch5)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH5_PORT"
+      return 0
+      ;;
+    elasticsearch)
+      echo "$SEARCH_ENGINE_ELASTICSEARCH2_PORT"
+      return 0
+      ;;
+  esac
+}
+
+function getMagentoVersion()
+{
+  local version=
+  [[ "$SOURCE" ]] && { version="$MAGENTO_VERSION"; echo "$version"; return 0; }
+  [[ -f bin/magento ]] && { echo "$(parseMagentoVersion)"; return 0; }
+
+  if [[ ! -f composer.lock ]] && foundSupportBackupFiles
+  then
+    EXTRACT_FILENAME="$(getCodeDumpFilename)"
+    extract "composer.lock"
+  fi
+
+  [[ -f composer.lock ]] && version=$(parseMagentoVersion "$(grep '\"name\": \"magento/product-community\|enterprise-edition\"' composer.lock -A1 | tail -n1)")
+  [[ "$version" ]] && { echo "$version"; return 0; }
+
+  echo "$MAGENTO_VERSION"
+  return 0
+}
+
 
 function downloadSourceCode()
 {
@@ -1693,6 +1868,9 @@ function warmCache()
   local admin_url="${BASE_URL}${BACKEND_FRONTNAME}"
   local admin_response_code="$(curl --insecure --location --write-out '%{http_code}' --silent --output /dev/null $admin_url)"
   local mode=install
+  local currentUser="$(whoami)"
+  local dir="$(pwd)"
+  local currentScript="$BASH_SOURCE"
   if foundSupportBackupFiles
   then
     mode=restore
@@ -1703,7 +1881,7 @@ function warmCache()
   printString "Cache warm up ${home_url}. Response code: $home_response_code"
   printString "Cache warm up ${admin_url}. Response code: $admin_response_code"
   printString "$(basename "$0") took $SUMMARY_TIME minutes to complete install/deploy process"
-  writeCsvMetricRow "$(date '+%Y-%m-%d %H:%M:%S'), $mode, $home_response_code, $home_url, $admin_response_code, $admin_url, $SUMMARY_TIME"
+  writeCsvMetricRow "$(date '+%Y-%m-%d %H:%M:%S'), $mode, $home_response_code, $home_url, $admin_response_code, $admin_url, $SUMMARY_TIME, $currentUser, $dir, $currentScript, \"$GLOBAL_ARGS\""
 }
 
 function afterInstall()
@@ -1937,6 +2115,8 @@ function versionIsHigherThan()
 
 function validateElasticSearchIsAvailable()
 {
+  [[ ! "$ELASTICSEARCH_HOST" ]] && ELASTICSEARCH_HOST="$(getESConfigHost $(getRecommendedSearchEngineForVersion))"
+  [[ ! "$ELASTICSEARCH_PORT" ]] && ELASTICSEARCH_PORT="$(getESConfigPort $(getRecommendedSearchEngineForVersion))"
   [[ ! "$ELASTICSEARCH_HOST" ]] && ELASTICSEARCH_HOST="localhost"
   [[ ! "$ELASTICSEARCH_PORT" ]] && ELASTICSEARCH_PORT="9200"
   if curl -s -XGET ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT} | grep -q "number"; then
@@ -1945,8 +2125,7 @@ function validateElasticSearchIsAvailable()
   fi
   printError "ElasticSearch is required for version 2.4.x.";
   printError "ElasticSearch is not available on ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}."
-  printError "Use parameters to specify Elasticsearch --es-host <HOST> --es-port <PORT>"
-  exit 1;
+  printErrorAndExit 300 "Use parameters to specify Elasticsearch --es-host <HOST> --es-port <PORT>"
 }
 
 ################################################################################
@@ -1954,7 +2133,7 @@ function validateElasticSearchIsAvailable()
 ################################################################################
 function magentoInstallAction()
 {
-    versionIsHigherThan && validateElasticSearchIsAvailable
+    isElasticSearchRequired && validateElasticSearchIsAvailable
     if [[ "${SOURCE}" ]]
     then
         cleanupCurrentDirectory
@@ -2072,6 +2251,29 @@ function getWebsites()
   SQLQUERY="SELECT code FROM ${DB_NAME}.$(getTablePrefix)store_website WHERE website_id <> 0 AND is_default = 0";
   output="$(mysqlQuery)"
   echo "$output" | tail -n+3
+}
+
+function getAllWebsites()
+{
+  local output=
+  SQLQUERY="SELECT code FROM ${DB_NAME}.$(getTablePrefix)store_website";
+  output="$(mysqlQuery)"
+  echo "$output" | tail -n+3
+}
+function getAllStores()
+{
+  local output=
+  SQLQUERY="SELECT code FROM ${DB_NAME}.$(getTablePrefix)store";
+  output="$(mysqlQuery)"
+  echo "$output" | tail -n+3
+}
+
+function getAllTables()
+{
+  local output=
+  SQLQUERY="SHOW TABLES FROM $DB_NAME LIKE '$1'"
+  output="$(mysqlQuery)"
+  echo "$output" | tail -n+2
 }
 
 function getWebsiteIdByCode()
@@ -2195,7 +2397,6 @@ function main()
     printString "Configuration loaded from: $(getConfigFiles)"
     checkDependencies
     showWizard
-
     START_TIME=$(date +%s)
     if [[ "${STEPS[@]}" ]]
     then
