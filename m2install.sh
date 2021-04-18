@@ -104,6 +104,7 @@ function getCsvLogFile()
 {
   local path="$(getScriptDir)/m2install.csv"
   [[ "$M2INSTALL_CSV_LOG" ]] && path="$M2INSTALL_CSV_LOG"
+  touch "$csvFile" 2>/dev/null || csvFile=/tmp/m2install.csv
   echo "$path"
   return 0;
 }
@@ -111,6 +112,7 @@ function getCsvLogFile()
 function getErrorLogFile()
 {
   local path="$(getScriptDir)/error.csv"
+  touch "$errorLogFile" 2>/dev/null || errorLogFile=/tmp/m2install.error.log
   echo "$path"
   return 0;
 }
@@ -118,10 +120,7 @@ function getErrorLogFile()
 function writeCsvMetricRow()
 {
   local csvFile="$(getCsvLogFile)"
-  if [ ! -f "$csvFile" ]
-  then
-    echo "datetime, mode, home_response_code, home_url, admin_response_code, admin_url, duration, user, dir, script, args" >> "$csvFile"
-  fi
+  [ -s "$csvFile" ] || echo "datetime, mode, home_response_code, home_url, admin_response_code, admin_url, duration, user, dir, script, args" >> "$csvFile"
   echo "$@" >> $csvFile
   return 0
 }
@@ -129,10 +128,7 @@ function writeCsvMetricRow()
 function writeCsvErrorRow()
 {
   local errorLogFile="$(getErrorLogFile)"
-  if [ ! -f "$errorLogFile" ]
-  then
-    echo "datetime, error_code, user, dir, script, arguments" >> "$errorLogFile"
-  fi
+  [ -s "$errorLogFile" ] || echo "datetime, error_code, user, dir, script, arguments" >> "$errorLogFile"
   echo "$(date '+%Y-%m-%d %H:%M:%S'), $1, $(whoami), $(pwd), $BASH_SOURCE, \"$GLOBAL_ARGS\"" >> $errorLogFile
   return 0
 }
