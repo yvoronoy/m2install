@@ -331,6 +331,10 @@ function prepareBasePath()
 
 function checkIfBasedOnDevelopBranch()
 {
+    if [ "$SOURCE" == 'git' ] && [ "${MAGENTO_VERSION}" == '2.4-develop' ]
+    then
+      return 0
+    fi
     if [ "$(ls -A ./)" ] && [ -d ".git" ]
     then
         ${BIN_GIT} rev-parse --abbrev-ref HEAD | grep '2.4-develop'
@@ -358,11 +362,6 @@ function prepareBaseURL()
 
 function isPubRequired()
 {
-  if [ "$SOURCE" == 'git' ] && [ "${MAGENTO_VERSION}" == '2.4-develop' ]
-  then
-    return 0
-  fi
-
   if checkIfBasedOnDevelopBranch
   then
     return 0
@@ -1537,6 +1536,7 @@ function getRecommendedSearchEngineForVersion()
     versionIsHigherThan "$(getMagentoVersion)" "2.3.0" && searchEngine="elasticsearch"
     versionIsHigherThan "$(getMagentoVersion)" "2.3.1" && searchEngine="elasticsearch5"
     versionIsHigherThan "$(getMagentoVersion)" "2.3.5" && searchEngine="elasticsearch7"
+    checkIfBasedOnDevelopBranch && searchEngine="elasticsearch7"
     echo "$searchEngine"
     return 0
 }
