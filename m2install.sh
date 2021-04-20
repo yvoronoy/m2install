@@ -1510,6 +1510,7 @@ function installMagento()
 
 function isElasticSearchRequired()
 {
+  checkIfBasedOnDevelopBranch && return 0
   versionIsHigherThan "$(getMagentoVersion)" "2.4" && return 0
   return 255
 }
