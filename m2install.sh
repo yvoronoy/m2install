@@ -337,7 +337,7 @@ function checkIfBasedOnDevelopBranch()
     fi
     if [ "$(ls -A ./)" ] && [ -d ".git" ]
     then
-        ${BIN_GIT} rev-parse --abbrev-ref HEAD | grep '2.4-develop'
+        ${BIN_GIT} rev-parse --abbrev-ref HEAD | grep -q '2.4-develop'
         if [ 0 = $? ]
         then
             return 0
