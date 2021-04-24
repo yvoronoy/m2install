@@ -1393,10 +1393,10 @@ function installB2B()
         getB2Bversion
     fi
 
-    if [ "${SOURCE}" == 'git' ]
+    if [ "${SOURCE}" == 'git' ] || checkIfBasedOnDevelopBranch
     then
         validateGitRepository "${GIT_B2B_REPO}" "${B2B_VERSION}"
-        CMD="${BIN_GIT} clone --branch ${B2B_VERSION} --single-branch ${GIT_B2B_REPO} ${GIT_B2B_PATH}"
+        CMD="[ ! -d "$B2B_VERSION" ] && ${BIN_GIT} clone --branch ${B2B_VERSION} --single-branch ${GIT_B2B_REPO} ${GIT_B2B_PATH}"
         runCommand
         CMD="${BIN_PHP} dev/tools/build-ee.php --ce-source $(pwd) --ee-source ${GIT_B2B_PATH}"
         runCommand
@@ -1412,6 +1412,7 @@ function installB2B()
 
 function getB2Bversion()
 {
+    checkIfBasedOnDevelopBranch && { B2B_VERSION="develop"; return 0; }
     REAL_MAGENTO_VERSION=`${BIN_PHP} bin/magento --version`
     MAGENTO_MAJOR_VERSION=`echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).*/\1/'`
     MAGENTO_MINOR_VERSION=`echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).*/\2/'`
