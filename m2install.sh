@@ -1531,7 +1531,13 @@ function isElasticSearchConfigIsAvailable()
 
 function getRecommendedSearchEngineForVersion()
 {
-    local searchEngine=elasticsearch
+    local searchEngine=
+    if [[ "$(getESConfigHost)" ]] && [[ "$(getESConfigPort)" ]]
+    then
+      searchEngine="$(parseElasticSearchVersion $(getESConfigHost) $(getESConfigPort))"
+      [[ "$searchEngine" ]] && { echo "$searchEngine"; return 0; }
+    fi
+    searchEngine=elasticsearch7
     local currentMagentoVersion="$(getMagentoVersion)"
     #https://devdocs.magento.com/guides/v2.4/install-gde/system-requirements.html
     versionIsHigherThan "$(getMagentoVersion)" "2.3.0" && searchEngine="elasticsearch"
@@ -1540,6 +1546,15 @@ function getRecommendedSearchEngineForVersion()
     checkIfBasedOnDevelopBranch && searchEngine="elasticsearch7"
     echo "$searchEngine"
     return 0
+}
+
+function parseElasticSearchVersion()
+{
+  local eshost=$1
+  local esport=$2
+  local elasticSearchVersion=$(curl -s -X GET "$eshost:$esport" | grep number | sed 's/[^0-9.]//g' | head -c 1)
+  [[ "$elasticSearchVersion" ]] && [[ "$elasticSearchVersion" -gt 1 ]] && { echo "elasticsearch${elasticSearchVersion}"; return 0; }
+  return 255
 }
 
 function getESConfigHost()
@@ -1563,6 +1578,8 @@ function getESConfigHost()
       return 0
       ;;
   esac
+
+  return 255
 }
 
 function getESConfigPort()
