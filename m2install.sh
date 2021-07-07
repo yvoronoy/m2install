@@ -649,14 +649,14 @@ function promptSaveConfig()
     then
         return;
     fi
-    _local=$(dirname "$BASE_PATH")
+    local _local=$(dirname "$BASE_PATH")
     if [ "$_local" == "." ]
     then
         _local=
     else
         _local=$_local/
     fi
-    if [ "$_local" != '/' ]
+    if [ "$_local" != '' ]
     then
         _local=${_local}\$CURRENT_DIR_NAME
     fi
@@ -694,31 +694,26 @@ ELASTICSEARCH_PORT=$ELASTICSEARCH_PORT
 EOF
 )
 
+    local localConfigPath="./$CONFIG_NAME"
+
     if [ "$(getConfigFiles)" ]
     then
-        _currentConfigContent=$(cat "$HOME/$CONFIG_NAME")
+        _localConfigContent=$(cat "${localConfigPath}")
 
-        if [ "$_configContent" == "$_currentConfigContent" ]
+        if [ "$_configContent" == "$_localConfigContent" ]
         then
             return;
         fi
 
     fi
 
-    configSavePath="$HOME/$CONFIG_NAME"
-    if [ -f "${configSavePath}" ]
+    if askConfirmation "Do you want save config to ${localConfigPath} (y/N)"
     then
-        configSavePath="./$CONFIG_NAME"
-    fi
-    if askConfirmation "Do you want save config to ${configSavePath} (y/N)"
-    then
-        cat << EOF > ${configSavePath}
+        cat << EOF > ${localConfigPath}
 $_configContent
 EOF
-            printString "Config file has been created in ${configSavePath}";
-        fi
-    _local=
-    configSavePath=
+        printString "Config file has been created in ${localConfigPath}";
+    fi
 }
 
 function dropDB()
