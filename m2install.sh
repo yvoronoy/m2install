@@ -1068,8 +1068,47 @@ function configure_db()
   deleteConfig 'services_connector/services_id/project_id';
   deleteConfig 'services_connector/services_id/environment_id';
 
+  detectPaths | while read path; do deleteConfig $path; done
+
   resetAdminPassword
   switchSearchEngineToDefaultEngine
+}
+
+function detectPaths()
+{
+  local sanitizer=$(cat << EOF
+<?php
+require __DIR__ . '/app/bootstrap.php';
+\$bootstrap = \Magento\Framework\App\Bootstrap::create(BP, \$_SERVER);
+\$om = \$bootstrap->getObjectManager();
+\$metaData = \$om->create('Magento\Framework\App\Config\Initial')->getMetaData();
+\$toSanitize = [];
+foreach (\$metaData as \$path => \$processor) {
+    if (\$processor['backendModel'] == 'Magento\Config\Model\Config\Backend\Encrypted') {
+        \$toSanitize[] = \$path;
+    }
+}
+
+\$modularConfig = \$om->create(\Magento\Config\App\Config\Source\ModularConfigSource::class);
+\$arrayUtils = \$om->create(\Magento\Framework\Stdlib\ArrayUtils::class);
+\$modularDataPaths = \$arrayUtils->flatten(\$modularConfig->get());
+array_walk(\$modularDataPaths, function(\$value, \$path) use (\$toSanitize){
+    \$listOfForbiddenPaths = ['api_key', 'secret', 'token'];
+    foreach (\$listOfForbiddenPaths as \$needle) {
+        if (stripos(\$path, \$needle) !== false) {
+            \$toSanitize[] = \$path;
+        }
+    }
+});
+
+\$toSanitize = array_unique(\$toSanitize);
+foreach (\$toSanitize as \$path) {
+    echo \$path . PHP_EOL;
+}
+EOF
+);
+
+ echo "$sanitizer" | ${BIN_PHP}
 }
 
 function setConfig()
