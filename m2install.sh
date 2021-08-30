@@ -91,7 +91,7 @@ M2INSTALL_CSV_LOG=${M2INSTALL_CSV_LOG:-}
 
 function printVersion()
 {
-    printString "1.0.4"
+    printString "1.0.5"
 }
 
 function getScriptDirectory()
@@ -1068,6 +1068,9 @@ function configure_db()
   deleteConfig 'services_connector/services_id/project_id';
   deleteConfig 'services_connector/services_id/environment_id';
 
+  processShippingConfig
+  processPaymentConfig
+  removeConfigByKeyword
   resetAdminPassword
   switchSearchEngineToDefaultEngine
 }
@@ -1103,6 +1106,128 @@ function deleteConfig()
 
   SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path ${where} '${path}'";
   mysqlQuery
+}
+
+function processShippingConfig()
+{
+  setShippingConfigToInactive
+  deleteShippingConfig
+}
+
+function setShippingConfigToInactive()
+{
+  setConfig 'carriers/fedex/active' '0';
+  setConfig 'carriers/ups/is_account_live' '0';
+  setConfig 'carriers/usps/active' '0';
+}
+
+function deleteShippingConfig()
+{
+  deleteConfig 'carriers/fedex/key';
+  deleteConfig 'carriers/fedex/password';
+  deleteConfig 'carriers/fedex/meter_number';
+  deleteConfig 'carriers/fedex/account';
+  deleteConfig 'carriers/ups/password';
+  deleteConfig 'carriers/ups/access_license_number';
+  deleteConfig 'carriers/ups/username';
+  deleteConfig 'carriers/ups/shipper_number';
+  deleteConfig 'carriers/usps/gateway_secure_url';
+  deleteConfig 'carriers/usps/gateway_url';
+  deleteConfig 'carriers/usps/userid';
+  deleteConfig 'carriers/usps/password';
+  deleteConfig 'carriers/dhl/id';
+  deleteConfig 'carriers/dhl/password';
+}
+
+function processPaymentConfig()
+{
+  setPaymentConfigToInactive
+  deletePaymentConfig
+}
+
+function setPaymentConfigToInactive()
+{
+  setConfig 'payment/authorizenet_acceptjs/active' '0';
+  setConfig 'payment/cybersource/active' '0';
+  setConfig 'payment/amazon_payment/active' '0';
+  setConfig 'payment/amazonlogin/active' '0';
+  setConfig 'payment/braintree/active' '0';
+  setConfig 'payment/braintree_paypal/active' '0';
+  setConfig 'payment/eway/active' '0';
+  setConfig 'payment/worldpay/active' '0';
+  setConfig 'payment/klarna_kp/active' '0';
+  setConfig 'paypal/wpp/api_authentication' '0';
+  setConfig 'payment/paypal_express/active' '0';
+  setConfig 'payment/payflow_advanced/active' '0';
+  setConfig 'payment/payflowpro/active' '0';
+  setConfig 'payment/paypal_payment_pro/active' '0';
+  setConfig 'payment/payflow_link/active' '0';
+}
+
+function deletePaymentConfig()
+{
+  deleteConfig 'payment/authorizenet_acceptjs/trans_signature_key';
+  deleteConfig 'payment/authnetcim/trans_key';
+  deleteConfig 'payment/authnetcim/client_key';
+  deleteConfig 'payment/authnetcim_ach/trans_key';
+  deleteConfig 'payment/authorizenet_acceptjs/public_client_key';
+  deleteConfig 'payment/authorizenet_acceptjs/trans_key';
+  deleteConfig 'payment/authorizenet_acceptjs/trans_md5';
+  deleteConfig 'payment/authorizenet_acceptjs/login';
+  deleteConfig 'payment/cybersource/transaction_key';
+  deleteConfig 'payment/cybersource/access_key';
+  deleteConfig 'payment/cybersource/secret_key';
+  deleteConfig 'payment/cybersource/merchant_id';
+  deleteConfig 'payment/cybersource/profile_id';
+  deleteConfig 'payment/amazon_payments/simplepath/privatekey';
+  deleteConfig 'payment/amazon_payments/simplepath/publickey';
+  deleteConfig 'payment/amazon_payment/credentials_json';
+  deleteConfig 'payment/amazon_payment/client_secret';
+  deleteConfig 'payment/amazon_payment/client_id';
+  deleteConfig 'payment/amazon_payment/secret_key';
+  deleteConfig 'payment/amazon_payment/access_key';
+  deleteConfig 'payment/amazon_payment/merchant_id';
+  deleteConfig 'payment/braintree/public_key';
+  deleteConfig 'payment/braintree/private_key';
+  deleteConfig 'payment/braintree/merchant_id';
+  deleteConfig 'payment/braintree/merchant_account_id';
+  deleteConfig 'payment/eway/live_api_key';
+  deleteConfig 'payment/eway/live_api_password';
+  deleteConfig 'payment/eway/live_encryption_key';
+  deleteConfig 'payment/eway/payment_action';
+  deleteConfig 'payment/eway/sandbox_api_key';
+  deleteConfig 'payment/eway/sandbox_api_password';
+  deleteConfig 'payment/eway/sandbox_encryption_key';
+  deleteConfig 'payment/worldpay/md5_secret';
+  deleteConfig 'payment/worldpay/auth_password';
+  deleteConfig 'payment/worldpay/response_password';
+  deleteConfig 'klarna/api/shared_secret';
+  deleteConfig 'klarna/api/merchant_id';
+  deleteConfig 'paypal/wpp/api_username';
+  deleteConfig 'paypal/wpp/api_password';
+  deleteConfig 'paypal/wpp/api_signature';
+  deleteConfig 'payment/payflow_advanced/pwd';
+  deleteConfig 'payment/payflowpro/pwd';
+  deleteConfig 'payment/payflow_link/pwd';
+}
+
+function removeConfigByKeyword()
+{
+  deleteConfig '%activation_key%' 'LIKE';
+  deleteConfig '%secret_key%' 'LIKE';
+  deleteConfig '%serial_key%' 'LIKE';
+  deleteConfig '%license_key%' 'LIKE';
+  deleteConfig '%encryption_key%' 'LIKE';
+  deleteConfig '%private_key%' 'LIKE';
+  deleteConfig '%public_key%' 'LIKE';
+  deleteConfig '%api_key%' 'LIKE';
+  deleteConfig '%client_key%' 'LIKE';
+  deleteConfig '%client_secret%' 'LIKE';
+  deleteConfig '%api_password%' 'LIKE';
+  deleteConfig '%api_signature%' 'LIKE';
+  deleteConfig '%secret%' 'LIKE';
+  deleteConfig '%application_key%' 'LIKE';
+  deleteConfig '%token%' 'LIKE';
 }
 
 function resetAdminPassword()
