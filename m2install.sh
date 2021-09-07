@@ -997,8 +997,26 @@ function updateElasticSearchConfiguration()
   return 0
 }
 
+function disableLiveSearch()
+{
+    if $BIN_PHP $BIN_MAGE module:status Magento_LiveSearch | grep -q 'Module is enabled'
+    then
+      $BIN_PHP $BIN_MAGE module:status | grep Magento_LiveSearch | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP $BIN_MAGE module:disable
+      $BIN_PHP $BIN_MAGE module:status | grep -E 'Magento_Elasticsearch*|Magento_AdvancedSearch|Magento_InventoryElasticsearch' | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP $BIN_MAGE module:enable
+      $BIN_PHP $BIN_MAGE --quiet config:set  'catalog/search/engine' $(getRecommendedSearchEngineForVersion)
+      cat <<endmessage
+${yellow}
+####################################################################################
+Warning:  A Search Engine has been switched from LiveSearch to ElasticSearch
+####################################################################################
+${default}
+endmessage
+    fi
+}
+
 function switchSearchEngineToDefaultEngine()
 {
+  disableLiveSearch
   isElasticSearchRequired && updateElasticSearchConfiguration && return 0;
 
   local red=`tput setaf 1`
@@ -1384,6 +1402,34 @@ function _installGitSampleData()
 
     CMD="${BIN_PHP} ${BIN_MAGE} setup:upgrade"
     runCommand
+}
+
+function installLiveSearch()
+{
+  if [ "${SOURCE}" == 'git' ] || checkIfBasedOnDevelopBranch
+  then
+    echo "Not supported at this moment"
+    return 0;
+  else
+    CMD="${BIN_PHP} ${BIN_COMPOSER} require magento/live-search"
+    runCommand
+  fi
+
+  $BIN_PHP $BIN_MAGE module:status | grep -E 'Magento_Elasticsearch*|Magento_AdvancedSearch|Magento_InventoryElasticsearch' | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP $BIN_MAGE module:disable
+  $BIN_PHP $BIN_MAGE module:status | grep Magento_LiveSearch | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP $BIN_MAGE module:enable
+  $BIN_PHP $BIN_MAGE --quiet config:set  'catalog/search/engine' NULL
+  $BIN_PHP $BIN_MAGE module:status | grep -E '.*ServicesId*|.*ServicesConnector*|.*DataExporter*|.*SaaS*|.*DataServices*'| xargs $BIN_PHP $BIN_MAGE  module:enable
+  CMD="${BIN_PHP} ${BIN_MAGE} setup:upgrade"
+  runCommand
+  cat <<endmessage
+${yellow}
+####################################################################################
+Warning: LiveSearch has been enabled.
+Please proceed to the API keys configuration and Catalog data synchronization:
+https://devdocs.magento.com/live-search/install.html#configure-api-keys
+####################################################################################
+${default}
+endmessage
 }
 
 function installB2B()
@@ -1817,7 +1863,7 @@ function isInputNegative()
 function validateStep()
 {
     local _step=$1;
-    local _steps="restore_db restore_code configure_db configure_files configure installB2B add_remote"
+    local _steps="restore_db restore_code configure_db configure_files configure installB2B installLiveSearch add_remote"
     if echo "$_steps" | grep -q "$_step"
     then
         if type -t "$_step" &>/dev/null
@@ -1960,7 +2006,8 @@ Options:
     --skip-post-deploy                   Skip the post deploy script if it is exist
     --step (restore_code,restore_db      Specify step through comma without spaces.
         configure_db,configure_files     - Example: $(basename "$0") --step restore_db,configure_db
-        installB2B --b2b)                - Example: $(basename "$0") --step installB2B --b2b
+        installB2B --b2b                 - Example: $(basename "$0") --step installB2B --b2b
+        installLiveSearch --ls)          - Example: $(basename "$0") --step installLiveSearch --ls
     --restore-table                      Restore only the specific table from DB dumps
     --debug                              Enable debug mode
     --php                                Specify path to PHP CLI (php71 or /usr/bin/php71)
