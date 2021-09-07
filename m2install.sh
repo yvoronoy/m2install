@@ -1001,8 +1001,8 @@ function disableLiveSearch()
 {
     if $BIN_PHP $BIN_MAGE module:status Magento_LiveSearch | grep -q 'Module is enabled'
     then
-      $BIN_PHP $BIN_MAGE module:status | grep Magento_LiveSearch | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_MAGE module:disable
-      $BIN_PHP $BIN_MAGE module:status | grep -E 'Magento_Elasticsearch*|Magento_AdvancedSearch|Magento_InventoryElasticsearch' | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_MAGE module:enable
+      $BIN_PHP $BIN_MAGE module:status | grep Magento_LiveSearch | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP $BIN_MAGE module:disable
+      $BIN_PHP $BIN_MAGE module:status | grep -E 'Magento_Elasticsearch*|Magento_AdvancedSearch|Magento_InventoryElasticsearch' | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP $BIN_MAGE module:enable
       $BIN_PHP $BIN_MAGE --quiet config:set  'catalog/search/engine' $(getRecommendedSearchEngineForVersion)
       cat <<endmessage
 ${yellow}
