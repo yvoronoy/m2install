@@ -1050,6 +1050,7 @@ function configure_db()
   printString "Updating Database Configuration"
   setConfig 'web/secure/base_url' "${BASE_URL}";
   setConfig 'web/unsecure/base_url' "${BASE_URL}";
+  setConfig 'web/secure/offloader_header' 'X-Forwarded-Proto';  
   setConfig 'google/analytics/active' '0';
   setConfig 'google/adwords/active' '0';
   setConfig 'msp_securitysuite_twofactorauth/general/enabled' '0';
