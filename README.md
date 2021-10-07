@@ -56,13 +56,16 @@ Options:
     --quiet                              Quiet mode. Suppress output all commands
     --skip-post-deploy                   Skip the post deploy script if it is exist
     --step (restore_code,restore_db      Specify step through comma without spaces.
-        configure_db,configure_files     - Example: $(basename "$0") --step restore_db,configure_db
-        installB2B --b2b)                - Example: $(basename "$0") --step installB2B --b2b
+        configure_db,configure_files     - Example: m2install.sh --step restore_db,configure_db
+        installB2B --b2b                 - Example: m2install.sh --step installB2B --b2b
+        installLiveSearch)               - Example: m2install.sh --step installLiveSearch
     --restore-table                      Restore only the specific table from DB dumps
     --debug                              Enable debug mode
     --php                                Specify path to PHP CLI (php71 or /usr/bin/php71)
+    --remote-db                          Remote database name
     --es-host, --elasticsearch-host      Set the Elasticsearch host
     --es-port, --elasticsearch-port      Set the Elasticsearch port
+    --uninstall                          Delete database and application from the current folder
     _________________________________________________________________________________________________
     --ee-path (/path/to/ee)              (DEPRECATED use --ee flag) Path to Enterprise Edition.
 ```
