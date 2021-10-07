@@ -2138,7 +2138,7 @@ Options:
     --step (restore_code,restore_db      Specify step through comma without spaces.
         configure_db,configure_files     - Example: $(basename "$0") --step restore_db,configure_db
         installB2B --b2b                 - Example: $(basename "$0") --step installB2B --b2b
-        installLiveSearch --ls)          - Example: $(basename "$0") --step installLiveSearch --ls
+        installLiveSearch)               - Example: $(basename "$0") --step installLiveSearch
     --restore-table                      Restore only the specific table from DB dumps
     --debug                              Enable debug mode
     --php                                Specify path to PHP CLI (php71 or /usr/bin/php71)
