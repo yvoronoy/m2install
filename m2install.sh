@@ -1307,7 +1307,18 @@ function overwriteOriginalFiles()
     fi
     CMD="curl -s -o pub/media/.htaccess https://raw.githubusercontent.com/magento/magento2/${MAGENTO_VERSION}/pub/media/.htaccess"
     runCommand
+
+    postOverwriteOriginalFiles
 }
+
+function postOverwriteOriginalFiles()
+{
+    if [ -f app/etc/config.php ]
+    then
+        disableModuleInConfigFile 'smtp'
+    fi
+}
+
 function getTablePrefix()
 {
     echo $(grep 'table_prefix' app/etc/env.php | head -n1 | sed "s/[a-z'_ ]*[=][>][ ]*[']//" | sed "s/['][,]*//")
@@ -2109,6 +2120,20 @@ function disableModule()
     local moduleName=$1
 
     $BIN_PHP $BIN_MAGE module:status $moduleName | grep -q 'Module is enabled' && $BIN_PHP $BIN_MAGE module:disable $moduleName && echo "$moduleName is being disabled"
+}
+
+function disableModuleInConfigFile()
+{
+    local modulePattern=$1
+
+    if [ -f app/etc/config.php ]
+    then
+        grep -iEo "['\"].*$modulePattern.*['\"]" app/etc/config.php | while read -r module ; do
+            echo "Module $module will be disabled in config.php"
+            CMD="sed -iE \"s/($module.*=>.*)[10]{1}/\\1 0/g\" app/etc/config.php"
+            runCommand
+        done
+    fi
 }
 
 function executeSteps()
