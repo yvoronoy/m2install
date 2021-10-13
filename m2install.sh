@@ -1308,7 +1308,10 @@ function overwriteOriginalFiles()
     CMD="curl -s -o pub/media/.htaccess https://raw.githubusercontent.com/magento/magento2/${MAGENTO_VERSION}/pub/media/.htaccess"
     runCommand
 
-    postOverwriteOriginalFiles
+    if [ ! "$(getRequest skipPostOverwrite)" ]
+    then
+        postOverwriteOriginalFiles
+    fi
 }
 
 function postOverwriteOriginalFiles()
@@ -2167,6 +2170,7 @@ Options:
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
     --quiet                              Quiet mode. Suppress output all commands
     --skip-post-deploy                   Skip the post deploy script if it is exist
+    --skip-post-overwrite                Skip the post orginal files overwrite actions
     --step (restore_code,restore_db      Specify step through comma without spaces.
         configure_db,configure_files     - Example: $(basename "$0") --step restore_db,configure_db
         installB2B --b2b                 - Example: $(basename "$0") --step installB2B --b2b
@@ -2258,6 +2262,9 @@ function processOptions()
             ;;
             --skip-post-deploy)
                 setRequest skipPostDeploy 1
+            ;;
+            --skip-post-overwrite)
+                setRequest skipPostOverwrite 1
             ;;
             -h|--help)
                 printUsage
