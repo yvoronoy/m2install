@@ -91,7 +91,7 @@ M2INSTALL_CSV_LOG=${M2INSTALL_CSV_LOG:-}
 
 function printVersion()
 {
-    printString "1.0.4"
+    printString "1.0.5"
 }
 
 function getScriptDirectory()
@@ -1050,6 +1050,7 @@ function configure_db()
   printString "Updating Database Configuration"
   setConfig 'web/secure/base_url' "${BASE_URL}";
   setConfig 'web/unsecure/base_url' "${BASE_URL}";
+  setConfig 'web/secure/offloader_header' 'X-Forwarded-Proto';  
   setConfig 'google/analytics/active' '0';
   setConfig 'google/adwords/active' '0';
   setConfig 'msp_securitysuite_twofactorauth/general/enabled' '0';
@@ -1086,6 +1087,9 @@ function configure_db()
   deleteConfig 'services_connector/services_id/project_id';
   deleteConfig 'services_connector/services_id/environment_id';
 
+  processShippingConfig
+  processPaymentConfig
+  removeConfigByKeyword
   resetAdminPassword
   switchSearchEngineToDefaultEngine
 }
@@ -1121,6 +1125,128 @@ function deleteConfig()
 
   SQLQUERY="DELETE FROM ${DB_NAME}.$(getTablePrefix)core_config_data WHERE path ${where} '${path}'";
   mysqlQuery
+}
+
+function processShippingConfig()
+{
+  setShippingConfigToInactive
+  deleteShippingConfig
+}
+
+function setShippingConfigToInactive()
+{
+  setConfig 'carriers/fedex/active' '0';
+  setConfig 'carriers/ups/is_account_live' '0';
+  setConfig 'carriers/usps/active' '0';
+}
+
+function deleteShippingConfig()
+{
+  deleteConfig 'carriers/fedex/key';
+  deleteConfig 'carriers/fedex/password';
+  deleteConfig 'carriers/fedex/meter_number';
+  deleteConfig 'carriers/fedex/account';
+  deleteConfig 'carriers/ups/password';
+  deleteConfig 'carriers/ups/access_license_number';
+  deleteConfig 'carriers/ups/username';
+  deleteConfig 'carriers/ups/shipper_number';
+  deleteConfig 'carriers/usps/gateway_secure_url';
+  deleteConfig 'carriers/usps/gateway_url';
+  deleteConfig 'carriers/usps/userid';
+  deleteConfig 'carriers/usps/password';
+  deleteConfig 'carriers/dhl/id';
+  deleteConfig 'carriers/dhl/password';
+}
+
+function processPaymentConfig()
+{
+  setPaymentConfigToInactive
+  deletePaymentConfig
+}
+
+function setPaymentConfigToInactive()
+{
+  setConfig 'payment/authorizenet_acceptjs/active' '0';
+  setConfig 'payment/cybersource/active' '0';
+  setConfig 'payment/amazon_payment/active' '0';
+  setConfig 'payment/amazonlogin/active' '0';
+  setConfig 'payment/braintree/active' '0';
+  setConfig 'payment/braintree_paypal/active' '0';
+  setConfig 'payment/eway/active' '0';
+  setConfig 'payment/worldpay/active' '0';
+  setConfig 'payment/klarna_kp/active' '0';
+  setConfig 'paypal/wpp/api_authentication' '0';
+  setConfig 'payment/paypal_express/active' '0';
+  setConfig 'payment/payflow_advanced/active' '0';
+  setConfig 'payment/payflowpro/active' '0';
+  setConfig 'payment/paypal_payment_pro/active' '0';
+  setConfig 'payment/payflow_link/active' '0';
+}
+
+function deletePaymentConfig()
+{
+  deleteConfig 'payment/authorizenet_acceptjs/trans_signature_key';
+  deleteConfig 'payment/authnetcim/trans_key';
+  deleteConfig 'payment/authnetcim/client_key';
+  deleteConfig 'payment/authnetcim_ach/trans_key';
+  deleteConfig 'payment/authorizenet_acceptjs/public_client_key';
+  deleteConfig 'payment/authorizenet_acceptjs/trans_key';
+  deleteConfig 'payment/authorizenet_acceptjs/trans_md5';
+  deleteConfig 'payment/authorizenet_acceptjs/login';
+  deleteConfig 'payment/cybersource/transaction_key';
+  deleteConfig 'payment/cybersource/access_key';
+  deleteConfig 'payment/cybersource/secret_key';
+  deleteConfig 'payment/cybersource/merchant_id';
+  deleteConfig 'payment/cybersource/profile_id';
+  deleteConfig 'payment/amazon_payments/simplepath/privatekey';
+  deleteConfig 'payment/amazon_payments/simplepath/publickey';
+  deleteConfig 'payment/amazon_payment/credentials_json';
+  deleteConfig 'payment/amazon_payment/client_secret';
+  deleteConfig 'payment/amazon_payment/client_id';
+  deleteConfig 'payment/amazon_payment/secret_key';
+  deleteConfig 'payment/amazon_payment/access_key';
+  deleteConfig 'payment/amazon_payment/merchant_id';
+  deleteConfig 'payment/braintree/public_key';
+  deleteConfig 'payment/braintree/private_key';
+  deleteConfig 'payment/braintree/merchant_id';
+  deleteConfig 'payment/braintree/merchant_account_id';
+  deleteConfig 'payment/eway/live_api_key';
+  deleteConfig 'payment/eway/live_api_password';
+  deleteConfig 'payment/eway/live_encryption_key';
+  deleteConfig 'payment/eway/payment_action';
+  deleteConfig 'payment/eway/sandbox_api_key';
+  deleteConfig 'payment/eway/sandbox_api_password';
+  deleteConfig 'payment/eway/sandbox_encryption_key';
+  deleteConfig 'payment/worldpay/md5_secret';
+  deleteConfig 'payment/worldpay/auth_password';
+  deleteConfig 'payment/worldpay/response_password';
+  deleteConfig 'klarna/api/shared_secret';
+  deleteConfig 'klarna/api/merchant_id';
+  deleteConfig 'paypal/wpp/api_username';
+  deleteConfig 'paypal/wpp/api_password';
+  deleteConfig 'paypal/wpp/api_signature';
+  deleteConfig 'payment/payflow_advanced/pwd';
+  deleteConfig 'payment/payflowpro/pwd';
+  deleteConfig 'payment/payflow_link/pwd';
+}
+
+function removeConfigByKeyword()
+{
+  deleteConfig '%activation_key%' 'LIKE';
+  deleteConfig '%secret_key%' 'LIKE';
+  deleteConfig '%serial_key%' 'LIKE';
+  deleteConfig '%license_key%' 'LIKE';
+  deleteConfig '%encryption_key%' 'LIKE';
+  deleteConfig '%private_key%' 'LIKE';
+  deleteConfig '%public_key%' 'LIKE';
+  deleteConfig '%api_key%' 'LIKE';
+  deleteConfig '%client_key%' 'LIKE';
+  deleteConfig '%client_secret%' 'LIKE';
+  deleteConfig '%api_password%' 'LIKE';
+  deleteConfig '%api_signature%' 'LIKE';
+  deleteConfig '%secret%' 'LIKE';
+  deleteConfig '%application_key%' 'LIKE';
+  deleteConfig '%token%' 'LIKE';
 }
 
 function resetAdminPassword()
@@ -1449,7 +1575,7 @@ function installB2B()
         CMD="rm -rf var/* generation/*"
         runCommand
     else
-        CMD="${BIN_PHP} ${BIN_COMPOSER} require magento/extension-b2b"
+        CMD="${BIN_PHP} ${BIN_COMPOSER} require magento/extension-b2b=${B2B_VERSION}"
         runCommand
     fi
     CMD="${BIN_PHP} ${BIN_MAGE} setup:upgrade"
@@ -1462,6 +1588,7 @@ function getB2Bversion()
     REAL_MAGENTO_VERSION=`${BIN_PHP} bin/magento --version`
     MAGENTO_MAJOR_VERSION=`echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).*/\1/'`
     MAGENTO_MINOR_VERSION=`echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).*/\2/'`
+    MAGENTO_PATCH_VERSION=`echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).\([a-z0-9]*\)/\3/'`
     if [ $MAGENTO_MAJOR_VERSION -ge 4 ] && [ $MAGENTO_MINOR_VERSION -ge 1 ]
     then
         B2B_VERSION_MAJOR=$(( `echo "${MAGENTO_MAJOR_VERSION}"` -1 ))
@@ -1470,7 +1597,11 @@ function getB2Bversion()
         B2B_VERSION_MAJOR=$(( `echo "${MAGENTO_MAJOR_VERSION}"` -2 ))
         B2B_VERSION_MINOR=$MAGENTO_MINOR_VERSION
     fi
-    B2B_VERSION="1.${B2B_VERSION_MAJOR}.${B2B_VERSION_MINOR}"
+    if [ ! -z "$MAGENTO_PATCH_VERSION" ]
+    then
+        B2B_PATCH_VERSION="-${MAGENTO_PATCH_VERSION}"
+    fi
+    B2B_VERSION="1.${B2B_VERSION_MAJOR}.${B2B_VERSION_MINOR}${B2B_PATCH_VERSION}"
 }
 
 function linkEnterpriseEdition()
@@ -1763,12 +1894,12 @@ function gitClone()
     validateGitRepository "${GIT_CE_REPO}" "${MAGENTO_VERSION}"
     validateGitRepository "${GIT_EE_REPO}" "${MAGENTO_VERSION}"
 
-    CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION --single-branch $GIT_CE_REPO ."
+    CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION $GIT_CE_REPO ."
     runCommand
 
     if [[ "$GIT_EE_REPO" ]] && [[ "$INSTALL_EE" ]]
     then
-        CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION --single-branch $GIT_EE_REPO $EE_PATH"
+        CMD="${BIN_GIT} clone --branch $MAGENTO_VERSION $GIT_EE_REPO $EE_PATH"
         runCommand
     fi
 }
@@ -2007,7 +2138,7 @@ Options:
     --step (restore_code,restore_db      Specify step through comma without spaces.
         configure_db,configure_files     - Example: $(basename "$0") --step restore_db,configure_db
         installB2B --b2b                 - Example: $(basename "$0") --step installB2B --b2b
-        installLiveSearch --ls)          - Example: $(basename "$0") --step installLiveSearch --ls
+        installLiveSearch)               - Example: $(basename "$0") --step installLiveSearch
     --restore-table                      Restore only the specific table from DB dumps
     --debug                              Enable debug mode
     --php                                Specify path to PHP CLI (php71 or /usr/bin/php71)
