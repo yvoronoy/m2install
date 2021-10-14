@@ -1968,9 +1968,16 @@ function afterInstall()
 
 function disableTwoFactorAuthModules()
 {
-  $BIN_PHP $BIN_MAGE module:status Magento_TwoFactorAuth | grep -q 'Module is enabled' && $BIN_PHP $BIN_MAGE module:disable Magento_TwoFactorAuth && echo "Magento_TwoFactorAuth is being disabled"
-  $BIN_PHP $BIN_MAGE module:status MarkShust_DisableTwoFactorAuth | grep -q 'Module is enabled' && $BIN_PHP $BIN_MAGE module:disable MarkShust_DisableTwoFactorAuth && echo "MarkShust_DisableTwoFactorAuth is being disabled"
-  $BIN_PHP $BIN_MAGE module:status WolfSellers_EnableDisableTfa | grep -q 'Module is enabled' && $BIN_PHP $BIN_MAGE module:disable WolfSellers_EnableDisableTfa && echo "WolfSellers_EnableDisableTfa is being disabled"
+    disableModule 'Magento_TwoFactorAuth'
+    disableModule 'MarkShust_DisableTwoFactorAuth'
+    disableModule 'WolfSellers_EnableDisableTfa'
+}
+
+function disableModule()
+{
+    local moduleName=$1
+
+    $BIN_PHP $BIN_MAGE module:status $moduleName | grep -q 'Module is enabled' && $BIN_PHP $BIN_MAGE module:disable $moduleName && echo "$moduleName is being disabled"
 }
 
 function executeSteps()
