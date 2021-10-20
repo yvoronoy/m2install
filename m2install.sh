@@ -2000,7 +2000,7 @@ function disableModuleInConfigFile()
 
     if [ -f app/etc/config.php ]
     then
-        grep -iEo "['\"].*$modulePattern.*['\"]" app/etc/config.php | while read -r module ; do
+        grep -iEo "['\"][a-z0-9]+_[a-z0-9]+['\"]\s*?=>\s*?1,?" app/etc/config.php | grep -iEo "['\"].*$modulePattern.*['\"]" | while read -r module ; do
             echo "Module $module will be disabled in config.php"
             CMD="sed -iE \"s/($module.*=>.*)[10]{1}/\\1 0/g\" app/etc/config.php"
             runCommand
