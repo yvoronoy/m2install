@@ -1307,7 +1307,21 @@ function overwriteOriginalFiles()
     fi
     CMD="curl -s -o pub/media/.htaccess https://raw.githubusercontent.com/magento/magento2/${MAGENTO_VERSION}/pub/media/.htaccess"
     runCommand
+
+    if [ ! "$(getRequest skipPostOverwrite)" ]
+    then
+        postOverwriteOriginalFiles
+    fi
 }
+
+function postOverwriteOriginalFiles()
+{
+    if [ -f app/etc/config.php ]
+    then
+        disableModuleInConfigFile 'smtp'
+    fi
+}
+
 function getTablePrefix()
 {
     echo $(grep 'table_prefix' app/etc/env.php | head -n1 | sed "s/[a-z'_ ]*[=][>][ ]*[']//" | sed "s/['][,]*//")
@@ -2099,9 +2113,30 @@ function afterInstall()
 
 function disableTwoFactorAuthModules()
 {
-  $BIN_PHP $BIN_MAGE module:status Magento_TwoFactorAuth | grep -q 'Module is enabled' && $BIN_PHP $BIN_MAGE module:disable Magento_TwoFactorAuth && echo "Magento_TwoFactorAuth is being disabled"
-  $BIN_PHP $BIN_MAGE module:status MarkShust_DisableTwoFactorAuth | grep -q 'Module is enabled' && $BIN_PHP $BIN_MAGE module:disable MarkShust_DisableTwoFactorAuth && echo "MarkShust_DisableTwoFactorAuth is being disabled"
-  $BIN_PHP $BIN_MAGE module:status WolfSellers_EnableDisableTfa | grep -q 'Module is enabled' && $BIN_PHP $BIN_MAGE module:disable WolfSellers_EnableDisableTfa && echo "WolfSellers_EnableDisableTfa is being disabled"
+    disableModule 'Magento_TwoFactorAuth'
+    disableModule 'MarkShust_DisableTwoFactorAuth'
+    disableModule 'WolfSellers_EnableDisableTfa'
+}
+
+function disableModule()
+{
+    local moduleName=$1
+
+    $BIN_PHP $BIN_MAGE module:status $moduleName | grep -q 'Module is enabled' && $BIN_PHP $BIN_MAGE module:disable $moduleName && echo "$moduleName is being disabled"
+}
+
+function disableModuleInConfigFile()
+{
+    local modulePattern=$1
+
+    if [ -f app/etc/config.php ]
+    then
+        grep -iEo "['\"][a-z0-9]+_[a-z0-9]+['\"]\s*?=>\s*?1,?" app/etc/config.php | grep -iEo "['\"].*$modulePattern.*['\"]" | while read -r module ; do
+            echo "Module $module will be disabled in config.php"
+            CMD="sed -iE \"s/($module.*=>.*)[10]{1}/\\1 0/g\" app/etc/config.php"
+            runCommand
+        done
+    fi
 }
 
 function executeSteps()
@@ -2135,6 +2170,7 @@ Options:
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
     --quiet                              Quiet mode. Suppress output all commands
     --skip-post-deploy                   Skip the post deploy script if it is exist
+    --skip-post-overwrite                Skip the post orginal files overwrite actions
     --step (restore_code,restore_db      Specify step through comma without spaces.
         configure_db,configure_files     - Example: $(basename "$0") --step restore_db,configure_db
         installB2B --b2b                 - Example: $(basename "$0") --step installB2B --b2b
@@ -2226,6 +2262,9 @@ function processOptions()
             ;;
             --skip-post-deploy)
                 setRequest skipPostDeploy 1
+            ;;
+            --skip-post-overwrite)
+                setRequest skipPostOverwrite 1
             ;;
             -h|--help)
                 printUsage
