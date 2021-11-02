@@ -795,6 +795,7 @@ function configure_files()
     runCommand
     updateMagentoEnvFile
     overwriteOriginalFiles
+    configurePWA
     #CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
     CMD="chmod -R 775 ."
     runCommand
@@ -1319,6 +1320,26 @@ function postOverwriteOriginalFiles()
     if [ -f app/etc/config.php ]
     then
         disableModuleInConfigFile 'smtp'
+    fi
+}
+
+function configurePWA()
+{
+    if [ -f pwa_path.txt ]
+    then
+        ABSOLUTE_PATH=$(pwd)
+        echo "PWA setup"
+        PWA="$(cat pwa_path.txt)"
+        PWA_CONFIG="echo -e '
+        SetEnv MAGENTO_BACKEND_URL ${BASE_URL} \n
+        SetEnv NODE_ENV production \n
+        SetEnv CONFIG__DEFAULT__WEB__UPWARD__PATH ${ABSOLUTE_PATH}/${PWA}/upward.yml \n
+        '"
+        CMD="${PWA_CONFIG} >> .htaccess "
+        runCommand
+
+        CMD="${PWA_CONFIG} >> pub/.htaccess "
+        runCommand
     fi
 }
 
