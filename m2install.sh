@@ -1346,7 +1346,7 @@ function configurePWA()
         CMD="sed -i 's=\(data-media-backend\=\"https\?://\)[^/]\+/media=\1${BASE_URL}/media=' ${PWA}/index.html"
         runCommand
 
-        SQLQUERY="INSERT INTO ${DB_NAME}.$(getTablePrefix)core_config_data (`scope`, `scope_id`, `path`, `value`) VALUES ('default', 0, 'web/upward/path', '${ABSOLUTE_PATH}/${PWA}/upward.yml');";
+        SQLQUERY="INSERT INTO ${DB_NAME}.$(getTablePrefix)core_config_data (scope, scope_id, path, value) VALUES ('default', 0, 'web/upward/path', '${ABSOLUTE_PATH}/${PWA}/upward.yml');";
         mysqlQuery
     fi
 }
