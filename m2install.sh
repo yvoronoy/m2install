@@ -795,7 +795,6 @@ function configure_files()
     runCommand
     updateMagentoEnvFile
     overwriteOriginalFiles
-    configurePWA
     #CMD="find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 664 {} \;"
     CMD="chmod -R 775 ."
     runCommand
@@ -1340,6 +1339,9 @@ function configurePWA()
 
         CMD="${PWA_CONFIG} >> pub/.htaccess "
         runCommand
+
+        SQLQUERY="INSERT INTO ${DB_NAME}.$(getTablePrefix)core_config_data (`scope`, `scope_id`, `path`, `value`) VALUES ('default', 0, 'web/upward/path', '${ABSOLUTE_PATH}/${PWA}/upward.yml');";
+        mysqlQuery
     fi
 }
 
@@ -2420,6 +2422,7 @@ function magentoDeployDumpsAction()
         addStep "restore_db"
         addStep "configure_db"
         addStep "validateDeploymentFromDumps"
+        addStep "configurePWA"
     fi
 }
 
