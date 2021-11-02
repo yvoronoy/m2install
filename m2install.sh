@@ -1326,6 +1326,9 @@ function configurePWA()
 {
     if [ -f pwa_path.txt ]
     then
+        CMD="curl -s -o .htaccess https://raw.githubusercontent.com/magento/magento2/2.4.3/.htaccess"
+        runCommand
+
         ABSOLUTE_PATH=$(pwd)
         echo "PWA setup"
         PWA="$(cat pwa_path.txt)"
@@ -1340,7 +1343,7 @@ function configurePWA()
         CMD="${PWA_CONFIG} >> pub/.htaccess "
         runCommand
 
-        CMD="sed -i \"s=\(secure_base_media_url.*:\"\)https\?://[^/]\+/media=\1${BASE_URL}media=\" ${PWA}/*.js"
+        CMD="sed -i 's=\(secure_base_media_url.*:\"\)https\?://[^/]\+/media=\1${BASE_URL}media=' ${PWA}/*.js"
         runCommand
 
         CMD="sed -i 's=\(data-media-backend\=\"\)https\?://[^/]\+/media=\1${BASE_URL}media=' ${PWA}/index.html"
