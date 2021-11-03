@@ -355,7 +355,7 @@ function prepareBaseURL()
     BASE_URL=$(echo ${BASE_URL} | sed "s/\/\/$/\//g" )
     if isPubRequired
     then
-        BASE_URL="${BASE_URL}pub/"
+        BASE_URL="${BASE_URL}"
     fi
     BASE_URL=$(echo "$BASE_URL" | sed "s/\/\/$/\//g" );
 }
@@ -1343,8 +1343,14 @@ function configurePWA()
         CMD="${PWA_CONFIG} >> pub/.htaccess "
         runCommand
 
-        CMD="sed -i 's=\(secure_base_media_url.*:\"\)https\?://[^/]\+/media=\1${BASE_URL}media=' ${PWA}/*.js"
+        CMD="echo -e \"
+        putenv('MAGENTO_BACKEND_URL=${BASE_URL}');\n
+        putenv('NODE_ENV=production');\n
+        \" >> app/bootstrap.php "
         runCommand
+#
+#        CMD="sed -i 's=\(secure_base_media_url.*:\"\)https\?://[^/]\+/media=\1${BASE_URL}media=' ${PWA}/*.js"
+#        runCommand
 
         CMD="sed -i 's=\(data-media-backend\=\"\)https\?://[^/]\+/media=\1${BASE_URL}media=' ${PWA}/index.html"
         runCommand
