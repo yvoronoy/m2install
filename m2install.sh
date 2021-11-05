@@ -33,7 +33,7 @@ DB_PASSWORD=
 ELASTICSEARCH_HOST=
 ELASTICSEARCH_PORT=
 
-MAGENTO_VERSION=2.2
+MAGENTO_VERSION=2.4.3
 
 DB_NAME=
 USE_SAMPLE_DATA=
@@ -355,7 +355,7 @@ function prepareBaseURL()
     BASE_URL=$(echo ${BASE_URL} | sed "s/\/\/$/\//g" )
     if isPubRequired
     then
-        BASE_URL="${BASE_URL}"
+        BASE_URL="${BASE_URL}pub/"
     fi
     BASE_URL=$(echo "$BASE_URL" | sed "s/\/\/$/\//g" );
 }
