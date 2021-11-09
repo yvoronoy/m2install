@@ -1348,11 +1348,16 @@ function configurePWA()
         putenv('NODE_ENV=production');\n
         \" >> app/bootstrap.php "
         runCommand
-#
-#        CMD="sed -i 's=\(secure_base_media_url.*:\"\)https\?://[^/]\+/media=\1${BASE_URL}media=' ${PWA}/*.js"
-#        runCommand
 
-        CMD="sed -i 's=\(data-media-backend\=\"\)https\?://[^/]\+/media=\1${BASE_URL}media=' ${PWA}/index.html"
+        ORIGIN_URL=$(grep -o 'data-media-backend=\"https\?://[^/]\+/' ${PWA}/index.html | grep -o 'https\?://[^/]\+/')
+        echo $ORIGIN_URL
+
+        #this is for Mac
+        CMD="sed -i '' 's=${ORIGIN_URL}=${BASE_URL}=g' ${PWA}/*"
+        runCommand
+
+        #this is for Linux
+        CMD="sed -i 's=${ORIGIN_URL}=${BASE_URL}=g' ${PWA}/*"
         runCommand
 
         SQLQUERY="INSERT INTO ${DB_NAME}.$(getTablePrefix)core_config_data (scope, scope_id, path, value) VALUES ('default', 0, 'web/upward/path', '${ABSOLUTE_PATH}/${PWA}/upward.yml');";
