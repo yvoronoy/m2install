@@ -33,7 +33,7 @@ DB_PASSWORD=
 ELASTICSEARCH_HOST=
 ELASTICSEARCH_PORT=
 
-MAGENTO_VERSION=2.2
+MAGENTO_VERSION=2.4.3
 
 DB_NAME=
 USE_SAMPLE_DATA=
@@ -1322,6 +1322,49 @@ function postOverwriteOriginalFiles()
     fi
 }
 
+function configurePWA()
+{
+    if [ -f pwa_path.txt ]
+    then
+        CMD="curl -s -o .htaccess https://raw.githubusercontent.com/magento/magento2/2.4.3/.htaccess"
+        runCommand
+
+        ABSOLUTE_PATH=$(pwd)
+        echo "PWA setup"
+        PWA="$(cat pwa_path.txt)"
+        PWA_CONFIG="echo -e '
+        SetEnv MAGENTO_BACKEND_URL ${BASE_URL} \n
+        SetEnv NODE_ENV production \n
+        SetEnv CONFIG__DEFAULT__WEB__UPWARD__PATH ${ABSOLUTE_PATH}/${PWA}/upward.yml \n
+        '"
+        CMD="${PWA_CONFIG} >> .htaccess "
+        runCommand
+
+        CMD="${PWA_CONFIG} >> pub/.htaccess "
+        runCommand
+
+        CMD="echo -e \"
+        putenv('MAGENTO_BACKEND_URL=${BASE_URL}');\n
+        putenv('NODE_ENV=production');\n
+        \" >> app/bootstrap.php "
+        runCommand
+
+        ORIGIN_URL=$(grep -o 'data-media-backend=\"https\?://[^/]\+/' ${PWA}/index.html | grep -o 'https\?://[^/]\+/')
+        echo $ORIGIN_URL
+
+        #this is for Mac
+        CMD="sed -i '' 's=${ORIGIN_URL}=${BASE_URL}=g' ${PWA}/*"
+        runCommand
+
+        #this is for Linux
+        CMD="sed -i 's=${ORIGIN_URL}=${BASE_URL}=g' ${PWA}/*"
+        runCommand
+
+        SQLQUERY="INSERT INTO ${DB_NAME}.$(getTablePrefix)core_config_data (scope, scope_id, path, value) VALUES ('default', 0, 'web/upward/path', '${ABSOLUTE_PATH}/${PWA}/upward.yml');";
+        mysqlQuery
+    fi
+}
+
 function getTablePrefix()
 {
     echo $(grep 'table_prefix' app/etc/env.php | head -n1 | sed "s/[a-z'_ ]*[=][>][ ]*[']//" | sed "s/['][,]*//")
@@ -2399,6 +2442,7 @@ function magentoDeployDumpsAction()
         addStep "restore_db"
         addStep "configure_db"
         addStep "validateDeploymentFromDumps"
+        addStep "configurePWA"
     fi
 }
 
