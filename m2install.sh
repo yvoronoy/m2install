@@ -989,10 +989,11 @@ function updateElasticSearchConfiguration()
   local currentSearchEngine="$($BIN_PHP bin/magento config:show catalog/search/engine)"
   [[ ! "$currentSearchEngine" ]] && currentSearchEngine=$(getRecommendedSearchEngineForVersion)
 
+  appConfigImport
   printString "Updating ElasticSearch Configuration $(getESConfigHost $currentSearchEngine):$(getESConfigPort $currentSearchEngine)"
-  $BIN_PHP bin/magento --quiet config:set "catalog/search/${currentSearchEngine}_server_hostname" $(getESConfigHost $currentSearchEngine)
-  $BIN_PHP bin/magento --quiet config:set "catalog/search/${currentSearchEngine}_server_port" $(getESConfigPort $currentSearchEngine)
-  $BIN_PHP bin/magento --quiet config:set "catalog/search/${currentSearchEngine}_index_prefix" $DB_NAME
+  $BIN_PHP bin/magento config:set "catalog/search/${currentSearchEngine}_server_hostname" $(getESConfigHost $currentSearchEngine)
+  $BIN_PHP bin/magento config:set "catalog/search/${currentSearchEngine}_server_port" $(getESConfigPort $currentSearchEngine)
+  $BIN_PHP bin/magento config:set "catalog/search/${currentSearchEngine}_index_prefix" $DB_NAME
   printString "To see products on storefront run: $BIN_PHP bin/magento indexer:reindex catalogsearch_fulltext"
   return 0
 }
