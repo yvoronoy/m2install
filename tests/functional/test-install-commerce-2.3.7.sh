@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 source tests/functional.sh
 
-OUTPUT=$(${BIN_M2INSTALL} --force --source composer -v 2.3.4 --ee 2>error.log)
+OUTPUT=$(${BIN_M2INSTALL} --force --source composer -v 2.3.7 --ee 2>error.log)
 
 CURRENT="$(php bin/magento -V --no-ansi)";
-EXPECTED="Magento CLI 2.3.4";
+EXPECTED="Magento CLI 2.3.7";
 
 artifactFile=$(mktemp /tmp/ci-artifacts.XXXXXXXXX)
 echo "$OUTPUT" > $artifactFile

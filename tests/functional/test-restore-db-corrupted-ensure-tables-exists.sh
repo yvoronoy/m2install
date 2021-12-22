@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source tests/functional.sh
 
-OUTPUT=$(${BIN_M2INSTALL} --force --source composer -v 2.3.6 2>error.log)
+OUTPUT=$(${BIN_M2INSTALL} --force --source composer -v 2.3.7 2>error.log)
 export DB_NAME=$(grep [\']db[\'] -A 20 app/etc/env.php | grep dbname | head -n1 | sed "s/.*[=][>][ ]*[']//" | sed "s/['][,]//");
 export MYSQL_HOST=$(grep [\']db[\'] -A 20 app/etc/env.php | grep host | head -n1 | sed "s/.*[=][>][ ]*[']//" | sed "s/['][,]//");
 export DB_USER=$(grep [\']db[\'] -A 20 app/etc/env.php | grep username | head -n1 | sed "s/.*[=][>][ ]*[']//" | sed "s/['][,]//");
