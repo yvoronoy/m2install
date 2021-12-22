@@ -27,5 +27,5 @@ assertNotContains "$RESTORE_OUTPUT" "The following files are missing: index.php"
 assertContains "$RESTORE_OUTPUT" "Updating ElasticSearch Configuration magento2elastic7:9207"
 assertContains "$RESTORE_OUTPUT" "To see products on storefront run: php bin/magento indexer:reindex catalogsearch_fulltext"
 
-assertEqual "$(php bin/magento config:show web/unsecure/base_url)" "http://${CURRENT_DIR_NAME}.127.0.0.1.xip.io/pub/" "Base URL for 2.4.2 and higher must include /pub/"
+assertEqual "$(php bin/magento config:show web/unsecure/base_url)" "http://${CURRENT_DIR_NAME}.127.0.0.1.nip.io/pub/" "Base URL for 2.4.2 and higher must include /pub/"
 

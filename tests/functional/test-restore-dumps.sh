@@ -24,5 +24,5 @@ EXPECTED="Magento CLI 2.3.6";
 assertEqual "$EXPECTED" "$CURRENT" "Version should match"
 
 assertNotContains "$RESTORE_OUTPUT" "Warning: A Search Engine has been switched from elasticsearch to mysql"
-assertContains "$RESTORE_OUTPUT" "http://${CURRENT_DIR_NAME}.127.0.0.1.xip.io/admin" "Test Base URL to admin"
+assertContains "$RESTORE_OUTPUT" "http://${CURRENT_DIR_NAME}.127.0.0.1.nip.io/admin" "Test Base URL to admin"
 
