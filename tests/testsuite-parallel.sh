@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
 echo "Run new testsuite"
-
-parallel --eta --shuf -j3 --halt soon,fail=1 bash tests/functional/{} ::: $(ls tests/functional)
+JOBS="${1:-3}"
+parallel --eta --shuf -j$JOBS --halt soon,fail=1 bash tests/functional/{} ::: $(ls tests/functional)
