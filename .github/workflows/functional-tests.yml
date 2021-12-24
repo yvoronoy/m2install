@@ -65,6 +65,16 @@ jobs:
         with:
           name: terraform-state
           path: infra/terraform/terraform.tfstate   
+      - name: Display files
+        run: >-
+          docker run --rm
+          -e AWS_ACCESS_KEY_ID 
+          -e AWS_SECRET_ACCESS_KEY
+          -v "$(pwd)/infra/ansible:/root/infra/ansible"
+          -v "$(pwd)/infra/terraform:/root/infra/terraform"
+          -w "/root/infra/terraform"
+          infra-runner
+          ls -R ../
       - name: Run Ansible and Functional Tests
         run: >-
           docker run --rm
@@ -72,9 +82,9 @@ jobs:
           -e AWS_SECRET_ACCESS_KEY
           -v "$(pwd)/infra/ansible:/root/infra/ansible"
           -v "$(pwd)/infra/terraform:/root/infra/terraform"
-          -w "/root/infra/ansible"
+          -w "/root/infra/terraform"
           infra-runner
-          ansible-playbook playbook.yaml
+          ansible-playbook ../ansible/playbook.yaml
   test:
     needs: build
     runs-on: ubuntu-latest
