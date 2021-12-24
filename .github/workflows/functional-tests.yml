@@ -1,0 +1,59 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build the Docker image
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      run: docker build . --file infra/Dockerfile --tag infra-runner:$(date +%s)
+  build:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - run: >-
+          docker run --rm -it
+          -e AWS_ACCESS_KEY_ID 
+          -e AWS_SECRET_ACCESS_KEY
+          -v "$(pwd)/infra/ansible:/root/infra/ansible"
+          -v "$(pwd)/infra/terraform:/root/infra/terraform"
+          -w "/root/infra/terraform"
+          infra-runner
+          terraform init
+      - run: >-
+          docker run --rm -it
+          -e AWS_ACCESS_KEY_ID 
+          -e AWS_SECRET_ACCESS_KEY
+          -v "$(pwd)/infra/ansible:/root/infra/ansible"
+          -v "$(pwd)/infra/terraform:/root/infra/terraform"
+          -w "/root/infra/terraform"
+          infra-runner
+          terraform apply --auto-approve
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Hello World"
+  destroy:
+    if: ${{ always() }}
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - run: >-
+          docker run --rm -it
+          -e AWS_ACCESS_KEY_ID 
+          -e AWS_SECRET_ACCESS_KEY
+          -v "$(pwd)/infra/ansible:/root/infra/ansible"
+          -v "$(pwd)/infra/terraform:/root/infra/terraform"
+          -w "/root/infra/terraform"
+          infra-runner
+          terraform destroy --auto-approve
