@@ -66,4 +66,6 @@
     - name: Clone m2install
       command: "docker exec -u magento -it magento2web git clone https://github.com/yvoronoy/m2install.git"
     - name: RUN FUNCTIONAL TEST
-      ansible.builtin.shell: docker exec -u magento -w /var/www/html/m2install -it magento2web bash tests/testsuite-parallel.sh 16
+      command: "docker exec -u magento -w /var/www/html/m2install -it magento2web bash tests/testsuite-parallel.sh 16"
+    - name: Docker Compose down
+      command: "{{ dc }} down"
