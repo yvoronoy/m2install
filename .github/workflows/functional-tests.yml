@@ -90,6 +90,7 @@ jobs:
           docker run --rm
           -e AWS_ACCESS_KEY_ID 
           -e AWS_SECRET_ACCESS_KEY
+          -v "$(pwd)/infra/ansible/etc:/etc/ansible"
           -v "$(pwd)/infra/ansible:/root/infra/ansible"
           -v "$(pwd)/infra/terraform:/root/infra/terraform"
           -w "/root/infra/terraform"
