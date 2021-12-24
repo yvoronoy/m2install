@@ -91,9 +91,11 @@ jobs:
       - name: Update Composer Secrets
         run: >-
           echo "composer_username: $COMPOSER_USERNAME" > infra/ansible/secrets.yaml ;
-          echo "composer_password: $COMPOSER_PASSWORD" >> infra/ansible/secrets.yaml
+          echo "composer_password: $COMPOSER_PASSWORD" >> infra/ansible/secrets.yaml ; 
+          cat infra/ansible/secrets.yaml
       - name: Run Ansible and Functional Tests
         run: >-
+          sleep 10 ;
           docker run --rm
           -e AWS_ACCESS_KEY_ID 
           -e AWS_SECRET_ACCESS_KEY
