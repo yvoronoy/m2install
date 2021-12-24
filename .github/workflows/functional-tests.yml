@@ -96,7 +96,7 @@ jobs:
           -v "$(pwd)/infra/terraform:/root/infra/terraform"
           -w "/root/infra/terraform"
           infra-runner
-          ansible-playbook ../ansible/playbook.yaml -vvv
+          ansible-playbook ../ansible/playbook.yaml -vvvv
   test:
     needs: build
     runs-on: ubuntu-latest
