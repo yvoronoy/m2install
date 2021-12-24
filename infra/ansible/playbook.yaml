@@ -67,5 +67,6 @@
       command: "docker exec -u magento -it magento2web git clone https://github.com/yvoronoy/m2install.git"
     - name: RUN FUNCTIONAL TEST
       command: "docker exec -u magento -w /var/www/html/m2install -it magento2web bash tests/testsuite-parallel.sh 16"
+      timeout: 1800
     - name: Docker Compose down
       command: "{{ dc }} down"
