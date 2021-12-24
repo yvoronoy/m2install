@@ -11,19 +11,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Build the Docker image
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      run: >-
-        docker build . --file infra/Dockerfile --tag infra-runner;
-        docker images
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+    - name: Build and export
+      uses: docker/build-push-action@v2
+      with:
+        context: infra/
+        tags: infra-runner:latest
+        outputs: type=docker,dest=/tmp/infra-runner.tar
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: infra-runner
+        path: /tmp/infra-runner.tar
   build:
     needs: setup
     runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: infra-runner
+          path: /tmp
+      - name: Load image
+        run: |
+          docker load --input /tmp/infra-runner.tar
       - run: >-
-          docker images;
           docker run --rm
           -e AWS_ACCESS_KEY_ID 
           -e AWS_SECRET_ACCESS_KEY
@@ -50,7 +68,20 @@ jobs:
     if: ${{ always() }}
     needs: test
     runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: infra-runner
+          path: /tmp
+      - name: Load image
+        run: |
+          docker load --input /tmp/infra-runner.tar
       - run: >-
           docker run --rm
           -e AWS_ACCESS_KEY_ID 
