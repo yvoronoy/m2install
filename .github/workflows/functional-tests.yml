@@ -30,6 +30,8 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      COMPOSER_USERNAME: ${{ secrets.COMPOSER_USERNAME }}
+      COMPOSER_PASSWORD: ${{ secrets.COMPOSER_PASSWORD }}
     steps:
       - name: Checkout Project
         uses: actions/checkout@v2
@@ -86,6 +88,10 @@ jobs:
           -w "/root/infra/terraform"
           infra-runner
           cat /etc/ansible/hosts
+      - name: Update Composer Secrets
+        run: >-
+          echo "composer_username: $COMPOSER_USERNAME" > infra/ansible/secrets.yaml
+          echo "composer_password: $COMPOSER_PASSWORD" >> infra/ansible/secrets.yaml
       - name: Run Ansible and Functional Tests
         run: >-
           docker run --rm
@@ -96,7 +102,7 @@ jobs:
           -v "$(pwd)/infra/terraform:/root/infra/terraform"
           -w "/root/infra/terraform"
           infra-runner
-          ansible-playbook ../ansible/playbook.yaml -vvvv
+          ansible-playbook ../ansible/playbook.yaml
   test:
     needs: build
     runs-on: ubuntu-latest
