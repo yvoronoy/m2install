@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: >-
-          docker run --rm -it
+          docker run --rm
           -e AWS_ACCESS_KEY_ID 
           -e AWS_SECRET_ACCESS_KEY
           -v "$(pwd)/infra/ansible:/root/infra/ansible"
@@ -30,7 +30,7 @@ jobs:
           infra-runner
           terraform init
       - run: >-
-          docker run --rm -it
+          docker run --rm
           -e AWS_ACCESS_KEY_ID 
           -e AWS_SECRET_ACCESS_KEY
           -v "$(pwd)/infra/ansible:/root/infra/ansible"
@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: >-
-          docker run --rm -it
+          docker run --rm
           -e AWS_ACCESS_KEY_ID 
           -e AWS_SECRET_ACCESS_KEY
           -v "$(pwd)/infra/ansible:/root/infra/ansible"
