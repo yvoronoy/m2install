@@ -17,15 +17,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Run unit tests
-      run: bash ./m2install.sh --test
-
-    - name: Run ShellCheck
-      uses: ludeeus/action-shellcheck@master
-      with:
-        ignore_paths: infra tests
-        ignore_names: m2install-bash-completion
-
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
 
