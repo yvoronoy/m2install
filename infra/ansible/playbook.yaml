@@ -9,10 +9,9 @@
   become: yes
 
   tasks:
-    - name: Wait 60 seconds, but only start checking after 10 seconds
+    - name: Wait for connection
       wait_for_connection:
-        delay: 10
-        timeout: 60
+        timeout: 30
     - name: Install Docker
       yum:
         name: 
@@ -65,6 +64,9 @@
       command: 'docker exec -u magento -it magento2web find . -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;'
     - name: Clone m2install
       command: "docker exec -u magento -it magento2web git clone https://github.com/yvoronoy/m2install.git"
+    - name: RUN Unit TEST
+      command: "docker exec -u magento -w /var/www/html/m2install -it magento2web bash ./m2install.sh --test"
+      timeout: 600
     - name: RUN FUNCTIONAL TEST
       command: "docker exec -u magento -w /var/www/html/m2install -it magento2web bash tests/testsuite-parallel.sh 16"
-      timeout: 1800
+      timeout: 2700
