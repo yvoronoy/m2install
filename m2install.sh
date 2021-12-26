@@ -18,7 +18,7 @@
 # @copyright Copyright (c) 2015-2019 by Yaroslav Voronoy (y.voronoy@gmail.com)
 # @license   http://www.gnu.org/licenses/
 
-GLOBAL_ARGS="$*"
+GLOBAL_ARGS="$@"
 VERBOSE=1
 CURRENT_DIR_NAME=$(basename "$(pwd)")
 STEPS=
@@ -96,18 +96,13 @@ function printVersion()
 
 function getScriptDirectory()
 {
-    local rootPath
-    rootPath=$(dirname "${BASH_SOURCE[0]}")
-    cd "$rootPath" || { printError "Can not change directory $rootPath" ; exit 128; }
-    pwd
-    cd - || { printError "Can not change directory" ; exit 128; }
+    echo "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )";
     return 0;
 }
 
 function getCsvLogFile()
 {
-  local path
-  path="$(getScriptDir)/m2install.csv"
+  local path="$(getScriptDir)/m2install.csv"
   [[ "$M2INSTALL_CSV_LOG" ]] && path="$M2INSTALL_CSV_LOG"
   touch "$csvFile" 2>/dev/null || csvFile=/tmp/m2install.csv
   echo "$path"
@@ -116,8 +111,7 @@ function getCsvLogFile()
 
 function getErrorLogFile()
 {
-  local path
-  path="$(getScriptDir)/error.csv"
+  local path="$(getScriptDir)/error.csv"
   touch "$errorLogFile" 2>/dev/null || errorLogFile=/tmp/m2install.error.log
   echo "$path"
   return 0;
@@ -125,19 +119,17 @@ function getErrorLogFile()
 
 function writeCsvMetricRow()
 {
-  local csvFile
-  csvFile="$(getCsvLogFile)"
+  local csvFile="$(getCsvLogFile)"
   [ -s "$csvFile" ] || echo "datetime, mode, home_response_code, home_url, admin_response_code, admin_url, duration, user, dir, script, args" >> "$csvFile"
-  echo "$@" >> "$csvFile"
+  echo "$@" >> $csvFile
   return 0
 }
 
 function writeCsvErrorRow()
 {
-  local errorLogFile
-  errorLogFile="$(getErrorLogFile)"
+  local errorLogFile="$(getErrorLogFile)"
   [ -s "$errorLogFile" ] || echo "datetime, error_code, user, dir, script, arguments" >> "$errorLogFile"
-  echo "$(date '+%Y-%m-%d %H:%M:%S'), $1, $(whoami), $(pwd), ${BASH_SOURCE[0]}, \"$GLOBAL_ARGS\"" >> "$errorLogFile"
+  echo "$(date '+%Y-%m-%d %H:%M:%S'), $1, $(whoami), $(pwd), $BASH_SOURCE, \"$GLOBAL_ARGS\"" >> $errorLogFile
   return 0
 }
 
@@ -148,7 +140,7 @@ function getScriptDir()
   local dir=
   local source="${BASH_SOURCE[0]}"
   while [ -h "$source" ]; do # resolve $SOURCE until the file is no longer a symlink
-    dir="$( cd -P "$( dirname "$source" )" && pwd )"
+    local dir="$( cd -P "$( dirname "$source" )" && pwd )"
     source="$(readlink "$source")"
     [[ $source != /* ]] && source="$dir/$source" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
   done
@@ -237,7 +229,7 @@ function printString()
 
 function printError()
 {
-    >&2 echo "ERROR: $*";
+    >&2 echo "ERROR: $@";
     return 1;
 }
 
@@ -289,7 +281,7 @@ function extract()
      if [ -f "$EXTRACT_FILENAME" ] ; then
          case $EXTRACT_FILENAME in
              *.tar.*|*.t*z*)
-                CMD="tar $(getStripComponentsValue "${EXTRACT_FILENAME}") -xf ${EXTRACT_FILENAME} $1"
+                CMD="tar $(getStripComponentsValue ${EXTRACT_FILENAME}) -xf ${EXTRACT_FILENAME} $1"
              ;;
              *.gz)              CMD="gunzip $EXTRACT_FILENAME" ;;
              *.zip)             CMD="unzip -qu -x $EXTRACT_FILENAME" ;;
@@ -305,7 +297,7 @@ function getStripComponentsValue()
 {
     local stripComponents=
     local slashCount=
-    slashCount=$(tar -tf "$1" | grep -v vendor | grep -F pub/index.php | sed 's/pub[/]index[.]php//' | sort | head -1 | tr -cd '/' | wc -m | tr -d ' ')
+    slashCount=$(tar -tf "$1" | grep -v vendor | fgrep pub/index.php | sed 's/pub[/]index[.]php//' | sort | head -1 | tr -cd '/' | wc -m | tr -d ' ')
 
     if [[ "$slashCount" -gt 0 ]]
     then
@@ -346,7 +338,6 @@ function checkIfBasedOnDevelopBranch()
     if [ "$(ls -A ./)" ] && [ -d ".git" ]
     then
         ${BIN_GIT} rev-parse --abbrev-ref HEAD | grep -q '2.4-develop'
-        # shellcheck disable=SC2181
         if [ 0 = $? ]
         then
             return 0
@@ -361,7 +352,7 @@ function prepareBaseURL()
     HTTP_HOST=$(echo ${HTTP_HOST}/ | sed "s/\/\/$/\//g" );
 
     BASE_URL="${HTTP_HOST}${BASE_PATH}/"
-    BASE_URL=$(echo "${BASE_URL}" | sed "s/\/\/$/\//g" )
+    BASE_URL=$(echo ${BASE_URL} | sed "s/\/\/$/\//g" )
     if isPubRequired
     then
         BASE_URL="${BASE_URL}pub/"
@@ -384,7 +375,7 @@ function isPubRequired()
   if foundSupportBackupFiles
   then
 
-  if ! tar -tf "$(getCodeDumpFilename)" | grep '^index.php'
+  if ! tar -tf $(getCodeDumpFilename) | grep '^index.php'
     then
       return 0
     fi
@@ -460,7 +451,7 @@ function getDbDumpFilename()
 function foundSupportBackupFiles()
 {
 
-    if [ "$(getCodeDumpFilename)" ]
+    if [ -z getCodeDumpFilename ]
     then
         return 1;
     fi
@@ -470,7 +461,7 @@ function foundSupportBackupFiles()
         return 0;
     fi
 
-    if [ "$(getDbDumpFilename)" ]
+    if [ -z getDbDumpFilename ]
     then
         return 1;
     fi
@@ -486,16 +477,11 @@ function foundSupportBackupFiles()
 
 function validateDatabaseDumpArchive()
 {
-  local dbDumpFilenamePath
-  local codeDumpFilenamePath
-  local dbDumpFileSize
-  local codeDumpFileSize
-  local minSizeLimit
-  minSizeLimit=2
-  dbDumpFilenamePath="$(getDbDumpFilename)" 
-  codeDumpFilenamePath="$(getCodeDumpFilename)" 
-  dbDumpFileSize="$(wc -c "${dbDumpFilenamePath}" | awk '{print $1}')"
-  codeDumpFileSize="$(wc -c "${codeDumpFilenamePath}" | awk '{print $1}')"
+  local minSizeLimit=2
+  local dbDumpFilenamePath="$(getDbDumpFilename)" 
+  local codeDumpFilenamePath="$(getCodeDumpFilename)" 
+  local dbDumpFileSize="$(wc -c ${dbDumpFilenamePath} | awk '{print $1}')"
+  local codeDumpFileSize="$(wc -c ${codeDumpFilenamePath} | awk '{print $1}')"
   [ "$dbDumpFileSize" -lt "$minSizeLimit" ] && { printErrorAndExit 255 "MySQL DB Dump is corrupt. For on-prem, please request a new MySQL Dump from the merchant and ensure it is created using the mysqldump utility and not bin/magento support:db:backup. For Magento-Cloud, please regenerate a new MySQL Dump by using the ZD Dump Widget / cloud-teleport."; }
 
   [ "$codeDumpFileSize" -lt "$minSizeLimit" ] && { printErrorAndExit 256 "Code Dump is corrupt. For on-prem, please request a new Code Dump from the merchant. For Magento-Cloud, please regenerate a new MySQL Dump by using the ZD Dump Widget / cloud-teleport."; }
@@ -503,9 +489,9 @@ function validateDatabaseDumpArchive()
 
 function printErrorAndExit()
 {
-  printError "$2"
+  printError $2
   writeCsvErrorRow "$1"
-  exit "$1"
+  exit $1
 }
 
 
@@ -629,17 +615,16 @@ function showWizard()
 
 function getConfigFiles()
 {
-    local recursiveconfigs
     local configPaths[0]="$HOME/$CONFIG_NAME"
     configPaths[1]="$HOME/${CONFIG_NAME}.override"
-    recursiveconfigs=$( (find "$(pwd)" -maxdepth 1 -name "${CONFIG_NAME}" ;\
+    local recursiveconfigs=$( (find "$(pwd)" -maxdepth 1 -name "${CONFIG_NAME}" ;\
         x=$(pwd);\
         while [ "$x" != "/" ] ;\
         do x=$(dirname "$x");\
             find "$x" -maxdepth 1 -name "${CONFIG_NAME}";\
         done) | sed '1!G;h;$!d')
     configPaths=("${configPaths[@]}" "${recursiveconfigs[@]}" "./$(basename ${CONFIG_NAME})" "$(getScriptDir)/master.conf");
-    echo "${configPaths[*]} "
+    echo "${configPaths[@]} "
     return 0;
 }
 
@@ -651,7 +636,6 @@ function loadConfigFile()
     do
         if [ -f "${filePath}" ]
         then
-            # shellcheck source=/dev/null
             source "$filePath"
             USE_WIZARD=0
         fi
@@ -828,15 +812,13 @@ function add_remote()
 
 function getRemoteDBUser()
 {
-    local user
-    user=("${REMOTE_DB//_/ }")
-    echo "${user[0]}"
+    local user=(${REMOTE_DB//_/ })
+    echo ${user[0]} ;
 }
 
 function updateEnvFileRemote()
 {
-    local deployConfigurator
-    deployConfigurator=$(cat << EOF
+    local deployConfigurator=$(cat << EOF
 <?php
 
 \$dbName = '${REMOTE_DB}';
@@ -891,7 +873,6 @@ function addToBootstrap()
 
 function patchRemote()
 {
-  local stores
   local sshKey=''
   if [[ "$REMOTE_KEY" ]]
   then
@@ -904,11 +885,11 @@ function patchRemote()
   if ! pgrep -f -x "${ssh_command}" > /dev/null
   then
     echo "Start tunnel"
-     eval "$ssh_command" >> /dev/null
+     eval $ssh_command >> /dev/null
   fi
   SQLQUERY="SELECT code FROM ${REMOTE_DB}.$(getTablePrefix)store WHERE code != 'admin';";
 
-  stores=$(mysql -h127.0.0.1 -N -u"$(getRemoteDBUser)" -P"${LOCAL_PORT}" --execute="${SQLQUERY}")
+  local stores=$(mysql -h127.0.0.1 -N -u$(getRemoteDBUser) -P${LOCAL_PORT} --execute="${SQLQUERY}")
   echo "$stores" | while IFS= read -r line ;
   do
     addToBootstrap "\$_ENV['CONFIG__STORES__${line}__WEB__SECURE__BASE_URL'] = '${BASE_URL}';"
@@ -918,21 +899,14 @@ function patchRemote()
   addToBootstrap "\$_ENV['CONFIG__DEFAULT__WEB__SECURE__BASE_URL'] = '${BASE_URL}';"
 
   addToBootstrap "\$command = '$ssh_command';"
-  # shellcheck disable=SC2016
   addToBootstrap 'exec("ps aux | grep -v \" grep\" | grep \"$command\" | tr -s \" \" | cut -d \" \" -f 2", $pids);'
-  # shellcheck disable=SC2016
   addToBootstrap 'if (count($pids) === 0) {'
-  # shellcheck disable=SC2016
   addToBootstrap '    exec($command . " >> /dev/null", $output, $exitCode);';
-  # shellcheck disable=SC2016
   addToBootstrap '    if ($exitCode > 0) {'
-  # shellcheck disable=SC2016
   addToBootstrap '        throw new \Exception("Remote Host ${REMOTE_HOST} is unavailable, check your network settings or VPN connection");'
   addToBootstrap '    }'
-  # shellcheck disable=SC2016
   addToBootstrap '    exec("ps aux | grep -v \" grep\" | grep \"$command\" | tr -s \" \" | cut -d \" \" -f 2", $pids);'
   addToBootstrap '}'
-  # shellcheck disable=SC2016
   addToBootstrap 'file_put_contents("kill_tunnel.sh", PHP_EOL . "kill " . implode(" ", $pids));'
   addToBootstrap ""
 }
@@ -988,9 +962,9 @@ function validateDeploymentFromDumps()
             missingDirectories+=("$dir");
         fi
     done
-    if [[ "${missingDirectories[*]-}" ]]
+    if [[ "${missingDirectories[@]-}" ]]
     then
-        echo "The following directories are missing: ${missingDirectories[*]}";
+        echo "The following directories are missing: ${missingDirectories[@]}";
     fi
 
     missingFiles=()
@@ -1000,11 +974,11 @@ function validateDeploymentFromDumps()
             missingFiles+=("$file");
         fi
     done
-    if [[ "${missingFiles[*]-}" ]]
+    if [[ "${missingFiles[@]-}" ]]
     then
-        echo "The following files are missing: ${missingFiles[*]}";
+        echo "The following files are missing: ${missingFiles[@]}";
     fi
-    if [[ "${missingDirectories[*]-}" || "${missingFiles[*]-}" ]]
+    if [[ "${missingDirectories[@]-}" || "${missingFiles[@]-}" ]]
     then
         printError "Download missing files and directories from vanilla magento"
     fi
@@ -1012,27 +986,24 @@ function validateDeploymentFromDumps()
 
 function updateElasticSearchConfiguration()
 {
-  local currentSearchEngine
-  currentSearchEngine="$($BIN_PHP bin/magento config:show catalog/search/engine)"
+  local currentSearchEngine="$($BIN_PHP bin/magento config:show catalog/search/engine)"
   [[ ! "$currentSearchEngine" ]] && currentSearchEngine=$(getRecommendedSearchEngineForVersion)
 
-  printString "Updating ElasticSearch Configuration $(getESConfigHost "$currentSearchEngine"):$(getESConfigPort "$currentSearchEngine")"
-  $BIN_PHP bin/magento --quiet config:set "catalog/search/${currentSearchEngine}_server_hostname" "$(getESConfigHost "$currentSearchEngine")"
-  $BIN_PHP bin/magento --quiet config:set "catalog/search/${currentSearchEngine}_server_port" "$(getESConfigPort "$currentSearchEngine")"
-  $BIN_PHP bin/magento --quiet config:set "catalog/search/${currentSearchEngine}_index_prefix" "$DB_NAME"
+  printString "Updating ElasticSearch Configuration $(getESConfigHost $currentSearchEngine):$(getESConfigPort $currentSearchEngine)"
+  $BIN_PHP bin/magento --quiet config:set "catalog/search/${currentSearchEngine}_server_hostname" $(getESConfigHost $currentSearchEngine)
+  $BIN_PHP bin/magento --quiet config:set "catalog/search/${currentSearchEngine}_server_port" $(getESConfigPort $currentSearchEngine)
+  $BIN_PHP bin/magento --quiet config:set "catalog/search/${currentSearchEngine}_index_prefix" $DB_NAME
   printString "To see products on storefront run: $BIN_PHP bin/magento indexer:reindex catalogsearch_fulltext"
   return 0
 }
 
 function disableLiveSearch()
 {
-    if $BIN_PHP "$BIN_MAGE" module:status Magento_LiveSearch | grep -q 'Module is enabled'
+    if $BIN_PHP $BIN_MAGE module:status Magento_LiveSearch | grep -q 'Module is enabled'
     then
-      # shellcheck disable=SC2022
-      $BIN_PHP "$BIN_MAGE" module:status | grep Magento_LiveSearch | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP "$BIN_MAGE" module:disable
-      # shellcheck disable=SC2022
-      $BIN_PHP "$BIN_MAGE" module:status | grep -E 'Magento_Elasticsearch*|Magento_AdvancedSearch|Magento_InventoryElasticsearch' | grep -v 'List' | grep -v 'None' | grep -v -e '^$' | xargs $BIN_PHP "$BIN_MAGE" module:enable
-      $BIN_PHP "$BIN_MAGE" --quiet config:set  'catalog/search/engine' "$(getRecommendedSearchEngineForVersion)"
+      $BIN_PHP $BIN_MAGE module:status | grep Magento_LiveSearch | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP $BIN_MAGE module:disable
+      $BIN_PHP $BIN_MAGE module:status | grep -E 'Magento_Elasticsearch*|Magento_AdvancedSearch|Magento_InventoryElasticsearch' | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP $BIN_MAGE module:enable
+      $BIN_PHP $BIN_MAGE --quiet config:set  'catalog/search/engine' $(getRecommendedSearchEngineForVersion)
       cat <<endmessage
 ${yellow}
 ####################################################################################
@@ -1045,29 +1016,22 @@ endmessage
 
 function switchSearchEngineToDefaultEngine()
 {
-  #local red
-  #local green
-  local yellow
-  local default
-  local engine
-  local stepsToTake
-
   disableLiveSearch
   isElasticSearchRequired && updateElasticSearchConfiguration && return 0;
 
-  #red=`tput setaf 1`
-  #green=`tput setaf 2`
-  yellow=$(tput setaf 3)
-  default=$(tput sgr0)
-  engine=$(getConfig 'catalog/search/engine' "value");
-  stepsToTake=
+  local red=`tput setaf 1`
+  local green=`tput setaf 2`
+  local yellow=`tput setaf 3`
+  local default=`tput sgr0`
+  local engine=$(getConfig 'catalog/search/engine' "value");
+  local stepsToTake=
   [[ "$engine" == "mysql" ]] && return 0
   [[ ! "$engine" ]] && return 0
 
   if [[ "$engine" ]]
   then
     setConfig 'catalog/search/engine' "mysql"
-    stepsToTake=" - Run php bin/magento indexer:reindex catalogsearch_fulltext"
+    local stepsToTake=" - Run php bin/magento indexer:reindex catalogsearch_fulltext"
   fi
 
   cat <<endmessage
@@ -1154,7 +1118,7 @@ function deleteConfig()
 {
   local path="${1}";
   local where="=";
-  if [ -n "$2" ]
+  if [ ! -z $2 ]
   then
     where="${2}";
   fi
@@ -1385,8 +1349,8 @@ function configurePWA()
         \" >> app/bootstrap.php "
         runCommand
 
-        ORIGIN_URL=$(grep -o 'data-media-backend=\"https\?://[^/]\+/' "${PWA}"/index.html | grep -o 'https\?://[^/]\+/')
-        echo "$ORIGIN_URL"
+        ORIGIN_URL=$(grep -o 'data-media-backend=\"https\?://[^/]\+/' ${PWA}/index.html | grep -o 'https\?://[^/]\+/')
+        echo $ORIGIN_URL
 
         #this is for Mac
         CMD="sed -i '' 's=${ORIGIN_URL}=${BASE_URL}=g' ${PWA}/*"
@@ -1403,13 +1367,12 @@ function configurePWA()
 
 function getTablePrefix()
 {
-    grep 'table_prefix' app/etc/env.php | head -n1 | sed "s/[a-z'_ ]*[=][>][ ]*[']//" | sed "s/['][,]*//"
+    echo $(grep 'table_prefix' app/etc/env.php | head -n1 | sed "s/[a-z'_ ]*[=][>][ ]*[']//" | sed "s/['][,]*//")
     return 0;
 }
 
 function updateMagentoEnvFile()
 {
-    local deployConfigurator
     if [ -f app/etc/env.php ] && [ ! -f app/etc/env.php.merchant ]
     then
         CMD="cp app/etc/env.php app/etc/env.php.merchant"
@@ -1425,7 +1388,7 @@ function updateMagentoEnvFile()
         CMD="echo -e \"<?php\nreturn array('install'=>array('date'=>'$(date)'),'db'=>array('connection'=>array('default'=>array())));\n\" > app/etc/env.php"
         runCommand
     fi
-    deployConfigurator=$(cat << EOF
+    local deployConfigurator=$(cat << EOF
 <?php
 
 \$dbHost = '${DB_HOST}';
@@ -1635,13 +1598,10 @@ function installLiveSearch()
     runCommand
   fi
 
-  # shellcheck disable=SC2022
-  $BIN_PHP "$BIN_MAGE" module:status | grep -E 'Magento_Elasticsearch*|Magento_AdvancedSearch|Magento_InventoryElasticsearch' | grep -v 'List' | grep -v 'None' | grep -v -e '^$' | xargs $BIN_PHP "$BIN_MAGE" module:disable
-
-  # shellcheck disable=SC2022
-  $BIN_PHP "$BIN_MAGE" module:status | grep Magento_LiveSearch | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP "$BIN_MAGE" module:enable
-  $BIN_PHP "$BIN_MAGE" --quiet config:set  'catalog/search/engine' NULL
-  $BIN_PHP "$BIN_MAGE" module:status | grep -E '.*ServicesId*|.*ServicesConnector*|.*DataExporter*|.*SaaS*|.*DataServices*'| xargs $BIN_PHP "$BIN_MAGE"  module:enable
+  $BIN_PHP $BIN_MAGE module:status | grep -E 'Magento_Elasticsearch*|Magento_AdvancedSearch|Magento_InventoryElasticsearch' | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP $BIN_MAGE module:disable
+  $BIN_PHP $BIN_MAGE module:status | grep Magento_LiveSearch | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP $BIN_MAGE module:enable
+  $BIN_PHP $BIN_MAGE --quiet config:set  'catalog/search/engine' NULL
+  $BIN_PHP $BIN_MAGE module:status | grep -E '.*ServicesId*|.*ServicesConnector*|.*DataExporter*|.*SaaS*|.*DataServices*'| xargs $BIN_PHP $BIN_MAGE  module:enable
   CMD="${BIN_PHP} ${BIN_MAGE} setup:upgrade"
   runCommand
   cat <<endmessage
@@ -1665,7 +1625,7 @@ function installB2B()
     if [ "${SOURCE}" == 'git' ] || checkIfBasedOnDevelopBranch
     then
         validateGitRepository "${GIT_B2B_REPO}" "${B2B_VERSION}"
-        CMD="[ ! -d $B2B_VERSION ] && ${BIN_GIT} clone --branch ${B2B_VERSION} --single-branch ${GIT_B2B_REPO} ${GIT_B2B_PATH}"
+        CMD="[ ! -d "$B2B_VERSION" ] && ${BIN_GIT} clone --branch ${B2B_VERSION} --single-branch ${GIT_B2B_REPO} ${GIT_B2B_PATH}"
         runCommand
         CMD="${BIN_PHP} dev/tools/build-ee.php --ce-source $(pwd) --ee-source ${GIT_B2B_PATH}"
         runCommand
@@ -1682,22 +1642,19 @@ function installB2B()
 function getB2Bversion()
 {
     checkIfBasedOnDevelopBranch && { B2B_VERSION="develop"; return 0; }
-    REAL_MAGENTO_VERSION=$(${BIN_PHP} bin/magento --version)
-    # shellcheck disable=SC2001
-    MAGENTO_MAJOR_VERSION=$(echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).*/\1/')
-    # shellcheck disable=SC2001
-    MAGENTO_MINOR_VERSION=$(echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).*/\2/')
-    # shellcheck disable=SC2001
-    MAGENTO_PATCH_VERSION=$(echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).\([a-z0-9]*\)/\3/')
-    if [ "$MAGENTO_MAJOR_VERSION" -ge 4 ] && [ "$MAGENTO_MINOR_VERSION" -ge 1 ]
+    REAL_MAGENTO_VERSION=`${BIN_PHP} bin/magento --version`
+    MAGENTO_MAJOR_VERSION=`echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).*/\1/'`
+    MAGENTO_MINOR_VERSION=`echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).*/\2/'`
+    MAGENTO_PATCH_VERSION=`echo "${REAL_MAGENTO_VERSION}" | sed 's/.*2\.\([0-9]*\)\.\([0-9]*\).\([a-z0-9]*\)/\3/'`
+    if [ $MAGENTO_MAJOR_VERSION -ge 4 ] && [ $MAGENTO_MINOR_VERSION -ge 1 ]
     then
-        B2B_VERSION_MAJOR=$(( $("${MAGENTO_MAJOR_VERSION}") -1 ))
-        B2B_VERSION_MINOR=$(( $("${MAGENTO_MINOR_VERSION}") -1 ))
+        B2B_VERSION_MAJOR=$(( `echo "${MAGENTO_MAJOR_VERSION}"` -1 ))
+        B2B_VERSION_MINOR=$(( `echo "${MAGENTO_MINOR_VERSION}"` -1 ))
     else
-        B2B_VERSION_MAJOR=$(( $("${MAGENTO_MAJOR_VERSION}") -2 ))
+        B2B_VERSION_MAJOR=$(( `echo "${MAGENTO_MAJOR_VERSION}"` -2 ))
         B2B_VERSION_MINOR=$MAGENTO_MINOR_VERSION
     fi
-    if [ -n "$MAGENTO_PATCH_VERSION" ]
+    if [ ! -z "$MAGENTO_PATCH_VERSION" ]
     then
         B2B_PATCH_VERSION="-${MAGENTO_PATCH_VERSION}"
     fi
@@ -1735,7 +1692,6 @@ function runComposerInstall()
 
 function installMagento()
 {
-    local searchEngine
     if [ "${SOURCE}" == 'git' ]
     then
         CMD="${BIN_PHP} ${BIN_COMPOSER} config repositories.magento composer https://repo.magento.com/"
@@ -1778,10 +1734,10 @@ function installMagento()
     if [ "${DB_PASSWORD}" ]; then
         CMD="${CMD} --db-password=${DB_PASSWORD}"
     fi
-    if isElasticSearchRequired && isElasticSearchConfigIsAvailable ''
+    if isElasticSearchRequired && isElasticSearchConfigIsAvailable
     then
-	    searchEngine="$(getRecommendedSearchEngineForVersion)"
-	    CMD="${CMD} --search-engine=$searchEngine --elasticsearch-host=$(getESConfigHost "$searchEngine") --elasticsearch-port=$(getESConfigPort "$searchEngine") --elasticsearch-index-prefix=${DB_NAME}"
+	    local searchEngine="$(getRecommendedSearchEngineForVersion)"
+	    CMD="${CMD} --search-engine=$searchEngine --elasticsearch-host=$(getESConfigHost $searchEngine) --elasticsearch-port=$(getESConfigPort $searchEngine) --elasticsearch-index-prefix=${DB_NAME}"
     fi
     runCommand
 }
@@ -1795,16 +1751,14 @@ function isElasticSearchRequired()
 
 function isElasticSearchConfigIsAvailable()
 {
-  local eshost
-  local esport
   [[ "$ELASTICSEARCH_HOST" ]] && [[ "$ELASTICSEARCH_PORT" ]] && return 0
   local searchEngine="$1"
   if [[ ! "$searchEngine" ]]
   then
     searchEngine="$(getRecommendedSearchEngineForVersion)"
   fi
-  eshost=$(getESConfigHost "$searchEngine")
-  esport=$(getESConfigPort "$searchEngine")
+  local eshost=$(getESConfigHost "$searchEngine")
+  local esport=$(getESConfigPort "$searchEngine")
   [[ "$eshost" ]] && [[ "$esport" ]] && return 0
   return 255
 }
@@ -1812,14 +1766,13 @@ function isElasticSearchConfigIsAvailable()
 function getRecommendedSearchEngineForVersion()
 {
     local searchEngine=
-    #local currentMagentoVersion=
     if [[ "$(getESConfigHost)" ]] && [[ "$(getESConfigPort)" ]]
     then
-      searchEngine="$(parseElasticSearchVersion "$(getESConfigHost)" "$(getESConfigPort)")"
+      searchEngine="$(parseElasticSearchVersion $(getESConfigHost) $(getESConfigPort))"
       [[ "$searchEngine" ]] && { echo "$searchEngine"; return 0; }
     fi
     searchEngine=elasticsearch7
-    #currentMagentoVersion="$(getMagentoVersion)"
+    local currentMagentoVersion="$(getMagentoVersion)"
     #https://devdocs.magento.com/guides/v2.4/install-gde/system-requirements.html
     versionIsHigherThan "$(getMagentoVersion)" "2.3.0" && searchEngine="elasticsearch"
     versionIsHigherThan "$(getMagentoVersion)" "2.3.1" && searchEngine="elasticsearch5"
@@ -1831,12 +1784,9 @@ function getRecommendedSearchEngineForVersion()
 
 function parseElasticSearchVersion()
 {
-  local eshost=
-  local esport=
-  eshost=$1
-  esport=$2
-  local elasticSearchVersion=
-  elasticSearchVersion=$(curl -s -X GET "$eshost:$esport" | grep number | sed 's/[^0-9.]//g' | head -c 1)
+  local eshost=$1
+  local esport=$2
+  local elasticSearchVersion=$(curl -s -X GET "$eshost:$esport" | grep number | sed 's/[^0-9.]//g' | head -c 1)
   [[ "$elasticSearchVersion" ]] && [[ "$elasticSearchVersion" -gt 1 ]] && { echo "elasticsearch${elasticSearchVersion}"; return 0; }
   return 255
 }
@@ -1893,7 +1843,7 @@ function getMagentoVersion()
 {
   local version=
   [[ "$SOURCE" ]] && { version="$MAGENTO_VERSION"; echo "$version"; return 0; }
-  [[ -f bin/magento ]] && { "$(parseMagentoVersion)"; return 0; }
+  [[ -f bin/magento ]] && { echo "$(parseMagentoVersion)"; return 0; }
 
   if [[ ! -f composer.lock ]] && foundSupportBackupFiles
   then
@@ -1980,11 +1930,11 @@ function showWizzardGit()
     then
         return
     fi
-    askValue "Git CE repository" "${GIT_CE_REPO}"
+    askValue "Git CE repository" ${GIT_CE_REPO}
     GIT_CE_REPO=${READVALUE}
-    askValue "Git EE repository" "${GIT_EE_REPO}"
+    askValue "Git EE repository" ${GIT_EE_REPO}
     GIT_EE_REPO=${READVALUE}
-    askValue "Git branch" "${MAGENTO_VERSION}"
+    askValue "Git branch" ${MAGENTO_VERSION}
     MAGENTO_VERSION=${READVALUE}
     if askConfirmation "Do you want to install Enterprise Edition (y/N)"
     then
@@ -2013,29 +1963,24 @@ function gitClone()
 
 function gitWorktree()
 {
-  local currentDir=
-  local worktreeCEPath=
-  local worktreeEEPath=
-  currentDir=$(pwd);
-  worktreeCEPath="$(getWorktreePath CE)"
+  local currentDir=$(pwd);
+  local worktreeCEPath="$(getWorktreePath CE)"
 
   validateGitRepository "${worktreeCEPath}" "$MAGENTO_VERSION"
-  cd "$worktreeCEPath" || { printError "Error when changing directory $worktreeCEPath" ; return; }
+  cd "$worktreeCEPath"
   CMD="git worktree add $currentDir $MAGENTO_VERSION"
   runCommand
 
   if [[ "$INSTALL_EE" ]]
   then
-    cd "$currentDir" || { printError "Error when changing directory $currentDir" ; return; }
-    worktreeEEPath="$(getWorktreePath EE)"
+    cd "$currentDir"
+    local worktreeEEPath="$(getWorktreePath EE)"
     validateGitRepository "${worktreeEEPath}" "$MAGENTO_VERSION"
-    cd "$worktreeEEPath" || { printError "Error when changing directory $worktreeEEPath" ; return; }
-
+    cd "$worktreeEEPath"
     CMD="git worktree add ${currentDir}/${EE_PATH} $MAGENTO_VERSION"
     runCommand
   fi
-  cd "$currentDir" || { printError "Error when changing directory $currentDir" ; return; }
-
+  cd "$currentDir"
 }
 
 function getWorktreePath()
@@ -2045,7 +1990,7 @@ function getWorktreePath()
   local defaultValue="../repo"
   [ "$ee" == "EE" ] && defaultValue="../repo/magento2ee"
 
-  if [ -z "${!configName}" ]
+  if [ -z ${!configName} ]
   then
     eval "read -p \"Git Worktree requires path to local GIT ${ee} repository (Default: ${defaultValue}): \" ${configName}"
   fi
@@ -2056,9 +2001,8 @@ function validateGitRepository()
 {
     local repoName=$1
     local versionName=$2
-    local isBranchExists=
 
-    isBranchExists=$(${BIN_GIT} ls-remote "${repoName}" | grep -F "${versionName}")
+    local isBranchExists=$(${BIN_GIT} ls-remote ${repoName} | grep -F ${versionName})
     if [ ! "$isBranchExists" ]
     then
         printError "Requested tag or branch ${versionName} does not exists in ${repoName}"
@@ -2076,7 +2020,7 @@ function printGitConfirmation()
     printString "Git CE repository: ${GIT_CE_REPO}"
     printString "Git EE repository: ${GIT_EE_REPO}"
     printString "Git branch: ${MAGENTO_VERSION}"
-    if [[ -n "$INSTALL_B2B" ]]
+    if [[ ! -z $INSTALL_B2B ]]
     then
         printString "Git B2B repository: ${GIT_B2B_REPO}"
         printString "Git B2B branch: ${B2B_VERSION}"
@@ -2123,7 +2067,7 @@ function prepareSteps()
     local _step;
     local _steps;
 
-    _steps=("${STEPS[@]//,/ }")
+    _steps=(${STEPS[@]//,/ })
     STEPS=
     for _step in "${_steps[@]}"
     do
@@ -2137,7 +2081,7 @@ function prepareSteps()
 function addStep()
 {
   local _step=$1
-  STEPS+=("$_step")
+  STEPS+=($_step)
 }
 
 function setProductionMode()
@@ -2164,7 +2108,6 @@ function executePostDeployScript()
     if [ ! "$(getRequest skipPostDeploy)" ] && [ -f "$1" ]
     then
         printString "==> Run the post deploy $1"
-        # shellcheck source=/dev/null
         source "$1";
         printString "==> Post deploy script has been finished"
     fi
@@ -2173,23 +2116,14 @@ function executePostDeployScript()
 
 function warmCache()
 {
-  local home_url=
-  local home_response_code=
-  local admin_url=
-  local admin_response_code=
-  local mode=
-  local currentUser=
-  local dir=
-  local currentScript=
-
-  home_url=${BASE_URL}
-  home_response_code="$(curl --insecure --location --write-out '%{http_code}' --silent --output /dev/null "$home_url")"
-  admin_url="${BASE_URL}${BACKEND_FRONTNAME}"
-  admin_response_code="$(curl --insecure --location --write-out '%{http_code}' --silent --output /dev/null "$admin_url")"
-  mode=install
-  currentUser="$(whoami)"
-  dir="$(pwd)"
-  currentScript="${BASH_SOURCE[0]}"
+  local home_url=${BASE_URL}
+  local home_response_code="$(curl --insecure --location --write-out '%{http_code}' --silent --output /dev/null $home_url)"
+  local admin_url="${BASE_URL}${BACKEND_FRONTNAME}"
+  local admin_response_code="$(curl --insecure --location --write-out '%{http_code}' --silent --output /dev/null $admin_url)"
+  local mode=install
+  local currentUser="$(whoami)"
+  local dir="$(pwd)"
+  local currentScript="$BASH_SOURCE"
   if foundSupportBackupFiles
   then
     mode=restore
@@ -2231,7 +2165,7 @@ function disableModule()
 {
     local moduleName=$1
 
-    $BIN_PHP "$BIN_MAGE" module:status "$moduleName" | grep -q 'Module is enabled' && $BIN_PHP "$BIN_MAGE" module:disable "$moduleName" && echo "$moduleName is being disabled"
+    $BIN_PHP $BIN_MAGE module:status $moduleName | grep -q 'Module is enabled' && $BIN_PHP $BIN_MAGE module:disable $moduleName && echo "$moduleName is being disabled"
 }
 
 function disableModuleInConfigFile()
@@ -2400,7 +2334,7 @@ function processOptions()
             ;;
             --step)
                 checkArgumentHasValue "$1" "$2"
-                STEPS=("$2")
+                STEPS=($2)
                 shift
                 ;;
             --debug)
@@ -2433,12 +2367,8 @@ function processOptions()
 
 function cleanupCurrentDirectory()
 {
-  local currentDirectory=
-  local homeDirectory=
-  currentDirectory="$(pwd)"
-
-  # shellcheck disable=SC2164
-  homeDirectory="$(cd ~ ; pwd)"
+  local currentDirectory="$(pwd)"
+  local homeDirectory="$(cd ~; pwd)"
   if [[ "$currentDirectory" == "$homeDirectory" ]]
   then
     printError "Current Directory is home ($currentDirectory)"
@@ -2454,10 +2384,9 @@ function versionIsHigherThan()
 {
   local defaultVersion="2.4"
   local mageVersion="$MAGENTO_VERSION"
-  local esRequired=
   [[ "$1" ]] && mageVersion="$1"
   [[ "$2" ]] && defaultVersion="$2"
-  esRequired=$(php -r "echo (version_compare('$mageVersion', '$defaultVersion') >= 0) ? 'REQUIRED' : 'NO';")
+  local esRequired=$(php -r "echo (version_compare('$mageVersion', '$defaultVersion') >= 0) ? 'REQUIRED' : 'NO';")
   [[ "$esRequired" == "REQUIRED" ]] && return 0;
   return 1;
 
@@ -2465,8 +2394,8 @@ function versionIsHigherThan()
 
 function validateElasticSearchIsAvailable()
 {
-  [[ ! "$ELASTICSEARCH_HOST" ]] && ELASTICSEARCH_HOST="$(getESConfigHost "$(getRecommendedSearchEngineForVersion)")"
-  [[ ! "$ELASTICSEARCH_PORT" ]] && ELASTICSEARCH_PORT="$(getESConfigPort "$(getRecommendedSearchEngineForVersion)")"
+  [[ ! "$ELASTICSEARCH_HOST" ]] && ELASTICSEARCH_HOST="$(getESConfigHost $(getRecommendedSearchEngineForVersion))"
+  [[ ! "$ELASTICSEARCH_PORT" ]] && ELASTICSEARCH_PORT="$(getESConfigPort $(getRecommendedSearchEngineForVersion))"
   [[ ! "$ELASTICSEARCH_HOST" ]] && ELASTICSEARCH_HOST="localhost"
   [[ ! "$ELASTICSEARCH_PORT" ]] && ELASTICSEARCH_PORT="9200"
   if curl -s -XGET ${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT} | grep -q "number"; then
@@ -2556,14 +2485,13 @@ function generateWebsites()
 function createSymlinks()
 {
   local websiteDir="$1"
-  [ ! -L "$(pwd)/${websiteDir}/pub" ] && ln -s "$(pwd)/pub" "$(pwd)/${websiteDir}/pub"
+  [ ! -L "`pwd`/${websiteDir}/pub" ] && ln -s `pwd`/pub "`pwd`/${websiteDir}/pub"
 }
 
 function generateWebsiteList()
 {
   local websiteCode="$1"
   local websiteDir="websites/${websiteCode}/";
-  # shellcheck disable=SC2086
   echo "<li><a href=\"${websiteCode}/\">${websiteDir}</a> (Store ID: $(getWebsiteIdByCode ${websiteCode}))</li>" >> websites/index.php
 }
 
@@ -2571,9 +2499,7 @@ function updateWebsiteIndexFile()
 {
   local websiteCode="$1"
   local websiteDir="websites/${websiteCode}";
-  # shellcheck disable=SC2016
   local codeLine='$_SERVER[\\Magento\\Store\\Model\\StoreManager::PARAM_RUN_CODE] = '"'${websiteCode}';";
-  # shellcheck disable=SC2016
   local typeLine='$_SERVER[\\Magento\\Store\\Model\\StoreManager::PARAM_RUN_TYPE] = '"'website';";
   sed -i "36 i ${codeLine}" "${websiteDir}/index.php"
   sed -i "37 i ${typeLine}" "${websiteDir}/index.php"
@@ -2715,17 +2641,16 @@ function testMagentoVersionIsRequiredElasticSearch()
 
 function testParseMagentoVersion()
 {
-  local result=
-  result=$(parseMagentoVersion "Magento CLI 2.3.4")
+  local result=$(parseMagentoVersion "Magento CLI 2.3.4")
   assertEqual "2.3.4" "$result"
 
-  result=$(parseMagentoVersion "Magento CLI 2.4.4")
+  local result=$(parseMagentoVersion "Magento CLI 2.4.4")
   assertEqual "2.4.4" "$result"
 
-  result=$(parseMagentoVersion "Magento CLI 2.4.4-p1")
+  local result=$(parseMagentoVersion "Magento CLI 2.4.4-p1")
   assertEqual "2.4.4-p1" "$result"
 
-  result=$(parseMagentoVersion "Magento CLI 2.2.4-p10")
+  local result=$(parseMagentoVersion "Magento CLI 2.2.4-p10")
   assertEqual "2.2.4-p10" "$result"
 }
 
@@ -2745,7 +2670,7 @@ function main()
       exit 0;
     fi
 
-    loadConfigFile "$(getConfigFiles)"
+    loadConfigFile $(getConfigFiles)
     processOptions "$@"
     initQuietMode
     printString Current Directory: "$(pwd)"
@@ -2753,7 +2678,7 @@ function main()
     checkDependencies
     showWizard
     START_TIME=$(date +%s)
-    if [[ "${STEPS[*]}" ]]
+    if [[ "${STEPS[@]}" ]]
     then
         magentoCustomStepsAction;
     elif foundSupportBackupFiles
