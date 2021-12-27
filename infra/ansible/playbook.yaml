@@ -46,16 +46,16 @@
         force: yes
         clone: yes
         update: yes
-    - name: Archive Src
+    - name: Archive Src on runner node
       archive:
-        path: /root/m2install
-        dest: /root/m2install.zip
+        path: "{{ playbook_dir }}/../../"
+        dest: "{{ playbook_dir }}/../../m2install.zip"
         format: zip
       delegate_to: localhost
       become: false
     - name: Copy Src
       unarchive:
-        src: /root/m2install.zip
+        src: "{{ playbook_dir }}/../../m2install.zip"
         dest: /home/ec2-user
     - name: Load secrets
       include_vars:
@@ -84,4 +84,4 @@
       timeout: 600
     - name: RUN FUNCTIONAL TEST
       command: "docker exec -u magento -w /var/www/html/m2install -it magento2web bash tests/testsuite-parallel.sh 16"
-      timeout: 2700
+      timeout: 7200
