@@ -48,7 +48,7 @@
         update: yes
     - name: Archive Src on runner node
       archive:
-        path: "{{ playbook_dir }}/../../"
+        path: "{{ playbook_dir }}/../../../m2install"
         dest: "{{ playbook_dir }}/../../m2install.zip"
         format: zip
       delegate_to: localhost
