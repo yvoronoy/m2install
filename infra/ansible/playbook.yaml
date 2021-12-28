@@ -48,7 +48,7 @@
         update: yes
     - name: Archive Src on runner node
       archive:
-        path: "{{ playbook_dir }}/../../../m2install"
+        path: "../../../m2install"
         dest: "/tmp/m2install.tgz"
       delegate_to: localhost
       become: false

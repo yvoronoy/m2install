@@ -32,9 +32,9 @@ jobs:
         docker run --rm
         -e AWS_ACCESS_KEY_ID 
         -e AWS_SECRET_ACCESS_KEY
-        -v "$(pwd)/infra/ansible:/root/infra/ansible"
-        -v "$(pwd)/infra/terraform:/root/infra/terraform"
-        -w "/root/infra/terraform"
+        -v "$(pwd)/infra/ansible/etc:/etc/ansible"
+        -v "$(pwd):/root/m2install"
+        -w "/root/m2install/infra/terraform"
         infra-runner
         terraform init
 
@@ -43,9 +43,9 @@ jobs:
         docker run --rm
         -e AWS_ACCESS_KEY_ID 
         -e AWS_SECRET_ACCESS_KEY
-        -v "$(pwd)/infra/ansible:/root/infra/ansible"
-        -v "$(pwd)/infra/terraform:/root/infra/terraform"
-        -w "/root/infra/terraform"
+        -v "$(pwd)/infra/ansible/etc:/etc/ansible"
+        -v "$(pwd):/root/m2install"
+        -w "/root/m2install/infra/terraform"
         infra-runner
         terraform apply --auto-approve
 
@@ -61,11 +61,10 @@ jobs:
         -e AWS_ACCESS_KEY_ID 
         -e AWS_SECRET_ACCESS_KEY
         -v "$(pwd)/infra/ansible/etc:/etc/ansible"
-        -v "$(pwd)/infra/ansible:/root/infra/ansible"
-        -v "$(pwd)/infra/terraform:/root/infra/terraform"
-        -w "/root/infra/terraform"
+        -v "$(pwd):/root/m2install"
+        -w "/root/m2install/infra/terraform"
         infra-runner
-        ansible-playbook ../ansible/playbook.yaml -v
+        ansible-playbook ../ansible/playbook.yaml
 
     - name: Destroy Infrastructure
       if: always()
@@ -73,8 +72,8 @@ jobs:
         docker run --rm
         -e AWS_ACCESS_KEY_ID 
         -e AWS_SECRET_ACCESS_KEY
-        -v "$(pwd)/infra/ansible:/root/infra/ansible"
-        -v "$(pwd)/infra/terraform:/root/infra/terraform"
-        -w "/root/infra/terraform"
+        -v "$(pwd)/infra/ansible/etc:/etc/ansible"
+        -v "$(pwd):/root/m2install"
+        -w "/root/m2install/infra/terraform"
         infra-runner
         terraform destroy --auto-approve
