@@ -65,7 +65,7 @@ jobs:
         -v "$(pwd)/infra/terraform:/root/infra/terraform"
         -w "/root/infra/terraform"
         infra-runner
-        ansible-playbook ../ansible/playbook.yaml
+        ansible-playbook ../ansible/playbook.yaml -v
 
     - name: Destroy Infrastructure
       if: always()

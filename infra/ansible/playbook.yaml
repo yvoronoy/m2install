@@ -49,13 +49,12 @@
     - name: Archive Src on runner node
       archive:
         path: "{{ playbook_dir }}/../../../m2install"
-        dest: "/tmp/m2install.zip"
-        format: zip
+        dest: "/tmp/m2install.tgz"
       delegate_to: localhost
       become: false
     - name: Copy Src
       unarchive:
-        src: "/tmp/m2install.zip"
+        src: "/tmp/m2install.tgz"
         dest: /home/ec2-user
     - name: Load secrets
       include_vars:
