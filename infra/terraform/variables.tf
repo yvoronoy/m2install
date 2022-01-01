@@ -7,5 +7,6 @@ variable "instance_type" {
   description = "Value of the Instance Type"
   type        = string
   default     = "m5.4xlarge"
+  #default     = "t2.medium"
 }
 

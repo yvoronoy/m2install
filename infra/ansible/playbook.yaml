@@ -33,6 +33,10 @@
       file:
         path: "{{ magento2docker_path }}"
         state: absent
+    - name: Delete existing codebase repository
+      file:
+        path: "/home/ec2-user/m2install"
+        state: absent
     - name: Clone Repo
       git:
         repo: https://github.com/yvoronoy/magento2docker.git
@@ -42,6 +46,16 @@
         force: yes
         clone: yes
         update: yes
+    - name: Archive Src on runner node
+      archive:
+        path: "../../../m2install"
+        dest: "/tmp/m2install.tgz"
+      delegate_to: localhost
+      become: false
+    - name: Copy Src
+      unarchive:
+        src: "/tmp/m2install.tgz"
+        dest: /home/ec2-user
     - name: Load secrets
       include_vars:
         file: secrets.yaml
@@ -63,10 +77,10 @@
     - name: Clean up Inside Docker 
       command: 'docker exec -u magento -it magento2web find . -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;'
     - name: Clone m2install
-      command: "docker exec -u magento -it magento2web git clone https://github.com/yvoronoy/m2install.git"
+      command: "docker cp /home/ec2-user/m2install magento2web:/var/www/html"
     - name: RUN Unit TEST
       command: "docker exec -u magento -w /var/www/html/m2install -it magento2web bash ./m2install.sh --test"
       timeout: 600
     - name: RUN FUNCTIONAL TEST
       command: "docker exec -u magento -w /var/www/html/m2install -it magento2web bash tests/testsuite-parallel.sh 16"
-      timeout: 2700
+      timeout: 7200
