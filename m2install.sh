@@ -1329,7 +1329,7 @@ function configurePWA()
         CMD="curl -s -o .htaccess https://raw.githubusercontent.com/magento/magento2/2.4.3/.htaccess"
         runCommand
 
-        ABSOLUTE_PATH=$(pwd)
+        local ABSOLUTE_PATH="$(pwd)"
         echo "PWA setup"
         PWA="$(cat pwa_path.txt)"
         PWA_CONFIG="echo -e '
