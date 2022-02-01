@@ -1328,8 +1328,7 @@ function configurePWA()
     then
         CMD="curl -s -o .htaccess https://raw.githubusercontent.com/magento/magento2/2.4.3/.htaccess"
         runCommand
-
-        ABSOLUTE_PATH=$(pwd)
+        local ABSOLUTE_PATH="$(pwd)"
         echo "PWA setup"
         PWA="$(cat pwa_path.txt)"
         PWA_CONFIG="echo -e '
@@ -1342,6 +1341,7 @@ function configurePWA()
 
         CMD="${PWA_CONFIG} >> pub/.htaccess "
         runCommand
+	      $BIN_PHP bin/magento --quiet config:set "web/upward/path" ${ABSOLUTE_PATH}/${PWA}/upward.yml
 
         CMD="echo -e \"
         putenv('MAGENTO_BACKEND_URL=${BASE_URL}');\n
@@ -1359,9 +1359,6 @@ function configurePWA()
         #this is for Linux
         CMD="sed -i 's=${ORIGIN_URL}=${BASE_URL}=g' ${PWA}/*"
         runCommand
-
-        SQLQUERY="INSERT INTO ${DB_NAME}.$(getTablePrefix)core_config_data (scope, scope_id, path, value) VALUES ('default', 0, 'web/upward/path', '${ABSOLUTE_PATH}/${PWA}/upward.yml');";
-        mysqlQuery
     fi
 }
 
