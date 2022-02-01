@@ -321,7 +321,7 @@ function generateDBName()
         DB_NAME=${DB_USER}_${CURRENT_DIR_NAME}
     fi
 
-    DB_NAME=$(sed -e "s/\//_/g; s/[^a-zA-Z0-9_]//g" <(${BIN_PHP} -r "print strtolower('$DB_NAME');"));
+    DB_NAME=$(sed -e "s/\//_/g; s/-/_/g; s/[^a-zA-Z0-9_]//g" <(${BIN_PHP} -r "print strtolower('$DB_NAME');"));
 }
 
 function prepareBasePath()
