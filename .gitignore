@@ -3,3 +3,6 @@
 post-deploy
 m2install.csv
 error.csv
+infra/terraform/id_rsa.pem
+infra/ansible/secrets.yaml
+infra/workflow-secrets.env

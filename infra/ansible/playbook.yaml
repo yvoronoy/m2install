@@ -1,0 +1,86 @@
+# Ansible playbook AWS - install docker (2021)
+---
+- name: "AWS - Install docker"
+  hosts: all
+  vars:
+    magento2docker_path: /home/ec2-user/magento2docker
+    dc: /usr/local/bin/docker-compose
+  remote_user: ec2-user
+  become: yes
+
+  tasks:
+    - name: Wait for connection
+      wait_for_connection:
+        timeout: 30
+    - name: Install Docker
+      yum:
+        name: 
+          - docker
+          - git
+        state: "present"
+    - name: Launch Docker
+      service:
+        name: "docker"
+        state: "started"
+    - name: Install docker-compose
+      remote_user: ubuntu
+      get_url: 
+        url : https://github.com/docker/compose/releases/download/1.25.1-rc1/docker-compose-Linux-x86_64
+        dest: "{{ dc }}"
+        mode: 'u+x,g+x'
+
+    - name: Delete existing codebase repository
+      file:
+        path: "{{ magento2docker_path }}"
+        state: absent
+    - name: Delete existing codebase repository
+      file:
+        path: "/home/ec2-user/m2install"
+        state: absent
+    - name: Clone Repo
+      git:
+        repo: https://github.com/yvoronoy/magento2docker.git
+        dest: "{{ magento2docker_path }}"
+        version: master
+        accept_hostkey: yes
+        force: yes
+        clone: yes
+        update: yes
+    - name: Archive Src on runner node
+      archive:
+        path: "../../../m2install"
+        dest: "/tmp/m2install.tgz"
+      delegate_to: localhost
+      become: false
+    - name: Copy Src
+      unarchive:
+        src: "/tmp/m2install.tgz"
+        dest: /home/ec2-user
+    - name: Load secrets
+      include_vars:
+        file: secrets.yaml
+    - name: Update Composer Keys
+      template:
+        src: templates/composer/auth.json.j2
+        dest: /home/ec2-user/magento2docker/env/etc/composer/auth.json
+        force: yes
+    - name: Update gitconfig file
+      command: "cp /home/ec2-user/magento2docker/env/etc/git/gitconfig.example /home/ec2-user/magento2docker/env/etc/git/gitconfig"
+    - name: Switch php version
+      command: "bash -c 'cd {{ magento2docker_path }}/env; make php74 2>&1'"
+    - name: Run docker compose up
+      command: "bash -c 'cd {{ magento2docker_path }}/env; {{ dc }} up -d --build'"
+    - name: Run ES7
+      command: "bash -c 'cd {{ magento2docker_path }}/env/additional/elasticsearch7 && {{ dc }}  up -d'"
+    - name: Run ES6
+      command: "bash -c 'cd {{ magento2docker_path }}/env/additional/elasticsearch6 && {{ dc }}  up -d'"
+    - name: Clean up Inside Docker 
+      command: 'docker exec -u magento -it magento2web find . -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;'
+    - name: Clone m2install
+      command: "docker cp /home/ec2-user/m2install magento2web:/var/www/html"
+    - name: RUN Unit TEST
+      command: "docker exec -u magento -w /var/www/html/m2install -it magento2web bash ./m2install.sh --test"
+      timeout: 600
+    - name: RUN FUNCTIONAL TEST
+      command: "docker exec -u magento -w /var/www/html/m2install -it magento2web bash tests/testsuite-parallel.sh 16"
+      timeout: 7200

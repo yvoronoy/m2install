@@ -7,7 +7,7 @@ mkdir -p dev/joe
 cd dev/joe
 
 echo 'BASE_PATH="dev/joe"' > ../.m2install.conf
-echo "HTTP_HOST=http://$CURRENT_DIR_NAME.127.0.0.1.xip.io/" >> ../.m2install.conf
+echo "HTTP_HOST=http://$CURRENT_DIR_NAME.127.0.0.1.nip.io/" >> ../.m2install.conf
 echo 'SEARCH_ENGINE_ELASTICSEARCH7_HOST="magento2elastic7"' >> ../.m2install.conf
 echo 'SEARCH_ENGINE_ELASTICSEARCH7_PORT="9207"' >> ../.m2install.conf
 echo 'SEARCH_ENGINE_ELASTICSEARCH6_HOST="magento2elastic6"' >> ../.m2install.conf

@@ -1,4 +1,4 @@
-HTTP_HOST=http://${CURRENT_DIR_NAME}.127.0.0.1.xip.io/
+HTTP_HOST=http://${CURRENT_DIR_NAME}.127.0.0.1.nip.io/
 BASE_PATH=/
 DB_HOST=db
 DB_USER=root

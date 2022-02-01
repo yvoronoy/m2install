@@ -8,7 +8,7 @@ mkdir -p "$BP"
 cd "$BP"
 CONFIG_BP_VALUE="BASE_PATH=$BP"
 echo "$CONFIG_BP_VALUE" > ../.m2install.conf
-echo "HTTP_HOST=http://$CURRENT_DIR_NAME.127.0.0.1.xip.io/" >> ../.m2install.conf
+echo "HTTP_HOST=http://$CURRENT_DIR_NAME.127.0.0.1.nip.io/" >> ../.m2install.conf
 
 echo 'SEARCH_ENGINE_ELASTICSEARCH7_HOST=' >> ../.m2install.conf
 echo 'SEARCH_ENGINE_ELASTICSEARCH7_PORT=' >> ../.m2install.conf

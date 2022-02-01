@@ -33,7 +33,7 @@ DB_PASSWORD=
 ELASTICSEARCH_HOST=
 ELASTICSEARCH_PORT=
 
-MAGENTO_VERSION=2.4.3
+MAGENTO_VERSION=2.3.7
 
 DB_NAME=
 USE_SAMPLE_DATA=
@@ -1328,7 +1328,6 @@ function configurePWA()
     then
         CMD="curl -s -o .htaccess https://raw.githubusercontent.com/magento/magento2/2.4.3/.htaccess"
         runCommand
-
         local ABSOLUTE_PATH="$(pwd)"
         echo "PWA setup"
         PWA="$(cat pwa_path.txt)"
@@ -1342,8 +1341,7 @@ function configurePWA()
 
         CMD="${PWA_CONFIG} >> pub/.htaccess "
         runCommand
-	
-	$BIN_PHP bin/magento --quiet config:set "web/upward/path" ${ABSOLUTE_PATH}/${PWA}/upward.yml
+	      $BIN_PHP bin/magento --quiet config:set "web/upward/path" ${ABSOLUTE_PATH}/${PWA}/upward.yml
 
         CMD="echo -e \"
         putenv('MAGENTO_BACKEND_URL=${BASE_URL}');\n
@@ -2573,7 +2571,7 @@ function parseMagentoVersion()
   else
     valueToParse="$(${BIN_PHP} bin/magento -V)"
   fi
-  echo "$valueToParse" | grep -oh "[0-9\.-]*p*[0-9]*" | head -n1
+  echo "$valueToParse" | grep -oEh "[0-9\.-]+p*[0-9]*" | head -n1
 }
 
 

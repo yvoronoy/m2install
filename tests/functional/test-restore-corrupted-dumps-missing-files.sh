@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 source tests/functional.sh
-OUTPUT=$(${BIN_M2INSTALL} --force --source composer -v 2.3.4 --ee 2>error.log)
+OUTPUT=$(${BIN_M2INSTALL} --force --source composer -v 2.3.7 --ee 2>error.log)
 
 php bin/magento config:set system/backup/functionality_enabled 1
 
