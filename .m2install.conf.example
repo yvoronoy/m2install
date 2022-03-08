@@ -1,5 +1,5 @@
 HTTP_HOST=http://${CURRENT_DIR_NAME}.127.0.0.1.nip.io/
-BASE_PATH=/pub/
+BASE_PATH=/
 DB_HOST=db
 DB_USER=root
 DB_PASSWORD=

@@ -82,5 +82,5 @@
       command: "docker exec -u magento -w /var/www/html/m2install -it magento2web bash ./m2install.sh --test"
       timeout: 600
     - name: RUN FUNCTIONAL TEST
-      command: "docker exec -u magento -w /var/www/html/m2install -it magento2web bash tests/testsuite-parallel.sh 16"
+      command: "docker exec -u magento -w /var/www/html/m2install -it magento2web bash tests/testsuite.sh"
       timeout: 7200
