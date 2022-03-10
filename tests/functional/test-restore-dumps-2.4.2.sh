@@ -27,6 +27,6 @@ assertNotContains "$RESTORE_OUTPUT" "The following files are missing: index.php"
 assertContains "$RESTORE_OUTPUT" "Updating ElasticSearch Configuration magento2elastic7:9207"
 assertContains "$RESTORE_OUTPUT" "To see products on storefront run: php bin/magento indexer:reindex catalogsearch_fulltext"
 
-assertEqual $([[ -f "index.php" ]])
-assertNotContains $(cat .htaccess) "RewriteRule .* /pub/$0 [L]"
+assertEqual "$([[ -f "index.php" ]])"
+assertNotContains $(cat .htaccess)" "RewriteRule .* /pub/$0 [L]" "Requests shoudnt be rewritten"
 
