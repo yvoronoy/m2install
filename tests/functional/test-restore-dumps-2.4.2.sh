@@ -28,4 +28,5 @@ assertContains "$RESTORE_OUTPUT" "Updating ElasticSearch Configuration magento2e
 assertContains "$RESTORE_OUTPUT" "To see products on storefront run: php bin/magento indexer:reindex catalogsearch_fulltext"
 
 assertEqual "$([[ -f "index.php" ]])"
+assertNotContains "$(cat .htaccess)" "RewriteRule .* /pub/$0 [L]" "Requests shoudnt be rewritten"
 
