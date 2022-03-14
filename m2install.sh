@@ -2703,7 +2703,6 @@ function main()
     else
         magentoInstallAction;
     fi
-
     addStep "afterInstall"
     executeSteps "${STEPS[@]}"
 
