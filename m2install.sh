@@ -362,6 +362,11 @@ function prepareBaseURL()
 
 function isPubRequired()
 {
+  if versionIsHigherThan "$(getMagentoVersion)" "2.4.2"
+  then
+    return 0
+  fi
+
   if checkIfBasedOnDevelopBranch
   then
     return 0
@@ -2148,6 +2153,15 @@ function afterInstall()
     then
         appConfigImport
     fi
+
+    if isPubRequired
+    then
+      CMD="sed -i '/RewriteRule\ .*\ \/pub\/\$0 \[L\]/d' .htaccess"
+      runCommand
+      CMD="cp pub/index.php index.php && sed -i 's/\/..\/app\/bootstrap.php/\/app\/bootstrap.php/g' index.php"
+      runCommand
+    fi
+
     warmCache
 }
 
