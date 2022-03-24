@@ -1850,7 +1850,7 @@ function getMagentoVersion()
   if [[ ! -f composer.lock ]] && foundSupportBackupFiles
   then
     EXTRACT_FILENAME="$(getCodeDumpFilename)"
-    extract "composer.lock"
+    extract "composer.lock" > /dev/null
   fi
 
   [[ -f composer.lock ]] && version=$(parseMagentoVersion "$(grep '\"name\": \"magento/product-community\|enterprise-edition\"' composer.lock -A1 | tail -n1)")
