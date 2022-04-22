@@ -764,7 +764,7 @@ function restore_db()
 function validateDatabaseDumpDataExists()
 {
   local isError=
-  if [ -z "$(getAllTables 'store')" ]
+  if [ -z "$(getAllTables \"$(getTablePrefix)store\")" ]
   then
     printError "The store table is not found"
     isError="1"
