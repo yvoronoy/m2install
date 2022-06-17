@@ -726,6 +726,45 @@ EOF
     configSavePath=
 }
 
+function dropES()
+{
+    # in general, the assumption is to take no care about if an index is deleted
+    # the goal here is only to request index deletion for any valid config we can find
+
+    local es_engine es_host es_port es_prefix elasticsuite version versions=("" "5" "6" "7")
+
+    for version in "${versions[@]}"
+    do
+        es_host=$(getConfig "catalog/search/elasticsearch${version}_server_hostname" "value");
+        es_port=$(getConfig "catalog/search/elasticsearch${version}_server_port" "value");
+        es_prefix=$(getConfig "catalog/search/elasticsearch${version}_index_prefix" "value");
+        dropEsIndex "$es_host" "$es_port" "$es_prefix"
+    done
+
+    es_host=$(getConfig "amasty_elastic/connection/server_hostname" "value");
+    es_port=$(getConfig "amasty_elastic/connection/server_port" "value");
+    es_prefix=$(getConfig "amasty_elastic/connection/index_prefix" "value");
+    dropEsIndex "$es_host" "$es_port" "$es_prefix"
+
+    elasticsuite=$(getConfig "smile_elasticsuite_core_base_settings/es_client/servers" "value");
+    es_host=${elasticsuite%%:*}
+    es_port=${elasticsuite/*:/}
+    es_prefix=$(getConfig "smile_elasticsuite_core_base_settings/indices_settings/alias" "value");
+    dropEsIndex "$es_host" "$es_port" "$es_prefix"
+}
+
+function dropEsIndex()
+{
+    local host="$1" port="$2" index="$3"
+
+    if [[ -z "$host" ]] || [[ -z "$port" ]] || [[ -z "$index" ]]; then
+        return 0
+    fi
+
+    curl -S -s -o /dev/null -X DELETE "$host:$port/$index*"
+    return 0
+}
+
 function dropDB()
 {
     SQLQUERY="DROP DATABASE IF EXISTS ${DB_NAME}";
@@ -2244,6 +2283,7 @@ EOF
 
 function uninstallAction()
 {
+  dropES
   cleanupCurrentDirectory
   dropDB
 }
