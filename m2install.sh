@@ -40,6 +40,8 @@ USE_SAMPLE_DATA=
 EE_PATH=magento2ee
 INSTALL_EE=
 INSTALL_B2B=
+INSTALL_PR=
+INSTALL_LS=
 CONFIG_NAME=.m2install.conf
 USE_WIZARD=1
 
@@ -483,8 +485,8 @@ function foundSupportBackupFiles()
 function validateDatabaseDumpArchive()
 {
   local minSizeLimit=2
-  local dbDumpFilenamePath="$(getDbDumpFilename)" 
-  local codeDumpFilenamePath="$(getCodeDumpFilename)" 
+  local dbDumpFilenamePath="$(getDbDumpFilename)"
+  local codeDumpFilenamePath="$(getCodeDumpFilename)"
   local dbDumpFileSize="$(wc -c ${dbDumpFilenamePath} | awk '{print $1}')"
   local codeDumpFileSize="$(wc -c ${codeDumpFilenamePath} | awk '{print $1}')"
   [ "$dbDumpFileSize" -lt "$minSizeLimit" ] && { printErrorAndExit 255 "MySQL DB Dump is corrupt. For on-prem, please request a new MySQL Dump from the merchant and ensure it is created using the mysqldump utility and not bin/magento support:db:backup. For Magento-Cloud, please regenerate a new MySQL Dump by using the ZD Dump Widget / cloud-teleport."; }
@@ -540,6 +542,14 @@ function noSourceWizard()
     then
          INSTALL_B2B=1
     fi
+    if askConfirmation "Do you want install Magento Product Recommendations (y/N)"
+    then
+         INSTALL_PR=1
+    fi
+    if askConfirmation "Do you want install Magento Live Search (y/N)"
+    then
+         INSTALL_LS=1
+    fi
 }
 
 function printConfirmation()
@@ -592,6 +602,14 @@ function printConfirmation()
         printString "Magento B2B will be installed."
     else
         printString "Magento B2B will NOT be installed."
+    fi
+    if [ "${INSTALL_PR}" ]
+    then
+        printString "Magento Product Recommendations will be installed."
+    fi
+    if [ "${INSTALL_LS}" ]
+    then
+        printString "Magento Live Search will be installed."
     fi
 }
 
@@ -676,6 +694,8 @@ DB_PASSWORD=$DB_PASSWORD
 MAGENTO_VERSION=$MAGENTO_VERSION
 INSTALL_EE=$INSTALL_EE
 INSTALL_B2B=$INSTALL_B2B
+INSTALL_PR=$INSTALL_PR
+INSTALL_LS=$INSTALL_LS
 GIT_CE_REPO=$GIT_CE_REPO
 GIT_EE_REPO=$GIT_EE_REPO
 MAGE_MODE=$MAGE_MODE
@@ -1095,7 +1115,7 @@ function configure_db()
   printString "Updating Database Configuration"
   setConfig 'web/secure/base_url' "${BASE_URL}";
   setConfig 'web/unsecure/base_url' "${BASE_URL}";
-  setConfig 'web/secure/offloader_header' 'X-Forwarded-Proto';  
+  setConfig 'web/secure/offloader_header' 'X-Forwarded-Proto';
   setConfig 'google/analytics/active' '0';
   setConfig 'google/adwords/active' '0';
   setConfig 'msp_securitysuite_twofactorauth/general/enabled' '0';
@@ -1640,7 +1660,7 @@ function installLiveSearch()
     runCommand
   fi
 
-  $BIN_PHP $BIN_MAGE module:status | grep -E 'Magento_Elasticsearch*|Magento_AdvancedSearch|Magento_InventoryElasticsearch' | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP $BIN_MAGE module:disable
+  $BIN_PHP $BIN_MAGE module:status | grep -E 'Magento_Elasticsearch*|Magento_InventoryElasticsearch' | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP $BIN_MAGE module:disable
   $BIN_PHP $BIN_MAGE module:status | grep Magento_LiveSearch | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP $BIN_MAGE module:enable
   $BIN_PHP $BIN_MAGE --quiet config:set  'catalog/search/engine' NULL
   $BIN_PHP $BIN_MAGE module:status | grep -E '.*ServicesId*|.*ServicesConnector*|.*DataExporter*|.*SaaS*|.*DataServices*'| xargs $BIN_PHP $BIN_MAGE  module:enable
@@ -1679,6 +1699,24 @@ function installB2B()
     fi
     CMD="${BIN_PHP} ${BIN_MAGE} setup:upgrade"
     runCommand
+}
+
+function installPrex()
+{
+    CMD="${BIN_PHP} ${BIN_COMPOSER} require magento/product-recommendations"
+    runCommand
+
+    CMD="${BIN_PHP} ${BIN_MAGE} setup:upgrade"
+    runCommand
+    cat <<endmessage
+${yellow}
+####################################################################################
+Warning: Product Recommendations has been enabled.
+Please proceed to the API keys configuration and Catalog data synchronization:
+https://docs.magento.com/user-guide/configuration/services/saas.html
+####################################################################################
+${default}
+endmessage
 }
 
 function getB2Bversion()
@@ -1741,7 +1779,7 @@ function installMagento()
         # Install Bundled Extensions for version 2.2.+
         if [[ $MAGENTO_VERSION =~ ^2\.[^01]\..* ]]
         then
-            for be in "${BUNDLED_EXTENSION[@]}" 
+            for be in "${BUNDLED_EXTENSION[@]}"
             do
                 CMD="composer require --quiet ${be}"
                 runCommand
@@ -1953,7 +1991,14 @@ showComposerWizzard()
     then
         INSTALL_B2B=1
     fi
-
+    if askConfirmation "Do you want install Magento Product Recommendations (y/N)"
+    then
+        INSTALL_PR=1
+    fi
+    if askConfirmation "Do you want install Magento Live Search (y/N)"
+    then
+        INSTALL_LS=1
+    fi
 }
 
 printComposerConfirmation()
@@ -1985,6 +2030,10 @@ function showWizzardGit()
     if [[ "$INSTALL_EE" ]] && askConfirmation "Do you want install B2B Extension (y/N)"
     then
         INSTALL_B2B=1
+    fi
+    if askConfirmation "Do you want install Magento Product Recommendations (y/N)"
+    then
+        INSTALL_PR=1
     fi
 }
 
@@ -2093,7 +2142,7 @@ function isInputNegative()
 function validateStep()
 {
     local _step=$1;
-    local _steps="restore_db restore_code configure_db configure_files configure installB2B installLiveSearch add_remote"
+    local _steps="restore_db restore_code configure_db configure_files configure installB2B installPrex installLiveSearch add_remote"
     if echo "$_steps" | grep -q "$_step"
     then
         if type -t "$_step" &>/dev/null
@@ -2260,6 +2309,8 @@ Options:
     --sample-data (yes, no)              Install sample data.
     --ee                                 Install Enterprise Edition.
     --b2b                                Install B2B Extension.
+    --prex                               Install Product Recommendations.
+    --live-search                        Install Live Search
     -v, --version                        Magento Version - it means: Composer version or GIT Branch
     --mode (dev, prod)                   Magento Mode. Dev mode does not generate static & di content.
     --quiet                              Quiet mode. Suppress output all commands
@@ -2268,6 +2319,7 @@ Options:
     --step (restore_code,restore_db      Specify step through comma without spaces.
         configure_db,configure_files     - Example: $(basename "$0") --step restore_db,configure_db
         installB2B --b2b                 - Example: $(basename "$0") --step installB2B --b2b
+        installPrex                      - Example: $(basename "$0") --step installPrex
         installLiveSearch)               - Example: $(basename "$0") --step installLiveSearch
     --restore-table                      Restore only the specific table from DB dumps
     --debug                              Enable debug mode
@@ -2327,6 +2379,12 @@ function processOptions()
                     B2B_VERSION="$2"
                     shift
                 fi
+            ;;
+            --prex)
+                INSTALL_PR=1
+            ;;
+            --live-search)
+                INSTALL_LS=1
             ;;
             -b|--git-branch)
                 # @DEPRECATED. Use -v or --version instead
@@ -2480,6 +2538,14 @@ function magentoInstallAction()
     if [[ "$INSTALL_EE" ]] && [[ "$INSTALL_B2B" ]]
     then
         addStep "installB2B"
+    fi
+    if [[ "$INSTALL_PR" ]]
+    then
+        addStep "installPrex"
+    fi
+    if [[ "$INSTALL_LS" ]]
+    then
+        addStep "installLiveSearch"
     fi
 }
 
