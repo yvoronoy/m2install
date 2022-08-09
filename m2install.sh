@@ -1662,8 +1662,8 @@ function installLiveSearch()
 
   $BIN_PHP $BIN_MAGE module:status | grep -E 'Magento_Elasticsearch*|Magento_InventoryElasticsearch' | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP $BIN_MAGE module:disable
   $BIN_PHP $BIN_MAGE module:status | grep Magento_LiveSearch | grep -v List | grep -v None | grep -v -e '^$' | xargs $BIN_PHP $BIN_MAGE module:enable
+  $BIN_PHP $BIN_MAGE module:status | grep -E '.*QueryXml*|.*GraphQlServer*|.*ServicesId*|.*ServicesConnector*|.*DataExporter*|.*SaaS*|.*DataServices*'| xargs $BIN_PHP $BIN_MAGE  module:enable
   $BIN_PHP $BIN_MAGE --quiet config:set  'catalog/search/engine' NULL
-  $BIN_PHP $BIN_MAGE module:status | grep -E '.*ServicesId*|.*ServicesConnector*|.*DataExporter*|.*SaaS*|.*DataServices*'| xargs $BIN_PHP $BIN_MAGE  module:enable
   CMD="${BIN_PHP} ${BIN_MAGE} setup:upgrade"
   runCommand
   cat <<endmessage
