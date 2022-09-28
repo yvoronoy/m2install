@@ -561,7 +561,7 @@ function printConfirmation()
     printString "BASE PATH: ${BASE_PATH}"
     printString "DB PARAM: ${DB_USER}@${DB_HOST}"
     printString "DB NAME: ${DB_NAME}"
-    printString "DB PASSWORD: ${DB_PASSWORD}"
+    printString "DB PASSWORD: ********"
     printString "MAGE MODE: ${MAGE_MODE}"
     printString "BACKEND FRONTNAME: ${BACKEND_FRONTNAME}"
     printString "ADMIN NAME: ${ADMIN_NAME}"
