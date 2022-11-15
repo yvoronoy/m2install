@@ -93,7 +93,7 @@ M2INSTALL_CSV_LOG=${M2INSTALL_CSV_LOG:-}
 
 function printVersion()
 {
-    printString "1.0.5"
+    printString "1.0.6"
 }
 
 function getScriptDirectory()
@@ -1246,6 +1246,7 @@ function setPaymentConfigToInactive()
   setConfig 'payment/payflowpro/active' '0';
   setConfig 'payment/paypal_payment_pro/active' '0';
   setConfig 'payment/payflow_link/active' '0';
+  setConfig 'payment/stripe_payments/active' '0';
 }
 
 function deletePaymentConfig()
@@ -1312,6 +1313,7 @@ function removeConfigByKeyword()
   deleteConfig '%secret%' 'LIKE';
   deleteConfig '%application_key%' 'LIKE';
   deleteConfig '%token%' 'LIKE';
+  deleteConfig '%payment/stripe%' 'LIKE';
 }
 
 function resetAdminPassword()
