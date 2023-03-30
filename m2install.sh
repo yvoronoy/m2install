@@ -1273,6 +1273,9 @@ function deletePaymentConfig()
   deleteConfig 'payment/payflow_advanced/pwd';
   deleteConfig 'payment/payflowpro/pwd';
   deleteConfig 'payment/payflow_link/pwd';
+  deleteConfig 'payment/payment_methods/sandbox_merchant_id';
+  deleteConfig 'payment/payment_methods/production_merchant_id';
+  deleteConfig 'payment/payment_methods/method';
 }
 
 function removeConfigByKeyword()
